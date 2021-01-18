@@ -1,7 +1,6 @@
 import pytest
 
-from results.impl import SqlAlchemyResultsConnector
-
+from results.impl.sqlalchemy import SqlAlchemyResultsConnector
 target = ':memory:'
 
 

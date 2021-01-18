@@ -1,4 +1,5 @@
 from results.ORM import *
+from fixtures.db import results_connector
 
 
 def test_save_record(results_connector):

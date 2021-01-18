@@ -12,7 +12,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.util.compat import contextmanager
 from sqlalchemy.sql.expression import func
 
-from results import BaseResultsConnector, DataReaderQuery, Result, Node, Graph, Metadatum
+from results.api import BaseResultsConnector, DataReaderQuery, Result, Node, Graph, Metadatum
 
 Base = declarative_base()
 

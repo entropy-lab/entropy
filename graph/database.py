@@ -2,8 +2,8 @@ from __future__ import annotations
 
 
 from .environment import env_resolve
-from results.impl import SqlAlchemyResultsConnector, NodeTypes
-from results import Graph, Node, Result, Metadatum
+from results.impl.sqlalchemy import SqlAlchemyResultsConnector, NodeTypes
+from results.api import Graph, Node, Result, Metadatum
 from graph import *
 
 from inspect import isfunction, getsource

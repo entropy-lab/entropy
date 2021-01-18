@@ -564,6 +564,7 @@ class QuaNode(ProgramNode):
         for var in self.output_vars:
             try:
                 # TODO: Make sure it works for all ways of saving data in qua
+                self._job.result_handles.wait_for_all_values()
                 self._result[var] = getattr(self._job.result_handles, var).fetch_all()['value']
             except AttributeError:
                 print_red(f"WARNING Could not fetch variable '{var}' from the job results of node <{self.label}>")

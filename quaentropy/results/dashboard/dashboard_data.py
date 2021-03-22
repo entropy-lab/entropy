@@ -61,9 +61,9 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
         # do you best otherwise
         if len(plots) == 0:
             result = self._db.get_last_result(exp_id)
-            print(result.label)
+
             if result:
-                print(result.label)
+
                 data = np.array(result.data)
                 plots.append(
                     PlotRecord(

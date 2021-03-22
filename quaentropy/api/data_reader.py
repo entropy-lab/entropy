@@ -69,7 +69,7 @@ class PlotRecord:
     label: str
     story: str
     plot_data: Any = None
-    data_type: PlotDataType = PlotDataType.unkown
+    data_type: PlotDataType = PlotDataType.unknown
     bokeh_generator: Optional[BokehPlotGenerator] = None
     label: Optional[str] = None
     story: Optional[str] = None

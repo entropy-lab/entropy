@@ -59,7 +59,7 @@ class Debug:
 
 
 class PlotDataType(Enum):
-    unkown = 0
+    unknown = 0
     np_2d = 1
     py_2d = 2
 

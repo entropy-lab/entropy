@@ -1,0 +1,56 @@
+[tool.poetry]
+name = "quaentropy"
+version = "0.1.0-alpha2"
+description = ""
+authors = [
+    "Tal Shani <tal@quantum-machines.co>",
+    "Guy Kerem <guy@quantum-machines.co>",
+    "Ilan Mitnikov <ilan@quantum-machines.co>",
+    "Gal Winer <gal@quantum-machines.co>"
+]
+packages = [
+    { include = "quaentropy" }
+]
+include = [
+]
+exclude = [
+    "**/tests/**",
+]
+
+[tool.poetry.dependencies]
+python = "^3.7.1"
+colorama = "^0.4.4"
+sqlalchemy = "^1.4.0"
+Jinja2 = "^2.11.3"
+qcodes = "^0.23.0"
+PyVISA-py = "^0.5.2"
+panel = "^0.11.1"
+bokeh = "^2.3.0"
+param = "^1.10.1"
+dill = "^0.3.3"
+pandas = "^1.2.3"
+deepdiff = "^5.2.3"
+numpy = "^1.20.1"
+jsonpickle = "^2.0.0"
+graphviz = "^0.16"
+xarray = "^0.17.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.2"
+black = "^20.8b1"
+flake8 = "^3.9.0"
+flake8-bugbear = "^21.3.2"
+pytest-repeat = "^0.9.1"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]
+
+[tool.black]
+target-version = ["py37"]
+line-length = 88
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

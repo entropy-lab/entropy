@@ -6,6 +6,7 @@ import numpy
 import pandas as pd
 import panel as pn
 import param
+from bokeh.models import CheckboxButtonGroup
 from bokeh.palettes import Dark2_5 as palette
 from bokeh.plotting import Figure
 
@@ -23,6 +24,7 @@ colors = itertools.cycle(palette)
 class Dashboard(param.Parameterized):
     def __init__(self, **params):
         super().__init__(**params)
+        self._selected_plots = set()
         # self.data_reader = MockDashboardDataReader()
         connector = SqlalchemySqlitePandasConnector("my_db.db", False)
         self.dashboard_data_reader = SqlalchemyDashboardDataReader(connector)
@@ -51,6 +53,7 @@ class Dashboard(param.Parameterized):
         self.add_plot_to_combined = pn.widgets.Button(name="add plot")
         self.add_plot_to_combined.on_click(self.add_plot_to_combined_callback)
 
+
         self.clear_plots = pn.widgets.Button(name="clear plots")
         self.clear_plots.on_click(self.clear_button_callback)
         self.add_plot_figure = Figure(name="",tools="pan,lasso_select,box_select,crosshair,xwheel_zoom,ywheel_zoom,zoom_in,reset,save,hover")
@@ -70,6 +73,14 @@ class Dashboard(param.Parameterized):
     def add_plot_to_combined_callback(self, *events):
 
         plot: PlotRecord = self.plot_tabs_records[self.plot_tabs.active]
+        self._selected_plots.add(plot.experiment_id)
+        plot.bokeh_generator.plot_in_figure(
+            self.add_plot_figure, plot.plot_data, plot.data_type, color=next(colors), label=f"{plot.experiment_id}"
+        )
+        self.add_plot_figure.legend.click_policy = "hide"
+
+    def toggle_plug_in_combined(self, plot: PlotRecord):
+        self._selected_plots.add(plot.experiment_id)
         plot.bokeh_generator.plot_in_figure(
             self.add_plot_figure, plot.plot_data, plot.data_type, color=next(colors), label=f"{plot.experiment_id}"
         )

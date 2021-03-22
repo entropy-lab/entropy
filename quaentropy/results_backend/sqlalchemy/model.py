@@ -33,9 +33,7 @@ class ExperimentTable(Base):
     script = Column(String)
     start_time = Column(DATETIME, nullable=False)
     end_time = Column(DATETIME)
-    user = Column(
-        String
-    )
+    user = Column(String)
     story = Column(String)
     results = relationship("ResultTable", cascade="all, delete-orphan")
     experiment_metadata = relationship("MetadataTable", cascade="all, delete-orphan")

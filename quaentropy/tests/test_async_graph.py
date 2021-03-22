@@ -3,6 +3,7 @@ import asyncio
 import numpy as np
 from bokeh.io import save
 from bokeh.plotting import Figure
+
 from quaentropy.api.graph import Graph
 from quaentropy.graph_experiment import GraphExperiment, PyNode, pynode
 
@@ -30,6 +31,7 @@ async def c():
     await asyncio.sleep(rest)
     print(f"Node c finished resting")
     return {"z": rest}
+
 
 async def d(x, y):
     print(f"Node d resting for {x / y}")
@@ -73,7 +75,7 @@ async def decor():
     return {"x": rest}
 
 
-@pynode("b", input_vars={'x': decor.outputs['x']}, output_vars={"x"})
+@pynode("b", input_vars={"x": decor.outputs["x"]}, output_vars={"x"})
 async def decor1(x):
     rest = 1
     print(f"Node b resting for {rest}")
@@ -123,7 +125,7 @@ def test_async_graph():
     )  # todo must run after
     # e2 = PyNode('e', e, {'y_z': e1.output('y_z'), 'x': a1.output('x')}, {'y_z'})
 
-    g = Graph([a1, b1, c1, d1, d2, e1], "hello", plot_outputs={"y_z"})
+    g = Graph({a1, b1, c1, d1, d2, e1}, "hello", plot_outputs={"y_z"})
     print()
     dot = g.export_dot_graph()
     print(dot)

@@ -40,7 +40,11 @@ class MockDashboardDataReader(DashboardDataReader):
 
     def get_plot_data(self, exp_id: int) -> List[PlotRecord]:
         # todo create numpy?
-        return {"x": np.random.random(10) - 0.5, "y": np.random.random(10) - 0.5,"label":exp_id}
+        return {
+            "x": np.random.random(10) - 0.5,
+            "y": np.random.random(10) - 0.5,
+            "label": exp_id,
+        }
 
 
 class SqlalchemyDashboardDataReader(DashboardDataReader):

@@ -65,7 +65,6 @@ class PyNode(Node):
     ) -> Dict[str, Any]:
         function_parameters = {k: v for d in parents_results for k, v in d.items()}
 
-
         sig = signature(self._program)
 
         # args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults, annotations = inspect.getfullargspec(foo)

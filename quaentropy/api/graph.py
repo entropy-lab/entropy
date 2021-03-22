@@ -17,11 +17,11 @@ class Output:
 
 class Node(ABC):
     def __init__(
-            self,
-            label: str = None,
-            input_vars: Dict[str, Output] = None,
-            output_vars: Set[str] = None,
-            must_run_after: Set[Node] = None
+        self,
+        label: str = None,
+        input_vars: Dict[str, Output] = None,
+        output_vars: Set[str] = None,
+        must_run_after: Set[Node] = None,
     ):
         self._label = label
         self._input_vars = input_vars
@@ -58,22 +58,22 @@ class Node(ABC):
 
     @abstractmethod
     async def execute(
-            self,
-            parents_results: List[Dict[str, Any]],
-            context: ExperimentRunningContext,
-            node_execution_id: int,
-            depth,
-            strategy,
+        self,
+        parents_results: List[Dict[str, Any]],
+        context: ExperimentRunningContext,
+        node_execution_id: int,
+        depth,
+        strategy,
     ) -> Dict[str, Any]:
         pass
 
 
 class Graph:
     def __init__(
-            self,
-            nodes: Set[Node],
-            label: str = None,
-            plot_outputs: Optional[Set[str]] = None,
+        self,
+        nodes: Set[Node],
+        label: str = None,
+        plot_outputs: Optional[Set[str]] = None,
     ) -> None:
         super().__init__()
         self.label: str = label

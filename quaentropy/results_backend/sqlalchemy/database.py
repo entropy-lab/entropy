@@ -103,9 +103,7 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
             if query:
                 return query.to_record()
 
-    def get_result(
-        self, experiment_id: int, label: str
-    ) -> Optional[ResultRecord]:
+    def get_result(self, experiment_id: int, label: str) -> Optional[ResultRecord]:
         with self._session_maker() as sess:
             query = (
                 sess.query(ResultTable)
@@ -139,9 +137,7 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
             if query:
                 return query.to_record()
 
-    def get_all_results_with_label(
-        self, exp_id, name
-    ) -> DataFrame:
+    def get_all_results_with_label(self, exp_id, name) -> DataFrame:
         with self._session_maker() as sess:
             query = (
                 sess.query(ResultTable)

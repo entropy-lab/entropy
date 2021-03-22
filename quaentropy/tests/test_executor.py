@@ -30,11 +30,7 @@ def do_something2():
 
 
 def an_experiment(experiment: ExperimentRunningContext):
-    scope = experiment.get_instrument(
-        "scope_1", MockScope
-    )  # how to type hint? how user will see the dynamic loaded funcions?
-    # option to save the discoverable driver to a file so type hints will work?
-
+    scope = experiment.get_instrument("scope_1")
     a1 = do_something()
     scope.get_trig()
     for i in range(30):
@@ -67,9 +63,7 @@ def an_experiment(experiment: ExperimentRunningContext):
 
 
 def an_experiment_with_plot(experiment: ExperimentRunningContext):
-    scope = experiment.get_instrument(
-        "scope_1", MockScope
-    )
+    scope = experiment.get_instrument("scope_1")
     a1 = do_something()
     scope.get_trig()
     for i in range(30):
@@ -180,6 +174,7 @@ def test_running_db_and_topology():
         os.remove("db_and_topo.db")
         pass
 
+
 def test_executor_decorator():
     topology = LabTopology()
     topology.add("scope_1", MockScope, "1.1.1.1")
@@ -188,9 +183,7 @@ def test_executor_decorator():
 
     @script_experiment("the best", topology, db)
     def experiment(experiment_runner: ExperimentRunningContext):
-        scope = experiment_runner.get_instrument(
-            "scope_1", MockScope
-        )  # how to type hint? how user will see the dynamic loaded funcions?
+        scope = experiment_runner.get_instrument("scope_1")
         a1 = do_something()
         scope.get_trig()
         experiment_runner.add_result(RawResultData("a_result", a1))

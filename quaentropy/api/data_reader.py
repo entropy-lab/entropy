@@ -100,7 +100,7 @@ class DataReader(ABC):
 
     @abstractmethod
     def get_metadata_record(
-            self, experiment_id: int, label: str
+        self, experiment_id: int, label: str
     ) -> Optional[MetadataRecord]:
         pass
 

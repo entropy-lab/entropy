@@ -148,10 +148,9 @@ def test_async_graph():
         c1 = PyNode("c", c, None, {"z"})
         d1 = PyNode("d", d, {"x": a1.outputs["x"], "y": b1.outputs["y"]}, {"x_y"})
         e1 = PyNode("e", d, {"y": b1.outputs["y"], "z": c1.outputs["z"]}, {"y_z"})
-        g = Graph(label="hello", nodes=[a1, c1, b1, d1, e1])
+        g = Graph(label="hello", nodes={a1, c1, b1, d1, e1})
 
         db = SqlalchemySqlitePandasAndTopologyConnector("here1.db")
-
 
         GraphExperiment(None, g, "graph with qua").run(db)
         print(g.export_dot_graph())

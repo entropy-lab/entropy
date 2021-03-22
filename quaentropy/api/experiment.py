@@ -75,9 +75,7 @@ class Experiment:
 
     def save_instruments_snapshot(self, label: str):
         snapshot = self._used_topology.get_snapshot()
-        self._data_writer.save_metadata(
-            self._id, Metadata(label, 0, snapshot)
-        )
+        self._data_writer.save_metadata(self._id, Metadata(label, 0, snapshot))
 
     def results_reader(self) -> SingleExperimentDataReader:
         if isinstance(self._data_writer, DataReader):
@@ -88,10 +86,10 @@ class Experiment:
 
 class ExperimentDefinition(abc.ABC):
     def __init__(
-            self,
-            topology: Optional[LabTopology],
-            label: Optional[str] = None,
-            story: str = None,
+        self,
+        topology: Optional[LabTopology],
+        label: Optional[str] = None,
+        story: str = None,
     ) -> None:
         super().__init__()
         self._topology: LabTopology = topology

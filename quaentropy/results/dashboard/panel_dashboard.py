@@ -70,7 +70,9 @@ class Dashboard(param.Parameterized):
     def add_plot_to_combined_callback(self, *events):
 
         plot: PlotRecord = self.plot_tabs_records[self.plot_tabs.active]
-        plot.bokeh_generator.plot_in_figure(self.add_plot_figure, plot.plot_data, plot.data_type,color=next(colors))
+        plot.bokeh_generator.plot_in_figure(
+            self.add_plot_figure, plot.plot_data, plot.data_type, color=next(colors)
+        )
 
     def export_to_csv_callback(self, *events):
         sio = StringIO()
@@ -123,10 +125,9 @@ class Dashboard(param.Parameterized):
                     figure = Figure(name=plot.label, title=plot.story)
                     # figure.add_layout(caption2, 'above')
                     bokeh_generator.plot_in_figure(
-                        figure, plot.plot_data, plot.data_type,color='blue')
-                    self.plot_tabs_records.append(
-                        plot
+                        figure, plot.plot_data, plot.data_type, color="blue"
                     )
+                    self.plot_tabs_records.append(plot)
 
                     self.plot_tabs.append(figure)
                 else:

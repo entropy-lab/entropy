@@ -69,7 +69,9 @@ class BokehPlotGenerator(ABC):
         super().__init__()
 
     @abstractmethod
-    def plot_in_figure(self, figure: Figure, data, data_type: PlotDataType, **kwargs) -> Renderer:
+    def plot_in_figure(
+        self, figure: Figure, data, data_type: PlotDataType, **kwargs
+    ) -> Renderer:
         pass
 
 

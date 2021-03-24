@@ -23,11 +23,11 @@ class Driver(ABC):
 
     @staticmethod
     @abstractmethod
-    def deserialize_function(snapshot: str, type: Type):
+    def deserialize_function(snapshot: str, class_object: Type):
         pass
 
     def diff_from_snapshot(self, snapshot: str):
-        copy = self.deserialize_function(snapshot)
+        copy = self.deserialize_function(snapshot, type(self))
         return DeepDiff(self, copy).to_dict()
 
 
@@ -43,10 +43,10 @@ class PickledDriver(Driver):
         return frozen
 
     @staticmethod
-    def deserialize_function(snapshot: str, type: Type):
+    def deserialize_function(snapshot: str, class_object: Type):
         import jsonpickle
 
-        decoded = jsonpickle.decode(snapshot, classes=type)
+        decoded = jsonpickle.decode(snapshot, classes=class_object)
         return decoded
 
 

@@ -52,13 +52,7 @@ class LabTopology:
     def get(self, name: str):
         device = self._get_device(name)
 
-        if device.instance:
-            return device.instance
-        else:
-            logger.info(f"Initialize device {name} from memory")
-            instance = device.type(device.args)
-            device.instance = instance
-            return instance
+        return device.instance
 
     def _get_device(self, name):
         if name in self._drivers:
@@ -70,9 +64,8 @@ class LabTopology:
                 module = self._backend.get_driver_code(name)
                 class_name = self._backend.get_type_name(name)
                 if module and state:
-                    instance = jsonpickle.loads(state)
-                    device = _Lab_Device(name, None, None, instance)
                     scope = {"state": state}
+                    globals()["state"] = state
                     split = class_name.split(".")
                     class_name = split.pop(len(split) - 1)
                     module_name = ".".join(split)
@@ -81,8 +74,8 @@ class LabTopology:
                         f"{class_name}.__module__='{module_name}'\n"
                         f"decoded = {class_name}.deserialize_function(state, {class_name})"
                     )
-                    exec(to_exec, globals(), scope)
-                    instance: Driver = scope["decoded"]
+                    exec(to_exec, globals(), globals())
+                    instance: Driver = globals()["decoded"]
                     logger.info(f"got device {name} from db")
                     device = _LabTopologyDevice(name, None, None, instance)
                     self._drivers[name] = device
@@ -95,19 +88,26 @@ class LabTopology:
             raise KeyError(f"instrument {name} already exist")
         if not issubclass(type, Driver):
             raise TypeError(f"instrument {name} is not an quantropy Driver")
-        self._drivers[name] = _LabTopologyDevice(name, type, args[0])
+        logger.info(f"Initialize device {name}")
+        instance = type(name, *args)
+        self._drivers[name] = _LabTopologyDevice(name, type, args, instance)
         if self._backend:
             self._backend.save_driver(
                 name,
                 inspect.getsource(inspect.getmodule(type)),
                 type.__module__ + "." + type.__name__,
             )
+            state = instance.snapshot(False)
+            self._backend.save_state(
+                name,
+                state
+            )
 
     def add_if_not_exist(self, name, type: Type[T], *args):
         if name not in self._drivers:
             code = self._backend.get_driver_code(name)
             if not code:
-                self.add(name, type, args)
+                self.add(name, type, *args)
 
     def save_states(self):
         if self._backend:

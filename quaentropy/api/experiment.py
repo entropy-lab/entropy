@@ -15,6 +15,7 @@ from quaentropy.api.data_writer import (
 from quaentropy.api.execution import ExperimentExecutor, ExperimentRunningContext
 from quaentropy.api.memory_reader_writer import MemoryOnlyDataReaderWriter
 from quaentropy.instruments.lab_topology import LabTopology, ExperimentTopology
+from quaentropy.logger import logger
 
 
 class Experiment:
@@ -73,6 +74,7 @@ class Experiment:
         self._data_writer.save_experiment_end_data(self._id, end_data)
         if executor.failed:
             raise RuntimeError("failed to execute graph")
+        logger.info("Finished graph execution successfully")
         return success
 
     def save_instruments_snapshot(self, label: str):
@@ -99,13 +101,15 @@ class ExperimentDefinition(abc.ABC):
             self._topology = LabTopology()
         self.label = label
         self.story = story
+        self._kwargs = {}
 
     def get_used_instruments_topology(self) -> ExperimentTopology:
         return ExperimentTopology(self._topology)
 
-    def run(self, db: Optional[DataWriter] = None) -> Experiment:
+    def run(self, db: Optional[DataWriter] = None, **kwargs) -> Experiment:
         if db is None:
             db = MemoryOnlyDataReaderWriter()
+        self._kwargs = kwargs
         experiment = Experiment(self, db)
         experiment.run()
         return experiment

@@ -2,9 +2,10 @@ from quaentropy.instruments.instrument_driver import Instrument
 
 
 class MockScope(Instrument):
-    def __init__(self, name: str):
+    def __init__(self, name: str, address: str):
         super().__init__(name)
         self.index = 0
+        self.address = address
 
     def setup_driver(self):
         pass

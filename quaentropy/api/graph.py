@@ -44,6 +44,12 @@ class Node(ABC):
             output_name: Output(self, output_name) for output_name in self._output_vars
         }
 
+    def add_input(self, name: str, parent_node_output: Output):
+        if name in self._input_vars:
+            raise KeyError(f"Input {name} already exist")
+
+        self._input_vars[name] = parent_node_output
+
     def get_parents(self) -> List[Node]:
         return list(set([var.node for var in self._input_vars.values()])) + list(
             self._must_run_after
@@ -62,8 +68,8 @@ class Node(ABC):
         parents_results: List[Dict[str, Any]],
         context: ExperimentRunningContext,
         node_execution_id: int,
-        depth,
-        strategy,
+        depth_from_last,
+        **kwargs,
     ) -> Dict[str, Any]:
         pass
 

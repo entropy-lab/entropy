@@ -1,14 +1,18 @@
 import asyncio
 import enum
+import sys
+import traceback
 from asyncio import Task
 from datetime import datetime
-from inspect import signature, iscoroutinefunction
+from inspect import signature, iscoroutinefunction, getfullargspec
 from io import BytesIO
 from typing import Optional, Dict, Any, List, Set, Union, Callable, Coroutine
 
+import jsonpickle
 from qm import _Program, QuantumMachine, SimulationConfig
 from qm.QmJob import QmJob
 from qm.pb.inc_qua_pb2 import QuaProgram
+
 from quaentropy.api.data_writer import (
     ExecutionSerializer,
     RawResultData,
@@ -67,28 +71,63 @@ class PyNode(Node):
 
         sig = signature(self._program)
 
-        # args, varargs, varkw, defaults, kwonlyargs, kwonlydefaults, annotations = inspect.getfullargspec(foo)
-        if "context" in sig.parameters:
-            function_parameters["context"] = context
+        for param in sig.parameters:
+            if sig.parameters[param].annotation is ExperimentRunningContext:
+                function_parameters[param] = context
         if "depth" in sig.parameters:
             function_parameters["depth"] = depth
         if "strategy" in sig.parameters:
             function_parameters["strategy"] = strategy
 
-        if iscoroutinefunction(self._program):
-            results = await self._program(**function_parameters)
-        else:
-            results = self._program(**function_parameters)
-        outputs = {}
-        for var in self._output_vars:
-            try:
-                outputs[var] = results[var]
-            except KeyError:
-                logger.error(
-                    f"WARNING Could not fetch variable '{var}' from the results of node <{self.label}>"
+        (
+            args,
+            varargs,
+            varkw,
+            defaults,
+            kwonlyargs,
+            kwonlydefaults,
+            annotations,
+        ) = getfullargspec(self._program)
+
+        keyword_function_parameters = {}
+        for arg in args:
+            if arg not in function_parameters:
+                logger.error(f"Error in node {self.label} - {arg} in not in parameters")
+                raise KeyError(arg)
+            keyword_function_parameters[arg] = function_parameters[arg]
+
+        args_parameters = []
+        if varargs is not None:
+            for item in function_parameters:
+                if item not in keyword_function_parameters:
+                    args_parameters.append(function_parameters[item])
+
+        try:
+            if iscoroutinefunction(self._program):
+                results = await self._program(
+                    *args_parameters, **keyword_function_parameters
                 )
-                pass
-        return outputs
+            else:
+                results = self._program(*args_parameters, **keyword_function_parameters)
+
+            outputs = {}
+            if isinstance(results, Dict):
+                for var in self._output_vars:
+                    try:
+                        outputs[var] = results[var]
+                    except KeyError:
+                        logger.error(
+                            f"WARNING Could not fetch variable '{var}' from the results of node <{self.label}>"
+                        )
+                        pass
+            else:
+                if results:
+                    raise EntropyError(
+                        f"node {self.label} result should be a dictionaryn but is {type(results)}"
+                    )
+            return outputs
+        except BaseException as e:
+            raise e
 
 
 class QuaNode(Node):
@@ -142,9 +181,9 @@ class QuaNode(Node):
             )
 
         if self._simulate:
-            self._simulate_job(qua_program)
+            self._simulate_job()
         else:
-            self._execute_job(qua_program)
+            self._execute_job()
 
         outputs = {}
         for var in self._output_vars:
@@ -170,13 +209,13 @@ class QuaNode(Node):
         )
         return outputs
 
-    def _execute_job(self, qua_program) -> None:
+    def _execute_job(self) -> None:
         logger.debug(f"Executing program in node {self.label}")
         self._job = self._quantum_machine.execute(
             self._qua_program, **self._execution_kwargs
         )
 
-    def _simulate_job(self, qua_program) -> None:
+    def _simulate_job(self) -> None:
         logger.debug(f"Simulating program in node {self.label}")
         self._job = self._quantum_machine.simulate(
             self._qua_program, self._simulation_config
@@ -266,19 +305,20 @@ class _AsyncGraphExecutor(ExperimentExecutor):
         self._tasks: Dict[Node, Task] = dict()
         self._executors: Dict[Node, _NodeExecutor] = dict()
         self._results: Dict = dict()
+        self._stopped = False
 
     def execute(self, context: ExperimentRunningContext) -> Any:
-        return asyncio.run(self.execute_async(context))
+        async_result = asyncio.run(self.execute_async(context))
+        return async_result
+
+    @property
+    def failed(self) -> bool:
+        return self._stopped
 
     async def execute_async(self, context: ExperimentRunningContext):
         # traverse the graph and run the nodes
-
-        if self._graph is not Graph:
-            # TODO execute node
-            pass
-
         if self._to_node:
-            end_nodes = self._to_node
+            end_nodes = [self._to_node]
         else:
             end_nodes = self._graph.end_nodes()
 
@@ -286,31 +326,21 @@ class _AsyncGraphExecutor(ExperimentExecutor):
         for node in end_nodes:
             chains.append(self._run_node_and_ancestors(node, context, 0))
 
-        def custom_exception_handler(loop, context):
-            # first, handle with default handler
-            loop.default_exception_handler(context)
-            exception = context.get("exception")
-            if isinstance(exception, EntropyError):
-                logger.error(f"Error: {exception}")
-                loop.stop()
-
-        loop = asyncio.get_running_loop()
-
-        # Set custom handler
-        loop.set_exception_handler(custom_exception_handler)
-
         result = await asyncio.gather(*chains)
-        combined_result = {k: v for d in result for k, v in d.items()}
-        for output in self._graph.plot_outputs:
-            if output in combined_result:
-                context.add_plot(
-                    Plot(
-                        label=f"graph result {output}",
-                        data=combined_result[output],
-                        data_type=PlotDataType.np_2d,
-                        bokeh_generator=BokehCirclePlotGenerator(),
+        result = [x for x in result if x is not None]
+        combined_result = {}
+        if result:
+            combined_result = {k: v for d in result for k, v in d.items()}
+            for output in self._graph.plot_outputs:
+                if output in combined_result:
+                    context.add_plot(
+                        Plot(
+                            label=f"graph result {output}",
+                            data=combined_result[output],
+                            data_type=PlotDataType.np_2d,
+                            bokeh_generator=BokehCirclePlotGenerator(),
+                        )
                     )
-                )
         return combined_result
 
     async def _run_node_and_ancestors(
@@ -327,16 +357,33 @@ class _AsyncGraphExecutor(ExperimentExecutor):
         results = []
         if len(tasks) > 0:
             await asyncio.wait(tasks)
+            if self._stopped:
+                return None
             results = []
             for parent in node.get_inputs():
+                if (
+                    parent.node not in self._executors
+                    or parent.name not in self._executors[parent.node].result
+                ):
+                    raise EntropyError(
+                        f"node {node.label} input is missing: {parent.name}"
+                    )
                 results.append(
                     {parent.name: self._executors[parent.node].result[parent.name]}
                 )
         executor = _NodeExecutor(node)
         self._executors[node] = executor
-        return await executor.run_async(
-            results, context, depth, self._ancestor_run_strategy
-        )
+        try:
+            return await executor.run_async(
+                results, context, depth, self._ancestor_run_strategy
+            )
+        except BaseException as e:
+            self._stopped = True
+            trace = traceback.format_exception(*sys.exc_info())
+            logger.error(
+                f"Stopping Graph, Error in node {node.label}. message: {e}\ntrace:\n{trace}"
+            )
+            return
 
 
 class GraphExperiment(ExperimentDefinition):
@@ -363,7 +410,7 @@ class GraphExperiment(ExperimentDefinition):
         )
 
     def get_execution_serializer(self) -> ExecutionSerializer:
-        return ExecutionSerializer([self._graph])
+        return ExecutionSerializer([jsonpickle.dumps(self._graph.nodes)])
 
     def run_to_node(
         self,
@@ -375,7 +422,8 @@ class GraphExperiment(ExperimentDefinition):
         self._to_node = node
         self._ancestor_run_strategy = ancestor_run_strategy
         old_label = self.label
-        self.label = label
+        if label:
+            self.label = label
         try:
             return self.run(db)
         finally:

@@ -8,7 +8,7 @@ from pandas import DataFrame
 from quaentropy.api.data_reader import PlotRecord
 from quaentropy.api.data_writer import PlotDataType
 from quaentropy.api.plot import BokehLinePlotGenerator
-from quaentropy.results_backend.sqlalchemy.database import (
+from quaentropy.results_backend.sqlalchemy.connector import (
     SqlalchemySqlitePandasConnector,
 )
 

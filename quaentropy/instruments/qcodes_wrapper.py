@@ -63,6 +63,11 @@ class QcodesWrapper(EntropyInstrument):
         for name, sub in self._instance.submodules:
             self._extract_submodule_specs(name, sub)
 
+        self._register_parameters_and_functions()
+
+        self.teardown_driver()
+
+    def _register_parameters_and_functions(self):
         for param in self._parameters:
             setattr(
                 self,
@@ -86,8 +91,6 @@ class QcodesWrapper(EntropyInstrument):
                     lambda obj, *args: obj._instance.call(func.name, args), self
                 ),
             )
-
-        self.teardown_driver()
 
     def _extract_submodule_specs(
         self, submodule_name, submodule: Union["InstrumentBase", "ChannelList"]

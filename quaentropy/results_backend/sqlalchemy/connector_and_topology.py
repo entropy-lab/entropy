@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, DATETIME, ForeignKey, desc
 
 from quaentropy.instruments.lab_topology import LabTopologyBackend
-from quaentropy.results_backend.sqlalchemy.database import (
+from quaentropy.results_backend.sqlalchemy.connector import (
     SqlalchemySqlitePandasConnector,
 )
 from quaentropy.results_backend.sqlalchemy.model import Base
@@ -16,6 +16,7 @@ class Topology(Base):
     update_time = Column(DATETIME, nullable=False)
     name = Column(String)
     driver = Column(String)
+    type_name = Column(String)
 
 
 class TopologyStates(Base):
@@ -33,11 +34,12 @@ class SqlalchemySqlitePandasAndTopologyConnector(
     def __init__(self, backend=None, echo=False):
         super().__init__(backend, echo)
 
-    def save_driver(self, name: str, driver: str):
+    def save_driver(self, name: str, driver_source_code: str, type_name: str):
         transaction = Topology(
             update_time=datetime.now(),
             name=name,
-            driver=driver,
+            driver=driver_source_code,
+            type_name=type_name,
         )
         return self._execute_transaction(transaction)
 
@@ -64,9 +66,40 @@ class SqlalchemySqlitePandasAndTopologyConnector(
             else:
                 return ""
 
+    def get_type_name(self, name) -> str:
+        with self._session_maker() as sess:
+            query = (
+                sess.query(Topology)
+                .filter(Topology.name == name)
+                .order_by(desc(Topology.update_time))
+                .first()
+            )
+            if query:
+                return query.type_name
+            else:
+                return ""
+
+    def get_driver_code(self, name) -> str:
+        with self._session_maker() as sess:
+            query = (
+                sess.query(Topology)
+                .filter(Topology.name == name)
+                .order_by(desc(Topology.update_time))
+                .first()
+            )
+            if query:
+                return query.driver
+            else:
+                return ""
+
     def _get_driver_id(self, name) -> int:
         with self._session_maker() as sess:
-            query = sess.query(Topology).filter(Topology.name == name).one_or_none()
+            query = (
+                sess.query(Topology)
+                .filter(Topology.name == name)
+                .order_by(desc(Topology.update_time))
+                .first()
+            )
             if query:
                 return int(query.id)
             else:

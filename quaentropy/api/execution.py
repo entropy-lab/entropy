@@ -56,3 +56,8 @@ class ExperimentExecutor(abc.ABC):
     @abc.abstractmethod
     def execute(self, runner_context: ExperimentRunningContext) -> Any:
         pass
+
+    @property
+    @abc.abstractmethod
+    def failed(self) -> bool:
+        pass

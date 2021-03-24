@@ -14,7 +14,7 @@ from quaentropy.api.data_reader import PlotRecord
 from quaentropy.results.dashboard.dashboard_data import (
     SqlalchemyDashboardDataReader,
 )
-from quaentropy.results_backend.sqlalchemy.database import (
+from quaentropy.results_backend.sqlalchemy.connector import (
     SqlalchemySqlitePandasConnector,
 )
 
@@ -53,10 +53,12 @@ class Dashboard(param.Parameterized):
         self.add_plot_to_combined = pn.widgets.Button(name="add plot")
         self.add_plot_to_combined.on_click(self.add_plot_to_combined_callback)
 
-
         self.clear_plots = pn.widgets.Button(name="clear plots")
         self.clear_plots.on_click(self.clear_button_callback)
-        self.add_plot_figure = Figure(name="",tools="pan,lasso_select,box_select,crosshair,xwheel_zoom,ywheel_zoom,zoom_in,reset,save,hover")
+        self.add_plot_figure = Figure(
+            name="",
+            tools="pan,lasso_select,box_select,crosshair,xwheel_zoom,ywheel_zoom,zoom_in,reset,save,hover",
+        )
         self.add_plot_figure.line()
         self.export_to_csv = pn.widgets.FileDownload(
             label="export to csv",
@@ -75,17 +77,24 @@ class Dashboard(param.Parameterized):
         plot: PlotRecord = self.plot_tabs_records[self.plot_tabs.active]
         self._selected_plots.add(plot.experiment_id)
         plot.bokeh_generator.plot_in_figure(
-            self.add_plot_figure, plot.plot_data, plot.data_type, color=next(colors), label=f"{plot.experiment_id}"
+            self.add_plot_figure,
+            plot.plot_data,
+            plot.data_type,
+            color=next(colors),
+            label=f"{plot.experiment_id}",
         )
         self.add_plot_figure.legend.click_policy = "hide"
 
     def toggle_plug_in_combined(self, plot: PlotRecord):
         self._selected_plots.add(plot.experiment_id)
         plot.bokeh_generator.plot_in_figure(
-            self.add_plot_figure, plot.plot_data, plot.data_type, color=next(colors), label=f"{plot.experiment_id}"
+            self.add_plot_figure,
+            plot.plot_data,
+            plot.data_type,
+            color=next(colors),
+            label=f"{plot.experiment_id}",
         )
         self.add_plot_figure.legend.click_policy = "hide"
-
 
     def export_to_csv_callback(self, *events):
         sio = StringIO()
@@ -138,7 +147,11 @@ class Dashboard(param.Parameterized):
                     figure = Figure(name=plot.label, title=plot.story)
                     # figure.add_layout(caption2, 'above')
                     bokeh_generator.plot_in_figure(
-                        figure, plot.plot_data, plot.data_type, color="blue", label=f"{plot.experiment_id}"
+                        figure,
+                        plot.plot_data,
+                        plot.data_type,
+                        color="blue",
+                        label=f"{plot.experiment_id}",
                     )
                     self.plot_tabs_records.append(plot)
 

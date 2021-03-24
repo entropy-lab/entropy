@@ -3,7 +3,9 @@ import inspect
 from dataclasses import dataclass
 from typing import TypeVar, Type, Optional, Dict, Any
 
-import jsonpickle
+from quaentropy.api.errors import DriverNotFound
+from quaentropy.instruments.instrument_driver import Driver
+from quaentropy.logger import logger
 
 T = TypeVar("T")
 
@@ -13,7 +15,7 @@ class LabTopologyBackend(abc.ABC):
         super().__init__()
 
     @abc.abstractmethod
-    def save_driver(self, name: str, driver: str):
+    def save_driver(self, name: str, driver_source_code: str, type_name: str):
         pass
 
     @abc.abstractmethod
@@ -24,72 +26,98 @@ class LabTopologyBackend(abc.ABC):
     def get_latest_state(self, name) -> str:
         pass
 
+    @abc.abstractmethod
+    def get_driver_code(self, name) -> str:
+        pass
+
+    @abc.abstractmethod
+    def get_type_name(self, name) -> str:
+        pass
+
 
 @dataclass
-class _Lab_Device:
+class _LabTopologyDevice:
     name: str
     type: Optional[Type]
     args: Optional[Any]
-    instance: Optional[object] = None
-
-
-class DriverNotFound(BaseException):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
+    instance: Optional[Driver] = None
 
 
 class LabTopology:
     def __init__(self, backend: Optional[LabTopologyBackend] = None) -> None:
         super().__init__()
-        self._drivers: Dict[str, _Lab_Device] = {}
+        self._drivers: Dict[str, _LabTopologyDevice] = {}
         self._backend = backend
 
     def get(self, name: str):
         device = self._get_device(name)
 
         if device.instance:
-            print(f"got device {name} from memory")
             return device.instance
         else:
-            print(f"got device {name} from db")
+            logger.info(f"Initialize device {name} from memory")
             instance = device.type(device.args)
             device.instance = instance
             return instance
 
     def _get_device(self, name):
         if name in self._drivers:
-            device = self._drivers[name]
+            logger.info(f"got device {name} from memory")
+            return self._drivers[name]
         else:
             if self._backend:
                 state = self._backend.get_latest_state(name)
-                if state == "":
-                    raise DriverNotFound()
-                else:
+                module = self._backend.get_driver_code(name)
+                class_name = self._backend.get_type_name(name)
+                if module and state:
                     instance = jsonpickle.loads(state)
                     device = _Lab_Device(name, None, None, instance)
+                    scope = {"state": state}
+                    split = class_name.split(".")
+                    class_name = split.pop(len(split) - 1)
+                    module_name = ".".join(split)
+                    to_exec = (
+                        f"{module}\n"
+                        f"{class_name}.__module__='{module_name}'\n"
+                        f"decoded = {class_name}.deserialize_function(state, {class_name})"
+                    )
+                    exec(to_exec, globals(), scope)
+                    instance: Driver = scope["decoded"]
+                    logger.info(f"got device {name} from db")
+                    device = _LabTopologyDevice(name, None, None, instance)
                     self._drivers[name] = device
-            else:
-                raise DriverNotFound()
-        return device
+                    return device
+
+        raise DriverNotFound()
 
     def add(self, name, type: Type[T], *args):
         if name in self._drivers:
             raise KeyError(f"instrument {name} already exist")
-        self._drivers[name] = _Lab_Device(name, type, args)
+        if not issubclass(type, Driver):
+            raise TypeError(f"instrument {name} is not an quantropy Driver")
+        self._drivers[name] = _LabTopologyDevice(name, type, args[0])
         if self._backend:
-            self._backend.save_driver(name, inspect.getsource(inspect.getmodule(type)))
+            self._backend.save_driver(
+                name,
+                inspect.getsource(inspect.getmodule(type)),
+                type.__module__ + "." + type.__name__,
+            )
 
     def add_if_not_exist(self, name, type: Type[T], *args):
         if name not in self._drivers:
-            self.add(name, type, args)
-
-    # TODO Guy how to update driver
+            code = self._backend.get_driver_code(name)
+            if not code:
+                self.add(name, type, args)
 
     def save_states(self):
         if self._backend:
             for key in self._drivers:
                 device = self._drivers[key]
-                self._backend.save_state(device.name, jsonpickle.dumps(device.instance))
+                str_snapshot = device.instance.snapshot(False)
+                self._backend.save_state(device.name, str_snapshot)
+
+    def all_drivers(self) -> Dict[str, Driver]:
+        return {driver.name: driver.instance for driver in self._drivers.values()}
 
 
 class ExperimentTopology:
@@ -106,6 +134,10 @@ class ExperimentTopology:
     def release(self):
         pass
 
-    def get_snapshot(self):
-        # todo should return a description of all instruments state
-        pass
+    def get_snapshot(self) -> Dict[str, str]:
+        snapshots = {}
+        all = self._topology.all_drivers()
+        for driver in all:
+            if all[driver]:
+                snapshots[driver] = all[driver].snapshot(False)
+        return snapshots

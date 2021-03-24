@@ -1,9 +1,15 @@
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional, Union, Type
 
 import jsonpickle
+import jsonpickle.ext.numpy as jsonpickle_numpy
+import jsonpickle.ext.pandas as jsonpickle_pandas
 from deepdiff import DeepDiff
+
+jsonpickle_numpy.register_handlers()
+jsonpickle_pandas.register_handlers()
 
 
 class Driver(ABC):
@@ -15,41 +21,33 @@ class Driver(ABC):
     def snapshot(self, update: bool) -> str:
         pass
 
+    @staticmethod
     @abstractmethod
-    def load_from_snapshot(self, snapshot_or_path: Union[object, str]):
+    def deserialize_function(snapshot: str, type: Type):
         pass
 
-    @abstractmethod
-    def diff_from_snapshot(self, snapshot_or_path: Union[object, str]):
-        pass
+    def diff_from_snapshot(self, snapshot: str):
+        copy = self.deserialize_function(snapshot)
+        return DeepDiff(self, copy).to_dict()
 
 
-import jsonpickle.ext.numpy as jsonpickle_numpy
-
-jsonpickle_numpy.register_handlers()
-import jsonpickle.ext.pandas as jsonpickle_pandas
-
-jsonpickle_pandas.register_handlers()
-
-
-class Virtual(Driver):
+class PickledDriver(Driver):
     def __init__(self, name: str):
         super().__init__(name)
 
     def snapshot(self, update: bool) -> str:
         frozen = jsonpickle.encode(self)
-        decoded = jsonpickle.decode(self)
+        decoded = jsonpickle.decode(frozen, classes=type(self))
         if len(DeepDiff(self, decoded).to_dict()):
             raise Exception("snapshot is not accurate")
         return frozen
 
-    def load_from_snapshot(self, snapshot: str):
-        decoded = jsonpickle.decode(snapshot)
-        self.__dict__ = decoded.__dict__  # todo guy????
+    @staticmethod
+    def deserialize_function(snapshot: str, type: Type):
+        import jsonpickle
 
-    def diff_from_snapshot(self, snapshot: str):
-        decoded = jsonpickle.decode(snapshot)
-        return DeepDiff(self, decoded).to_dict()
+        decoded = jsonpickle.decode(snapshot, classes=type)
+        return decoded
 
 
 @dataclass
@@ -69,7 +67,7 @@ class Function:
     parameters = None
 
 
-class Instrument(Driver):
+class Instrument(PickledDriver):
     def __init__(self, name: str):
         super().__init__(name)
         self._parameters: List[Parameter] = []
@@ -85,13 +83,3 @@ class Instrument(Driver):
 
     def discover_driver_specs(self):
         pass
-
-    @abstractmethod
-    def snapshot(self, update: bool):
-        pass
-
-    def load_from_snapshot(self, snapshot_or_path: Union[object, str]):
-        raise NotImplementedError()
-
-    def diff_from_snapshot(self, snapshot_or_path: Union[object, str]):
-        raise NotImplementedError()

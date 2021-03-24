@@ -71,6 +71,8 @@ class Experiment:
         success = True
         end_data = ExperimentEndData(self._end_time, success, "")
         self._data_writer.save_experiment_end_data(self._id, end_data)
+        if executor.failed:
+            raise RuntimeError("failed to execute graph")
         return success
 
     def save_instruments_snapshot(self, label: str):

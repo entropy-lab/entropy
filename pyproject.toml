@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "quaentropy"
-version = "0.1.0-alpha2"
+version = "0.1.0-alpha8"
 description = ""
 authors = [
     "Tal Shani <tal@quantum-machines.co>",

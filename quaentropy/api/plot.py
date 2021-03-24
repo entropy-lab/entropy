@@ -23,7 +23,12 @@ class BokehLinePlotGenerator(BokehPlotGenerator):
             y = data[1]
         else:
             raise NotImplementedError()
-        return figure.line(x, y, color=kwargs.get("color", "blue"),legend_label=kwargs.get('label',''))
+        return figure.line(
+            x,
+            y,
+            color=kwargs.get("color", "blue"),
+            legend_label=kwargs.get("label", ""),
+        )
 
 
 class BokehCirclePlotGenerator(BokehPlotGenerator):
@@ -46,5 +51,10 @@ class BokehCirclePlotGenerator(BokehPlotGenerator):
         else:
             raise NotImplementedError()
         return figure.circle(
-            x, y, size=10, color=kwargs.get("color", "blue"), legend_label=kwargs.get('label',''),alpha=0.5
+            x,
+            y,
+            size=10,
+            color=kwargs.get("color", "blue"),
+            legend_label=kwargs.get("label", ""),
+            alpha=0.5,
         )

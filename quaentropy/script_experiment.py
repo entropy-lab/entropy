@@ -7,6 +7,7 @@ from quaentropy.api.data_writer import DataWriter, ExecutionSerializer
 from quaentropy.api.execution import ExperimentExecutor, ExperimentRunningContext
 from quaentropy.api.experiment import ExperimentDefinition
 from quaentropy.instruments.lab_topology import LabTopology
+from quaentropy.logger import logger
 
 
 def script_experiment(
@@ -27,13 +28,28 @@ class ScriptExecutor(ExperimentExecutor):
     def __init__(self, script: Callable) -> None:
         super().__init__()
         self._script: Callable = script
+        self._stopped = False
 
     def execute(self, runner_context: ExperimentRunningContext) -> Any:
-        sig = signature(self._script)
-        if len(sig.parameters) > 0:
-            return self._script(runner_context)
-        else:
-            return self._script()
+        try:
+            sig = signature(self._script)
+            keyword_function_parameters = {}
+            for param in sig.parameters:
+                if sig.parameters[param].annotation is ExperimentRunningContext:
+                    keyword_function_parameters[param] = runner_context
+
+            if len(sig.parameters) > 0:
+                return self._script(**keyword_function_parameters)
+            else:
+                return self._script()
+        except BaseException as e:
+            self._stopped = True
+            logger.error(f"Stopping Script, Error:", e)
+            return
+
+    @property
+    def failed(self) -> bool:
+        return self._stopped
 
 
 class ScriptExperiment(ExperimentDefinition):

@@ -15,9 +15,6 @@ class MockScope(Instrument):
     def discover_driver_specs(self):
         super().discover_driver_specs()
 
-    def snapshot(self, update: bool):
-        pass
-
     def get_trig(self):
         self.index += 1
         print(f"got trig {self.index}")

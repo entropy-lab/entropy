@@ -8,7 +8,7 @@ from qm.qua import *
 
 from quaentropy.api.graph import Graph
 from quaentropy.graph_experiment import GraphExperiment, PyNode, QuaNode
-from quaentropy.results_backend.sqlalchemy.database_and_topology import (
+from quaentropy.results_backend.sqlalchemy.connector_and_topology import (
     SqlalchemySqlitePandasAndTopologyConnector,
 )
 

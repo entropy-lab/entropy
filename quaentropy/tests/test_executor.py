@@ -7,10 +7,10 @@ from quaentropy.api.data_writer import RawResultData, Plot, PlotDataType
 from quaentropy.api.execution import ExperimentRunningContext
 from quaentropy.api.plot import BokehCirclePlotGenerator, BokehLinePlotGenerator
 from quaentropy.instruments.lab_topology import LabTopology
-from quaentropy.results_backend.sqlalchemy.database import (
+from quaentropy.results_backend.sqlalchemy.connector import (
     SqlalchemySqlitePandasConnector,
 )
-from quaentropy.results_backend.sqlalchemy.database_and_topology import (
+from quaentropy.results_backend.sqlalchemy.connector_and_topology import (
     SqlalchemySqlitePandasAndTopologyConnector,
 )
 from quaentropy.script_experiment import ScriptExperiment, script_experiment
@@ -148,7 +148,7 @@ def test_running_db_and_topology():
     try:
         db = SqlalchemySqlitePandasAndTopologyConnector("db_and_topo.db")
         topology = LabTopology(db)
-        topology.add("scope_1", MockScope, "1.1.1.1")
+        topology.add_if_not_exist("scope_1", MockScope, "1.1.1.1")
         definition = ScriptExperiment(topology, an_experiment, "with_db")
         experiment_runner = definition.run(db)
         reader = experiment_runner.results_reader()
@@ -170,6 +170,8 @@ def test_running_db_and_topology():
         reader = experiment_runner.results_reader()
         print(reader.get_experiment_data())
         print(reader.get_experiment_data().script.print_all())
+        topology.save_states()
+
     finally:
         os.remove("db_and_topo.db")
         pass

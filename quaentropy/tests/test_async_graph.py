@@ -120,10 +120,7 @@ def test_async_graph():
         output_vars={"x_y"},
     )
     d2 = PyNode("d2", d, {"x": a1.outputs["x"], "y": b1.outputs["y"]}, {"x_y"})
-    e1 = PyNode(
-        "e", e, {"y": b1.outputs["y"], "z": c1.outputs["z"]}, {"y_z"}
-    )  # todo must run after
-    # e2 = PyNode('e', e, {'y_z': e1.output('y_z'), 'x': a1.output('x')}, {'y_z'})
+    e1 = PyNode("e", e, {"y": b1.outputs["y"], "z": c1.outputs["z"]}, {"y_z"})
 
     g = Graph({a1, b1, c1, d1, d2, e1}, "hello", plot_outputs={"y_z"})
     print()
@@ -139,3 +136,28 @@ def test_async_graph():
         figure = Figure()
         plot.bokeh_generator.plot_in_figure(figure, plot.plot_data, plot.data_type)
         save(figure, f"try{plot.label}.html")
+
+
+def test_async_graph_run_to_node():
+    a1 = PyNode("a", a, output_vars={"x"})
+
+    b1 = PyNode("b", b, output_vars={"y"})
+    # c1 = c('c', x=a1.outputs.x, y = b1.outputs.y)
+    c1 = PyNode("c", c, output_vars={"z"})
+    d1 = PyNode(
+        "d",
+        d,
+        input_vars={"x": a1.outputs["x"], "y": b1.outputs["y"]},
+        output_vars={"x_y"},
+    )
+    d2 = PyNode("d2", d, {"x": a1.outputs["x"], "y": b1.outputs["y"]}, {"x_y"})
+    e1 = PyNode("e", e, {"y": b1.outputs["y"], "z": c1.outputs["z"]}, {"y_z"})
+
+    g = Graph({a1, b1, c1, d1, d2, e1}, "hello", plot_outputs={"y_z"})
+    definition = GraphExperiment(None, g, "run_a")
+    reader = definition.run_to_node(a1).results_reader()
+    print(reader.get_experiment_data())
+    reader = definition.run_to_node(b1, label="only b1").results_reader()
+    print(reader.get_experiment_data())
+    reader = definition.run_to_node(d1).results_reader()
+    print(reader.get_experiment_data())

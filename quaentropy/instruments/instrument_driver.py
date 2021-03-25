@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, List, Optional, Union, Type
+from typing import Any, List, Optional, Type
 
 import jsonpickle
 import jsonpickle.ext.numpy as jsonpickle_numpy

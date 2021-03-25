@@ -10,8 +10,6 @@ from quaentropy.api.data_writer import (
 )
 from quaentropy.instruments.lab_topology import ExperimentTopology
 
-InstrumentType = TypeVar("InstrumentType")
-
 
 class EntropyContext:
     def __init__(
@@ -31,7 +29,7 @@ class EntropyContext:
     def add_plot(self, plot: Plot):
         self._data_writer.save_plot(self._id, plot)
 
-    def get_instrument(self, name) -> InstrumentType:
+    def get_instrument(self, name):
         return self._used_topology.get(name)
 
     def save_instruments_snapshot(self, label: str):

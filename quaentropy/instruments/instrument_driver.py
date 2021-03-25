@@ -12,7 +12,7 @@ jsonpickle_numpy.register_handlers()
 jsonpickle_pandas.register_handlers()
 
 
-class Driver(ABC):
+class Resource(ABC):
     def __init__(self, name):
         super().__init__()
         self._name = name
@@ -31,7 +31,7 @@ class Driver(ABC):
         return DeepDiff(self, copy).to_dict()
 
 
-class PickledDriver(Driver):
+class PickledResource(Resource):
     def __init__(self, name: str):
         super().__init__(name)
 
@@ -67,7 +67,7 @@ class Function:
     parameters = None
 
 
-class Instrument(PickledDriver):
+class Instrument(PickledResource):
     def __init__(self, name: str):
         super().__init__(name)
         self._parameters: List[Parameter] = []

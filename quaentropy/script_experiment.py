@@ -4,7 +4,7 @@ from typing import Callable, Any
 from typing import Optional
 
 from quaentropy.api.data_writer import DataWriter, ExecutionSerializer
-from quaentropy.api.execution import ExperimentExecutor, ExperimentRunningContext
+from quaentropy.api.execution import ExperimentExecutor, EntropyContext
 from quaentropy.api.experiment import ExperimentDefinition
 from quaentropy.instruments.lab_topology import LabTopology
 from quaentropy.logger import logger
@@ -30,12 +30,12 @@ class ScriptExecutor(ExperimentExecutor):
         self._script: Callable = script
         self._stopped = False
 
-    def execute(self, runner_context: ExperimentRunningContext) -> Any:
+    def execute(self, runner_context: EntropyContext) -> Any:
         try:
             sig = signature(self._script)
             keyword_function_parameters = {}
             for param in sig.parameters:
-                if sig.parameters[param].annotation is ExperimentRunningContext:
+                if sig.parameters[param].annotation is EntropyContext:
                     keyword_function_parameters[param] = runner_context
 
             if len(sig.parameters) > 0:

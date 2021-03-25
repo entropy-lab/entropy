@@ -13,7 +13,7 @@ from quaentropy.instruments.lab_topology import ExperimentTopology
 InstrumentType = TypeVar("InstrumentType")
 
 
-class ExperimentRunningContext:
+class EntropyContext:
     def __init__(
         self, id: int, db: DataWriter, used_topology: ExperimentTopology
     ) -> None:
@@ -54,7 +54,7 @@ class ExperimentExecutor(abc.ABC):
         super().__init__()
 
     @abc.abstractmethod
-    def execute(self, runner_context: ExperimentRunningContext) -> Any:
+    def execute(self, runner_context: EntropyContext) -> Any:
         pass
 
     @property

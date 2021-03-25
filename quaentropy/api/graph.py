@@ -6,7 +6,7 @@ from typing import Set, Dict, Any, List, Optional
 
 from graphviz import Digraph
 
-from quaentropy.api.execution import ExperimentRunningContext
+from quaentropy.api.execution import EntropyContext
 
 
 @dataclass
@@ -66,7 +66,7 @@ class Node(ABC):
     async def execute(
         self,
         parents_results: List[Dict[str, Any]],
-        context: ExperimentRunningContext,
+        context: EntropyContext,
         node_execution_id: int,
         depth_from_last,
         **kwargs,

@@ -3,6 +3,6 @@ class EntropyError(RuntimeError):
         super().__init__(message, *args)
 
 
-class DriverNotFound(BaseException):
+class ResourceNotFound(BaseException):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)

@@ -4,7 +4,7 @@ from datetime import datetime
 import pytest
 
 from quaentropy.api.data_writer import RawResultData, Plot, PlotDataType
-from quaentropy.api.execution import ExperimentRunningContext
+from quaentropy.api.execution import EntropyContext
 from quaentropy.api.plot import BokehCirclePlotGenerator, BokehLinePlotGenerator
 from quaentropy.instruments.lab_topology import LabTopology
 from quaentropy.results_backend.sqlalchemy.connector import (
@@ -29,7 +29,7 @@ def do_something2():
     return rest
 
 
-def an_experiment(experiment: ExperimentRunningContext):
+def an_experiment(experiment: EntropyContext):
     scope = experiment.get_instrument("scope_1")
     a1 = do_something()
     scope.get_trig()
@@ -62,7 +62,7 @@ def an_experiment(experiment: ExperimentRunningContext):
     )
 
 
-def an_experiment_with_plot(experiment: ExperimentRunningContext):
+def an_experiment_with_plot(experiment: EntropyContext):
     scope = experiment.get_instrument("scope_1")
     a1 = do_something()
     scope.get_trig()
@@ -119,7 +119,7 @@ def test_running_no_db_no_runner():
 
 def test_running_no_db():
     topology = LabTopology()
-    topology.add("scope_1", MockScope, "1.1.1.1")
+    topology.add_resource("scope_1", MockScope, "scope_1", "1.1.1.1")
     runner = ScriptExperiment(topology, an_experiment, "no_db").run()
     reader = runner.results_reader()
     print(reader.get_experiment_data())
@@ -129,7 +129,7 @@ def test_running_no_db():
 @pytest.mark.repeat(3)
 def test_running_db():
     topology = LabTopology()
-    topology.add("scope_1", MockScope, "1.1.1.1")
+    topology.add_resource("scope_1", MockScope, "scope_1", "1.1.1.1")
     db = SqlalchemySqlitePandasConnector("my_db.db")
 
     definition = ScriptExperiment(topology, an_experiment, "with_db")
@@ -148,7 +148,7 @@ def test_running_db_and_topology():
     try:
         db = SqlalchemySqlitePandasAndTopologyConnector("db_and_topo.db")
         topology = LabTopology(db)
-        topology.add_if_not_exist("scope_1", MockScope, "1.1.1.1")
+        topology.add_resource_if_not_exist("scope_1", MockScope, "scope_1", "1.1.1.1")
         definition = ScriptExperiment(topology, an_experiment, "with_db")
         experiment_runner = definition.run(db)
         reader = experiment_runner.results_reader()
@@ -179,12 +179,12 @@ def test_running_db_and_topology():
 
 def test_executor_decorator():
     topology = LabTopology()
-    topology.add("scope_1", MockScope, "1.1.1.1")
-    topology.add("scope_2", MockScope, "1.1.1.2")
+    topology.add_resource("scope_1", MockScope, "scope_1", "1.1.1.1")
+    topology.add_resource("scope_2", MockScope, "scope_2", "1.1.1.2")
     db = SqlalchemySqlitePandasConnector()
 
     @script_experiment("the best", topology, db)
-    def experiment(experiment_runner: ExperimentRunningContext):
+    def experiment(experiment_runner: EntropyContext):
         scope = experiment_runner.get_instrument("scope_1")
         a1 = do_something()
         scope.get_trig()

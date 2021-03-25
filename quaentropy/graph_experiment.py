@@ -20,7 +20,7 @@ from quaentropy.api.data_writer import (
     DataWriter,
 )
 from quaentropy.api.errors import EntropyError
-from quaentropy.api.execution import ExperimentExecutor, ExperimentRunningContext
+from quaentropy.api.execution import ExperimentExecutor, EntropyContext
 from quaentropy.api.experiment import ExperimentDefinition, Experiment
 from quaentropy.api.graph import Graph, Node, Output
 from quaentropy.api.plot import BokehCirclePlotGenerator
@@ -55,7 +55,7 @@ class PyNode(Node):
     async def execute(
         self,
         parents_results: List[Dict[str, Any]],
-        context: ExperimentRunningContext,
+        context: EntropyContext,
         node_execution_id: int,
         depth_from_last,
         **kwargs,
@@ -65,7 +65,7 @@ class PyNode(Node):
         sig = signature(self._program)
 
         for param in sig.parameters:
-            if sig.parameters[param].annotation is ExperimentRunningContext:
+            if sig.parameters[param].annotation is EntropyContext:
                 function_parameters[param] = context
         if "depth_from_last" in sig.parameters:
             function_parameters["depth_from_last"] = depth_from_last
@@ -156,7 +156,7 @@ class QuaNode(Node):
     async def execute(
         self,
         parents_results: List[Dict[str, Any]],
-        context: ExperimentRunningContext,
+        context: EntropyContext,
         node_execution_id: int,
         depth_from_last,
         **kwargs,
@@ -238,7 +238,7 @@ class SubGraphNode(Node):
     async def execute(
         self,
         parents_results: List[Dict[str, Any]],
-        context: ExperimentRunningContext,
+        context: EntropyContext,
         node_execution_id: int,
         depth_from_last,
         **kwargs,
@@ -258,13 +258,13 @@ class _NodeExecutor:
     async def run_async(
         self,
         parents_results: List[Dict[str, Any]],
-        context: ExperimentRunningContext,
+        context: EntropyContext,
         depth_from_last: int,
         **kwargs,
     ) -> Dict[str, Any]:
         if self.to_run:
             logger.info(
-                f"running node <{self._node.__class__.__name__}> {self._node.label}"
+                f"Running node <{self._node.__class__.__name__}> {self._node.label}"
             )
             self._start_time = datetime.now()
             logger.debug(
@@ -285,7 +285,7 @@ class _NodeExecutor:
                     )
                 )
             self._end_time = datetime.now()
-            logger.info(
+            logger.debug(
                 f"Done running node <{self._node.__class__.__name__}> {self._node.label}"
             )
             return self.result
@@ -305,7 +305,7 @@ class _AsyncGraphExecutor(ExperimentExecutor):
         self._results: Dict = dict()
         self._stopped = False
 
-    def execute(self, context: ExperimentRunningContext) -> Any:
+    def execute(self, context: EntropyContext) -> Any:
         async_result = asyncio.run(self.execute_async(context))
         return async_result
 
@@ -313,7 +313,7 @@ class _AsyncGraphExecutor(ExperimentExecutor):
     def failed(self) -> bool:
         return self._stopped
 
-    async def execute_async(self, context: ExperimentRunningContext):
+    async def execute_async(self, context: EntropyContext):
         # traverse the graph and run the nodes
         if self._to_node:
             end_nodes = [self._to_node]
@@ -342,7 +342,7 @@ class _AsyncGraphExecutor(ExperimentExecutor):
         return combined_result
 
     async def _run_node_and_ancestors(
-        self, node: Node, context: ExperimentRunningContext, depth_from_last: int
+        self, node: Node, context: EntropyContext, depth_from_last: int
     ):
         tasks = []
         for parent in node.get_parents():

@@ -12,7 +12,7 @@ from quaentropy.api.data_writer import (
     Metadata,
     ExecutionSerializer,
 )
-from quaentropy.api.execution import ExperimentExecutor, ExperimentRunningContext
+from quaentropy.api.execution import ExperimentExecutor, EntropyContext
 from quaentropy.api.memory_reader_writer import MemoryOnlyDataReaderWriter
 from quaentropy.instruments.lab_topology import LabTopology, ExperimentTopology
 from quaentropy.logger import logger
@@ -50,7 +50,7 @@ class Experiment:
 
         executor = self._definition.get_execution_instructions()
         result = executor.execute(
-            ExperimentRunningContext(
+            EntropyContext(
                 id=self._id, db=self._data_writer, used_topology=self._used_topology
             )
         )

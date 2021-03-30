@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from difflib import ndiff
 from typing import Any, List, Optional, Type
 
 import jsonpickle
@@ -25,9 +26,9 @@ class Resource(ABC):
     def deserialize_function(snapshot: str, class_object: Type):
         pass
 
-    def diff_from_snapshot(self, snapshot: str):
-        copy = self.deserialize_function(snapshot, type(self))
-        return DeepDiff(self, copy).to_dict()
+    def diff_from_snapshot(self, other_snapshot: str):
+        snapshot = self.snapshot(False)
+        return ndiff(snapshot, other_snapshot)
 
 
 class PickledResource(Resource):

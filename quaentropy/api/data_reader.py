@@ -92,6 +92,16 @@ class DataReader(ABC):
         pass
 
     @abstractmethod
+    def get_experiments(
+        self,
+        label: Optional[str] = None,
+        start_after: Optional[datetime] = None,
+        end_after: Optional[datetime] = None,
+        success: Optional[bool] = None,
+    ) -> Iterable[ExperimentRecord]:
+        pass
+
+    @abstractmethod
     def get_results(
         self,
         experiment_id: Optional[int] = None,

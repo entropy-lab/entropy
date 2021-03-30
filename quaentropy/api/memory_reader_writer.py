@@ -1,3 +1,4 @@
+from datetime import datetime
 from time import time_ns
 from typing import List, Optional, Iterable
 
@@ -53,6 +54,15 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         self._plot.append(plot)
 
     def get_experiments_range(self, starting_from_index: int, count: int) -> DataFrame:
+        raise NotImplementedError()
+
+    def get_experiments(
+        self,
+        label: Optional[str] = None,
+        start_after: Optional[datetime] = None,
+        end_after: Optional[datetime] = None,
+        success: Optional[bool] = None,
+    ) -> Iterable[ExperimentRecord]:
         raise NotImplementedError()
 
     def get_experiment_record(self, experiment_id: int) -> Optional[ExperimentRecord]:

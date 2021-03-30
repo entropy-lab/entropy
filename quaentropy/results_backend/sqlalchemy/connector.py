@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from typing import List, TypeVar, Optional, ContextManager, Iterable, Union
 
 import pandas as pd
@@ -104,6 +105,25 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
             )
             if query:
                 return query.to_record()
+
+    def get_experiments(
+        self,
+        label: Optional[str] = None,
+        start_after: Optional[datetime] = None,
+        end_after: Optional[datetime] = None,
+        success: Optional[bool] = None,
+    ) -> Iterable[ExperimentRecord]:
+        with self._session_maker() as sess:
+            query = sess.query(ExperimentTable)
+            if label:
+                query = query.filter(ExperimentTable.label == label)
+            if success:
+                query = query.filter(ExperimentTable.success == success)
+            if start_after:
+                query = query.filter(ExperimentTable.start_time > start_after)
+            if end_after:
+                query = query.filter(ExperimentTable.end_time > end_after)
+            return [item.to_record() for item in query.all()]
 
     def get_results(
         self,

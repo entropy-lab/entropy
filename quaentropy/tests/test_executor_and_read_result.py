@@ -58,6 +58,11 @@ def test_running_db_and_topology():
         assert len(list(reader.get_results())) == total_results_in_experiments
         assert len(list(reader.get_results("a_result"))) == repeats * 1
         assert len(list(db.get_results(label="a_result"))) == repeats * 2
+        all_experiments = db.get_experiments()
+        with_db_experiments = db.get_experiments(label="with_db")
+        assert len(list(all_experiments)) == 2
+        assert len(list(with_db_experiments)) == 2
+        assert len(list(db.get_experiments(start_after=list(all_experiments)[0].end_time))) == 1
         custom_result = db.custom_query("select * from Results")
         assert len(custom_result) == total_results_in_experiments * 2
     finally:

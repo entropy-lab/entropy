@@ -125,7 +125,8 @@ class LabTopology:
     ):
         if name not in self._resources:
             code = self._backend.get_driver_code(name)
-            if not code:
+            state = self._backend.get_latest_state(name)
+            if not code and not state:
                 self.add_resource(
                     name, type, *args, save_source_to_db=save_source_to_db
                 )

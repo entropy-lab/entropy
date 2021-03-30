@@ -44,7 +44,7 @@ class ScriptExecutor(ExperimentExecutor):
                 return self._script()
         except BaseException as e:
             self._stopped = True
-            logger.error(f"Stopping Script, Error:", e)
+            logger.error("Stopping Script, Error:", e)
             return
 
     @property

@@ -1,11 +1,12 @@
 import os
-from typing import List, TypeVar, Optional, ContextManager
+from typing import List, TypeVar, Optional, ContextManager, Iterable, Union
 
 import pandas as pd
 from pandas import DataFrame
 from sqlalchemy import create_engine, desc
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.sql import Selectable
 from sqlalchemy.util.compat import contextmanager
 
 from quaentropy.api.data_reader import (
@@ -68,6 +69,7 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
             )
             if query:
                 query.end_time = end_data.end_time
+                query.success = end_data.success
                 sess.flush()
 
     def save_result(self, experiment_id: int, result: RawResultData):
@@ -103,29 +105,37 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
             if query:
                 return query.to_record()
 
-    def get_result(self, experiment_id: int, label: str) -> Optional[ResultRecord]:
+    def get_results(
+        self,
+        experiment_id: Optional[int] = None,
+        label: Optional[str] = None,
+        stage: Optional[int] = None,
+    ) -> Iterable[ResultRecord]:
         with self._session_maker() as sess:
-            query = (
-                sess.query(ResultTable)
-                .filter(ResultTable.experiment_id == int(experiment_id))
-                .filter(ResultTable.label == label)
-                .one_or_none()
-            )
-            if query:
-                return query.to_record()
+            query = sess.query(ResultTable)
+            if experiment_id:
+                query = query.filter(ResultTable.experiment_id == int(experiment_id))
+            if label:
+                query = query.filter(ResultTable.label == label)
+            if stage:
+                query = query.filter(ResultTable.stage == stage)
+            return [item.to_record() for item in query.all()]
 
-    def get_metadata_record(
-        self, experiment_id: int, label: str
-    ) -> Optional[MetadataRecord]:
+    def get_metadata_records(
+        self,
+        experiment_id: Optional[int] = None,
+        label: Optional[str] = None,
+        stage: Optional[int] = None,
+    ) -> Iterable[MetadataRecord]:
         with self._session_maker() as sess:
-            query = (
-                sess.query(MetadataTable)
-                .filter(MetadataTable.experiment_id == int(experiment_id))
-                .filter(MetadataTable.label == label)
-                .one_or_none()
-            )
-            if query:
-                return query.to_record()
+            query = sess.query(MetadataTable)
+            if experiment_id:
+                query = query.filter(MetadataTable.experiment_id == int(experiment_id))
+            if label:
+                query = query.filter(MetadataTable.label == label)
+            if stage:
+                query = query.filter(MetadataTable.stage == stage)
+            return [item.to_record() for item in query.all()]
 
     def get_debug_record(self, experiment_id: int) -> Optional[DebugRecord]:
         with self._session_maker() as sess:
@@ -146,10 +156,6 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
             )
             return self._query_pandas(query)
 
-    def get_raw_results_from_all_experiments(self, name) -> List[ResultRecord]:
-        raise NotImplementedError()
-        pass
-
     def get_plots(self, experiment_id: int) -> List[PlotRecord]:
         with self._session_maker() as sess:
             query = (
@@ -161,7 +167,9 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
                 return [plot.to_record() for plot in query]
         return []
 
-    def get_last_result(self, experiment_id: int) -> Optional[ResultRecord]:
+    def get_last_result_of_experiment(
+        self, experiment_id: int
+    ) -> Optional[ResultRecord]:
         with self._session_maker() as sess:
             query = (
                 sess.query(ResultTable)
@@ -172,13 +180,23 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
             if query:
                 return query.to_record()
 
+    def custom_query(self, query: Union[str, Selectable]) -> DataFrame:
+        with self._session_maker() as sess:
+            if isinstance(query, str):
+                selectable = query
+            else:
+                selectable = query.statement
+
+            return pd.read_sql(selectable, sess.bind)
+
     def _execute_transaction(self, transaction):
         with self._session_maker() as sess:
             sess.add(transaction)
             sess.flush()
             return transaction.id
 
-    def _query_pandas(self, query):
+    @staticmethod
+    def _query_pandas(query):
         return pd.read_sql(query.statement, query.session.bind)
 
     @contextmanager

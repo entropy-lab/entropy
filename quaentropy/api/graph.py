@@ -84,12 +84,12 @@ class Graph:
         super().__init__()
         self.label: str = label
         self._nodes: Set[Node] = nodes
-        self._end_nodes = self._calculate_end_nodes(nodes)
+        self._end_nodes = self._calculate_last_nodes(nodes)
         self._plot_outputs = plot_outputs
         if self._plot_outputs is None:
             self._plot_outputs = set()
 
-    def _calculate_end_nodes(self, nodes):
+    def _calculate_last_nodes(self, nodes):
         end_nodes = nodes.copy()
         for node in nodes:
             for parent in node.get_parents():

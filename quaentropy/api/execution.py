@@ -1,5 +1,5 @@
 import abc
-from typing import Any, TypeVar, Type
+from typing import Any
 
 from quaentropy.api.data_reader import SingleExperimentDataReader, DataReader
 from quaentropy.api.data_writer import (
@@ -13,7 +13,10 @@ from quaentropy.instruments.lab_topology import ExperimentTopology
 
 class EntropyContext:
     def __init__(
-        self, id: int, db: DataWriter, used_topology: ExperimentTopology
+        self,
+        id: int,
+        db: DataWriter,
+        used_topology: ExperimentTopology,
     ) -> None:
         super().__init__()
         self._data_writer = db
@@ -29,7 +32,7 @@ class EntropyContext:
     def add_plot(self, plot: Plot):
         self._data_writer.save_plot(self._id, plot)
 
-    def get_instrument(self, name):
+    def get_resource(self, name):
         return self._used_topology.get(name)
 
     def save_instruments_snapshot(self, label: str):
@@ -38,7 +41,7 @@ class EntropyContext:
             self._id, Metadata(label, 0, snapshot)  # todo remember last stage
         )
 
-    def results_reader(self) -> SingleExperimentDataReader:
+    def current_experiment_results(self) -> SingleExperimentDataReader:
         if isinstance(self._data_writer, DataReader):
             return SingleExperimentDataReader(self._id, self._data_writer)
         else:

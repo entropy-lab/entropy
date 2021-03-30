@@ -70,7 +70,7 @@ class Experiment:
         self._end_time = datetime.now()
 
         success = True
-        end_data = ExperimentEndData(self._end_time, success, "")
+        end_data = ExperimentEndData(self._end_time, success)
         self._data_writer.save_experiment_end_data(self._id, end_data)
         if executor.failed:
             raise RuntimeError("failed to execute graph")

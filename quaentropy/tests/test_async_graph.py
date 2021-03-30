@@ -155,9 +155,9 @@ def test_async_graph_run_to_node():
 
     g = Graph({a1, b1, c1, d1, d2, e1}, "hello", plot_outputs={"y_z"})
     definition = GraphExperiment(None, g, "run_a")
-    reader = definition.run_to_node(a1).results_reader()
+    reader = definition.run_to_node(a1).current_experiment_results()
     print(reader.get_experiment_data())
-    reader = definition.run_to_node(b1, label="only b1").results_reader()
+    reader = definition.run_to_node(b1, label="only b1").current_experiment_results()
     print(reader.get_experiment_data())
-    reader = definition.run_to_node(d1).results_reader()
+    reader = definition.run_to_node(d1).current_experiment_results()
     print(reader.get_experiment_data())

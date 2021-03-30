@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Iterable
 
 from sqlalchemy import Column, Integer, String, DATETIME, ForeignKey, desc
 
@@ -65,6 +66,16 @@ class SqlalchemySqlitePandasAndTopologyConnector(
                 return query.state
             else:
                 return ""
+
+    def get_all_states(self, name) -> Iterable[str]:
+        driver_id = self._get_driver_id(name)
+        with self._session_maker() as sess:
+            query = (
+                sess.query(TopologyStates)
+                .filter(TopologyStates.driver_id == driver_id)
+                .order_by(desc(TopologyStates.update_time))
+            )
+            return query.all()
 
     def get_type_name(self, name) -> str:
         with self._session_maker() as sess:

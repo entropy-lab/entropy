@@ -32,7 +32,6 @@ class ExperimentInitialData:
 class ExperimentEndData:
     end_time: datetime
     success: bool
-    success_criteria: str
 
 
 @dataclass

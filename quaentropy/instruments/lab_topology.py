@@ -1,7 +1,7 @@
 import abc
 import inspect
 from dataclasses import dataclass
-from typing import TypeVar, Type, Optional, Dict, Any
+from typing import TypeVar, Type, Optional, Dict, Any, Iterable
 
 import jsonpickle
 
@@ -26,6 +26,10 @@ class LabTopologyBackend(abc.ABC):
 
     @abc.abstractmethod
     def get_latest_state(self, name) -> str:
+        pass
+
+    @abc.abstractmethod
+    def get_all_states(self, name) -> Iterable[str]:
         pass
 
     @abc.abstractmethod
@@ -67,7 +71,6 @@ class LabTopology:
                 module = self._backend.get_driver_code(name)
                 class_name = self._backend.get_type_name(name)
                 if module and state:
-                    scope = {"state": state}
                     globals()["state"] = state
                     split = class_name.split(".")
                     class_name = split.pop(len(split) - 1)
@@ -95,7 +98,8 @@ class LabTopology:
         is_entropy_resource = issubclass(type, Resource)
         if not is_entropy_resource and save_source_to_db:
             raise TypeError(
-                f"instrument {name} is not an quaentropy Resource and source wont be saved to db"
+                f"instrument {name} is not an quaentropy Resource and"
+                f" source wont be saved to db"
             )
         logger.debug(f"Initialize device {name}")
         instance = type(*args)
@@ -121,7 +125,11 @@ class LabTopology:
                 self._backend.save_state(name, state)
 
     def add_resource_if_not_exist(
-        self, name, type: Type[T], *args, save_source_to_db=True
+        self,
+        name,
+        type: Type[T],
+        *args,
+        save_source_to_db=True,
     ):
         if name not in self._resources:
             code = self._backend.get_driver_code(name)

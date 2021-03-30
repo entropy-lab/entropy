@@ -3,25 +3,20 @@ import sys
 import traceback
 from datetime import datetime
 from inspect import signature, iscoroutinefunction, getfullargspec
-from io import BytesIO
 from typing import Optional, Dict, Any, List, Set, Union, Callable, Coroutine
 
 import jsonpickle
-from qm import _Program, QuantumMachine, SimulationConfig
-from qm.QmJob import QmJob
-from qm.pb.inc_qua_pb2 import QuaProgram
 
 from quaentropy.api.data_writer import (
     ExecutionSerializer,
     RawResultData,
     PlotDataType,
     Plot,
-    Metadata,
     DataWriter,
 )
 from quaentropy.api.errors import EntropyError
 from quaentropy.api.execution import ExperimentExecutor, EntropyContext
-from quaentropy.api.experiment import ExperimentDefinition, Experiment
+from quaentropy.api.experiment import ExperimentDefinition
 from quaentropy.api.graph import Graph, Node, Output
 from quaentropy.api.plot import BokehCirclePlotGenerator
 from quaentropy.instruments.lab_topology import LabTopology
@@ -118,13 +113,15 @@ class PyNode(Node):
                         outputs[var] = results[var]
                     except KeyError:
                         logger.error(
-                            f"WARNING Could not fetch variable '{var}' from the results of node <{self.label}>"
+                            f"WARNING Could not fetch variable '{var}' "
+                            f"from the results of node <{self.label}>"
                         )
                         pass
             else:
                 if results:
                     raise EntropyError(
-                        f"node {self.label} result should be a dictionaryn but is {type(results)}"
+                        f"node {self.label} result should be a "
+                        f"dictionary but is {type(results)}"
                     )
             return outputs
         except BaseException as e:
@@ -176,7 +173,8 @@ class _NodeExecutor:
             )
             self._start_time = datetime.now()
             logger.debug(
-                f"Saving metadata before running node <{self._node.__class__.__name__}> {self._node.label}"
+                f"Saving metadata before running node "
+                f"<{self._node.__class__.__name__}> {self._node.label}"
             )
             node_execution_id = id(self)
             self.result = await self._node.execute(

@@ -1,7 +1,16 @@
 import pickle
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, DATETIME, ForeignKey, BLOB, Enum
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DATETIME,
+    ForeignKey,
+    BLOB,
+    Enum,
+    Boolean,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -35,6 +44,7 @@ class ExperimentTable(Base):
     end_time = Column(DATETIME)
     user = Column(String)
     story = Column(String)
+    success = Column(Boolean, default=False)
     results = relationship("ResultTable", cascade="all, delete-orphan")
     experiment_metadata = relationship("MetadataTable", cascade="all, delete-orphan")
     debug = relationship("DebugTable", cascade="all, delete-orphan")
@@ -51,6 +61,7 @@ class ExperimentTable(Base):
             start_time=self.start_time,
             end_time=self.end_time,
             story=self.story,
+            success=self.success,
         )
 
     @staticmethod
@@ -166,11 +177,11 @@ class PlotTable(Base):
     def from_model(experiment_id: int, plot: Plot):
         try:
             plot_data = pickle.dumps(plot.data)
-        except:
+        except BaseException:
             plot_data = None
         try:
             generator = pickle.dumps(plot.bokeh_generator)
-        except:
+        except BaseException:
             generator = None
         return PlotTable(
             experiment_id=experiment_id,

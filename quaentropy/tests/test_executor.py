@@ -30,7 +30,7 @@ def do_something2():
 
 
 def an_experiment(experiment: EntropyContext):
-    scope = experiment.get_instrument("scope_1")
+    scope = experiment.get_resource("scope_1")
     a1 = do_something()
     scope.get_trig()
     for i in range(30):
@@ -63,7 +63,7 @@ def an_experiment(experiment: EntropyContext):
 
 
 def an_experiment_with_plot(experiment: EntropyContext):
-    scope = experiment.get_instrument("scope_1")
+    scope = experiment.get_resource("scope_1")
     a1 = do_something()
     scope.get_trig()
     for i in range(30):
@@ -123,7 +123,7 @@ def test_running_no_db():
     runner = ScriptExperiment(topology, an_experiment, "no_db").run()
     reader = runner.results_reader()
     print(reader.get_experiment_data())
-    print(reader.get_raw_results("a_result"))
+    print(reader.get_results("a_result"))
 
 
 @pytest.mark.repeat(3)
@@ -185,7 +185,7 @@ def test_executor_decorator():
 
     @script_experiment("the best", topology, db)
     def experiment(experiment_runner: EntropyContext):
-        scope = experiment_runner.get_instrument("scope_1")
+        scope = experiment_runner.get_resource("scope_1")
         a1 = do_something()
         scope.get_trig()
         experiment_runner.add_result(RawResultData("a_result", a1))

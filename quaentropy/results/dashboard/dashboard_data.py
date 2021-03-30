@@ -60,7 +60,7 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
 
         # do you best otherwise
         if len(plots) == 0:
-            result = self._db.get_last_result(exp_id)
+            result = self._db.get_last_result_of_experiment(exp_id)
 
             if result:
 

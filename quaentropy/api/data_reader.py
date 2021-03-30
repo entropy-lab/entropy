@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Iterable
 
 from pandas import DataFrame
 
@@ -31,6 +31,7 @@ class ExperimentRecord:
     start_time: datetime
     end_time: Optional[datetime]
     story: str
+    success: bool
 
 
 @dataclass
@@ -91,17 +92,27 @@ class DataReader(ABC):
         pass
 
     @abstractmethod
-    def get_result(self, experiment_id: int, label: str) -> Optional[ResultRecord]:
+    def get_results(
+        self,
+        experiment_id: Optional[int] = None,
+        label: Optional[str] = None,
+        stage: Optional[int] = None,
+    ) -> Iterable[ResultRecord]:
         pass
 
     @abstractmethod
-    def get_last_result(self, experiment_id: int) -> Optional[ResultRecord]:
+    def get_metadata_records(
+        self,
+        experiment_id: Optional[int] = None,
+        label: Optional[str] = None,
+        stage: Optional[int] = None,
+    ) -> Iterable[MetadataRecord]:
         pass
 
     @abstractmethod
-    def get_metadata_record(
-        self, experiment_id: int, label: str
-    ) -> Optional[MetadataRecord]:
+    def get_last_result_of_experiment(
+        self, experiment_id: int
+    ) -> Optional[ResultRecord]:
         pass
 
     @abstractmethod
@@ -110,10 +121,6 @@ class DataReader(ABC):
 
     @abstractmethod
     def get_plots(self, experiment_id: int) -> List[PlotRecord]:
-        pass
-
-    @abstractmethod
-    def get_raw_results_from_all_experiments(self, name) -> List[ResultRecord]:
         pass
 
 
@@ -126,14 +133,16 @@ class SingleExperimentDataReader:
     def get_experiment_data(self) -> ExperimentRecord:
         return self._data_reader.get_experiment_record(self._experiment_id)
 
-    def get_metadata(self, label) -> Optional[MetadataRecord]:
-        return self._data_reader.get_metadata_record(self._experiment_id, label)
-
-    def get_debug_data(self) -> Optional[DebugRecord]:
+    def get_debug_record(self) -> Optional[DebugRecord]:
         return self._data_reader.get_debug_record(self._experiment_id)
 
-    def get_raw_results(self, label) -> Optional[ResultRecord]:
-        return self._data_reader.get_result(self._experiment_id, label)
+    def get_metadata_records(
+        self, label: Optional[str] = None
+    ) -> Iterable[MetadataRecord]:
+        return self._data_reader.get_metadata_records(self._experiment_id, label)
+
+    def get_results(self, label: Optional[str] = None) -> Iterable[ResultRecord]:
+        return self._data_reader.get_results(self._experiment_id, label)
 
     def get_plots(self) -> List[PlotRecord]:
         return self._data_reader.get_plots(self._experiment_id)

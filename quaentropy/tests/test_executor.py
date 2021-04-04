@@ -114,7 +114,7 @@ def an_experiment_with_plot(experiment: EntropyContext):
 def test_running_no_db_no_runner():
     experiment = ScriptExperiment(LabTopology(), do_something, "no_db").run()
     reader = experiment.results_reader()
-    print(reader.get_experiment_data())
+    print(reader.get_experiment_info())
 
 
 def test_running_no_db():
@@ -122,7 +122,7 @@ def test_running_no_db():
     topology.add_resource("scope_1", MockScope, "scope_1", "1.1.1.1")
     runner = ScriptExperiment(topology, an_experiment, "no_db").run()
     reader = runner.results_reader()
-    print(reader.get_experiment_data())
+    print(reader.get_experiment_info())
     print(reader.get_results("a_result"))
 
 
@@ -136,8 +136,8 @@ def test_running_db():
 
     experiment_runner = definition.run(db)
     reader = experiment_runner.results_reader()
-    print(reader.get_experiment_data())
-    print(reader.get_experiment_data().script.print_all())
+    print(reader.get_experiment_info())
+    print(reader.get_experiment_info().script.print_all())
 
     db = SqlalchemySqlitePandasConnector("my_db.db")
     definition = ScriptExperiment(topology, an_experiment_with_plot, "with_db")
@@ -152,24 +152,24 @@ def test_running_db_and_topology():
         definition = ScriptExperiment(topology, an_experiment, "with_db")
         experiment_runner = definition.run(db)
         reader = experiment_runner.results_reader()
-        print(reader.get_experiment_data())
-        print(reader.get_experiment_data().script.print_all())
+        print(reader.get_experiment_info())
+        print(reader.get_experiment_info().script.print_all())
         topology.save_states()
 
         topology = LabTopology(db)
         definition = ScriptExperiment(topology, an_experiment, "with_db")
         experiment_runner = definition.run(db)
         reader = experiment_runner.results_reader()
-        print(reader.get_experiment_data())
-        print(reader.get_experiment_data().script.print_all())
+        print(reader.get_experiment_info())
+        print(reader.get_experiment_info().script.print_all())
         topology.save_states()
 
         topology = LabTopology(db)
         definition = ScriptExperiment(topology, an_experiment, "with_db")
         experiment_runner = definition.run(db)
         reader = experiment_runner.results_reader()
-        print(reader.get_experiment_data())
-        print(reader.get_experiment_data().script.print_all())
+        print(reader.get_experiment_info())
+        print(reader.get_experiment_info().script.print_all())
         topology.save_states()
 
     finally:

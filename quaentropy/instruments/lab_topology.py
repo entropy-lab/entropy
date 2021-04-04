@@ -5,6 +5,7 @@ from typing import TypeVar, Type, Optional, Dict, Any, Iterable
 
 import jsonpickle
 
+from quaentropy.api.data_writer import DataWriter
 from quaentropy.api.errors import ResourceNotFound
 from quaentropy.instruments.instrument_driver import Resource
 from quaentropy.logger import logger
@@ -55,6 +56,31 @@ class LabTopology:
         super().__init__()
         self._resources: Dict[str, _LabTopologyDevice] = {}
         self._backend = backend
+        self._save_to_db = True
+        self._results_db = None
+        if isinstance(backend, DataWriter):
+            self._results_db = backend
+        self._private_results_db = None
+
+    def register_private_results_db(self, db):
+        self._private_results_db = db
+
+    def pause_save_to_results_db(self):
+        logger.warn(
+            "DB saving paused, results will be permanently lost on session close"
+        )
+        self._save_to_db = False
+
+    def resume_save_to_results_db(self):
+        logger.warn("DB saving resumed, results will be safely saved to db")
+        self._save_to_db = True
+
+    def get_results_db(self) -> Optional:
+        if not self._save_to_db:
+            return None
+        if self._private_results_db:
+            return self._private_results_db
+        return self._results_db
 
     def get(self, name: str):
         device = self._get_device(name)
@@ -176,3 +202,6 @@ class ExperimentTopology:
             if all[resource] and isinstance(all[resource], Resource):
                 snapshots[resource] = all[resource].snapshot(False)
         return snapshots
+
+    def get_resources_description(self):
+        pass

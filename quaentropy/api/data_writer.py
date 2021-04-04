@@ -2,28 +2,18 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import List, Any, Optional
+from typing import Any, Optional
 
 from bokeh.models import Renderer
 from bokeh.plotting import Figure
-
-from quaentropy.instruments.lab_topology import ExperimentTopology
-
-
-@dataclass
-class ExecutionSerializer:
-    stages: List[str]
-
-    def serialize(self) -> str:
-        return "\n".join([str(stage) for stage in self.stages])
 
 
 @dataclass
 class ExperimentInitialData:
     label: str
     user: str
-    lab_topology: ExperimentTopology
-    script: ExecutionSerializer
+    lab_topology: str
+    script: str
     start_time: datetime
     story: str = None
 

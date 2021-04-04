@@ -140,7 +140,7 @@ class SingleExperimentDataReader:
         self._experiment_id = experiment_id
         self._data_reader: DataReader = db
 
-    def get_experiment_data(self) -> ExperimentRecord:
+    def get_experiment_info(self) -> ExperimentRecord:
         return self._data_reader.get_experiment_record(self._experiment_id)
 
     def get_debug_record(self) -> Optional[DebugRecord]:

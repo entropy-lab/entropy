@@ -3,7 +3,8 @@ from inspect import signature
 from typing import Callable, Any
 from typing import Optional
 
-from quaentropy.api.data_writer import DataWriter, ExecutionSerializer
+from quaentropy.api.data_reader import SingleExperimentDataReader
+from quaentropy.api.data_writer import DataWriter
 from quaentropy.api.execution import ExperimentExecutor, EntropyContext
 from quaentropy.api.experiment import ExperimentDefinition
 from quaentropy.instruments.lab_topology import LabTopology
@@ -17,11 +18,6 @@ def script_experiment(
         ScriptExperiment(topology, fn, label).run(db)
 
     return decorate
-
-
-class ScriptSerializer(ExecutionSerializer):
-    def __init__(self, script: Callable) -> None:
-        super().__init__([inspect.getsource(script)])
 
 
 class ScriptExecutor(ExperimentExecutor):
@@ -66,5 +62,8 @@ class ScriptExperiment(ExperimentDefinition):
     def get_execution_instructions(self) -> ExperimentExecutor:
         return ScriptExecutor(self._script)
 
-    def get_execution_serializer(self) -> ExecutionSerializer:
-        return ScriptSerializer(self._script)
+    def serialize(self, executor) -> str:
+        return inspect.getsource(self._script)
+
+    def get_data_reader(self, exp_id, db, executor) -> SingleExperimentDataReader:
+        return SingleExperimentDataReader(exp_id, db)

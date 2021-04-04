@@ -23,7 +23,7 @@ def c():
 
 def test_async_graph():
     try:
-        db = SqlAlchemyDB("test_running_db_and_topology.db")
+        db = SqlAlchemyDB("test_running_db_graph.db")
         a1 = PyNode("a", a, output_vars={"x"})
 
         b1 = PyNode("b", b, output_vars={"y"})
@@ -45,5 +45,5 @@ def test_async_graph():
 
         # GraphReader(db, exp_id).get_results_from_node(label="")
     finally:
-        os.remove("test_running_db_and_topology.db")
+        os.remove("test_running_db_graph.db")
         pass

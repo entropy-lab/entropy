@@ -44,9 +44,6 @@ pytest-repeat = "^0.9.1"
 pytest-cov = "^2.11.1"
 
 [tool.pytest.ini_options]
-testpaths = [
-    "quaentropy/tests"
-]
 
 [tool.black]
 target-version = ["py37"]

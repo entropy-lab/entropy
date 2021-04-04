@@ -110,7 +110,8 @@ class ExperimentDefinition(abc.ABC):
     def run(self, db: Optional[DataWriter] = None, **kwargs) -> Experiment:
         if db is None and (not self._topology or not self._topology.get_results_db()):
             logger.warn(
-                f"Results of current execution {self.label} will be permanently lost on session close"
+                f"Results of current execution {self.label} "
+                f"will be permanently lost on session close"
             )
             db = MemoryOnlyDataReaderWriter()
         elif db is None:

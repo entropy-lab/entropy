@@ -128,20 +128,23 @@ def test_running_no_db():
 
 @pytest.mark.repeat(3)
 def test_running_db():
-    topology = LabTopology()
-    topology.add_resource("scope_1", MockScope, "scope_1", "1.1.1.1")
-    db = SqlalchemySqlitePandasConnector("my_db.db")
+    try:
+        topology = LabTopology()
+        topology.add_resource("scope_1", MockScope, "scope_1", "1.1.1.1")
+        db = SqlalchemySqlitePandasConnector("my_db.db")
 
-    definition = ScriptExperiment(topology, an_experiment, "with_db")
+        definition = ScriptExperiment(topology, an_experiment, "with_db")
 
-    experiment_runner = definition.run(db)
-    reader = experiment_runner.results_reader()
-    print(reader.get_experiment_info())
-    print(reader.get_experiment_info().script.print_all())
+        experiment_runner = definition.run(db)
+        reader = experiment_runner.results_reader()
+        print(reader.get_experiment_info())
+        print(reader.get_experiment_info().script.print_all())
 
-    db = SqlalchemySqlitePandasConnector("my_db.db")
-    definition = ScriptExperiment(topology, an_experiment_with_plot, "with_db")
-    experiment_runner = definition.run(db)
+        db = SqlalchemySqlitePandasConnector("my_db.db")
+        definition = ScriptExperiment(topology, an_experiment_with_plot, "with_db")
+        experiment_runner = definition.run(db)
+    finally:
+        os.remove("my_db.db")
 
 
 def test_running_db_and_topology():

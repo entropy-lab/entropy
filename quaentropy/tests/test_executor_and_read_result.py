@@ -44,7 +44,7 @@ def an_experiment(experiment: EntropyContext):
 
 def test_running_db_and_topology():
     try:
-        db = SqlAlchemyDB("test_running_db_and_topology.db")
+        db = SqlAlchemyDB("test_running_db_and_topo.db")
         topology = LabTopology(db)
         topology.add_resource_if_not_exist("scope_1", MockScope, "scope_1", "1.1.1.1")
         # topology.register_private_results_db(db)
@@ -73,5 +73,5 @@ def test_running_db_and_topology():
         custom_result = db.custom_query("select * from Results")
         assert len(custom_result) == total_results_in_experiments * 2
     finally:
-        os.remove("test_running_db_and_topology.db")
+        os.remove("test_running_db_and_topo.db")
         pass

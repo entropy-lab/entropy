@@ -41,10 +41,11 @@ black = "^20.8b1"
 flake8 = "^3.9.0"
 flake8-bugbear = "^21.3.2"
 pytest-repeat = "^0.9.1"
+pytest-cov = "^2.11.1"
 
 [tool.pytest.ini_options]
 testpaths = [
-    "tests"
+    "quaentropy/tests"
 ]
 
 [tool.black]

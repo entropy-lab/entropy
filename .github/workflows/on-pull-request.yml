@@ -1,0 +1,65 @@
+name: on-pull-request
+on: [workflow_dispatch,pull_request]
+jobs:
+  build-n-test:
+    env:
+      POERTY_CACHE_FOLDER: '/home/runner/.cache/pypoetry/virtualenvs'
+    runs-on: ubuntu-20.04    
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - uses: Gr1N/setup-poetry@v4
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ env.POERTY_CACHE_FOLDER }}
+          key:  poetry-pr-${{ runner.os }}-${{ hashFiles('poerty.lock') }}
+      - run: poetry install
+      - id: back-check
+        run: poetry run black --check .
+        continue-on-error: true
+      - id: flake8
+        run: poerty run flake8
+        continue-on-error: true
+      - id: pytest
+        run: |
+          [ -d pytest-cov-report ] || mkdir -p pytest-cov-report
+          [ -d pytest-junit-report ] || mkdir -p pytest-junit-report
+          poetry run pytest --junitxml=pytest-junit-report/report.xml --cov=pytest-cov-report --cov-report=xml
+        continue-on-error: true
+      - id: collect-pytest-reports
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: pytest-report
+          path: pytest-junit-report
+      - id: collect-pytest-cov-reports
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: pytest-cov-report
+          path: pytest-cov-report
+      - name: check tests results
+        run: |
+          TEST_FAILED=0
+          if [ ${{steps.back-check.outcome}} == 'failure' ]; then
+             echo "black failed"
+             TEST_FAILED=1
+          else
+            echo "black passed"
+          fi
+          if [ ${{steps.flake8.outcome}} == 'failure' ]; then
+             echo "flake8 failed"
+             TEST_FAILED=1
+          else
+            echo "flake8 passed"
+          fi
+          if [ ${{steps.pytest.outcome}} == 'failure' ]; then 
+            echo "pytest failed"
+            TEST_FAILED=1
+          else
+            echo "pytest passed"
+          fi
+          [ ${TEST_FAILED} != 0 ] && exit 1

@@ -74,7 +74,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
             return ExperimentRecord(
                 experiment_id,
                 self._initial_data.label,
-                ScriptViewer([self._initial_data.script.serialize()]),
+                ScriptViewer([self._initial_data.script]),
                 self._initial_data.start_time,
                 end_time,
                 self._initial_data.story,

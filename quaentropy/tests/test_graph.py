@@ -5,12 +5,7 @@ from bokeh.io import save
 from bokeh.plotting import Figure
 
 from quaentropy.api.graph import Graph
-from quaentropy.graph_experiment import (
-    GraphExperiment,
-    PyNode,
-    pynode,
-    GraphExecutionType,
-)
+from quaentropy.graph_experiment import GraphExperiment, PyNode, pynode
 
 
 async def a():
@@ -67,9 +62,7 @@ def test_async_graph_short():
     dot = g.export_dot_graph()
     print(dot)
 
-    run = GraphExperiment(
-        None, g, "run_a", execution_type=GraphExecutionType.Async
-    ).run()
+    run = GraphExperiment(None, g, "run_a").run()
     print(run.results_reader().get_experiment_info())
 
 
@@ -100,9 +93,7 @@ def test_async_graph_short_decor():
     dot = g.export_dot_graph()
     print(dot)
 
-    run = GraphExperiment(
-        None, g, "run_a", execution_type=GraphExecutionType.Async
-    ).run()
+    run = GraphExperiment(None, g, "run_a").run()
     print(run.results_reader().get_experiment_info())
 
 
@@ -111,9 +102,7 @@ def test_async_graph_must_run_after():
     a2 = PyNode("a", a, output_vars={"x"}, must_run_after={a1})
     g = Graph({a1, a2}, "must_run_after")
 
-    run = GraphExperiment(
-        None, g, "run_a", execution_type=GraphExecutionType.Async
-    ).run()
+    run = GraphExperiment(None, g, "run_a").run()
     print(run.results_reader().get_experiment_info())
     print(g.export_dot_graph())
 
@@ -140,15 +129,13 @@ def test_async_graph():
     # dot.format ='png'
     # dot.view()
 
-    run = GraphExperiment(
-        None, g, "run_a", execution_type=GraphExecutionType.Async
-    ).run()
+    run = GraphExperiment(None, g, "run_a").run()
     print(run.results_reader().get_experiment_info())
     plots = run.results_reader().get_plots()
     for plot in plots:
         figure = Figure()
         plot.bokeh_generator.plot_in_figure(figure, plot.plot_data, plot.data_type)
-        # save(figure, f"try{plot.label}.html")
+        save(figure, f"try{plot.label}.html")
 
 
 def test_async_graph_run_to_node():
@@ -167,9 +154,7 @@ def test_async_graph_run_to_node():
     e1 = PyNode("e", e, {"y": b1.outputs["y"], "z": c1.outputs["z"]}, {"y_z"})
 
     g = Graph({a1, b1, c1, d1, d2, e1}, "hello", plot_outputs={"y_z"})
-    definition = GraphExperiment(
-        None, g, "run_a", execution_type=GraphExecutionType.Async
-    )
+    definition = GraphExperiment(None, g, "run_a")
     reader = definition.run_to_node(a1).results_reader()
     print(reader.get_experiment_info())
     reader = definition.run_to_node(b1, label="only b1").results_reader()

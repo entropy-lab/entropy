@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "quaentropy"
-version = "0.1.0-alpha13"
+version = "0.1.0-alpha15"
 description = ""
 authors = [
     "Tal Shani <tal@quantum-machines.co>",
@@ -44,9 +44,6 @@ pytest-repeat = "^0.9.1"
 pytest-cov = "^2.11.1"
 
 [tool.pytest.ini_options]
-testpaths = [
-    "quaentropy/tests"
-]
 
 [tool.black]
 target-version = ["py37"]

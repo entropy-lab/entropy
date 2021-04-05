@@ -44,16 +44,20 @@ def an_experiment(experiment: EntropyContext):
 
 def test_running_db_and_topology():
     try:
-        db = SqlAlchemyDB("test_running_db_and_topology.db")
+        db = SqlAlchemyDB("test_running_db_and_topo.db")
         topology = LabTopology(db)
         topology.add_resource_if_not_exist("scope_1", MockScope, "scope_1", "1.1.1.1")
+        # topology.register_private_results_db(db)
+        # topology.pause_save_to_results_db()
+        # topology.resume_save_to_results_db()
+
         definition = ScriptExperiment(topology, an_experiment, "with_db")
         # run twice
-        definition.run(db)
-        experiment_runner = definition.run(db)
-        reader = experiment_runner.results_reader()
-        print(reader.get_experiment_data())
-        print(reader.get_experiment_data().script.print_all())
+        definition.run()
+        experiment = definition.run()
+        reader = experiment.results_reader()
+        print(reader.get_experiment_info())
+        print(reader.get_experiment_info().script.print_all())
         total_results_in_experiments = repeats * 2 + 1
         assert len(list(reader.get_results())) == total_results_in_experiments
         assert len(list(reader.get_results("a_result"))) == repeats * 1
@@ -62,9 +66,12 @@ def test_running_db_and_topology():
         with_db_experiments = db.get_experiments(label="with_db")
         assert len(list(all_experiments)) == 2
         assert len(list(with_db_experiments)) == 2
-        assert len(list(db.get_experiments(start_after=list(all_experiments)[0].end_time))) == 1
+        assert (
+            len(list(db.get_experiments(start_after=list(all_experiments)[0].end_time)))
+            == 1
+        )
         custom_result = db.custom_query("select * from Results")
         assert len(custom_result) == total_results_in_experiments * 2
     finally:
-        os.remove("test_running_db_and_topology.db")
+        os.remove("test_running_db_and_topo.db")
         pass

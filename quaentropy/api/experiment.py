@@ -10,7 +10,6 @@ from quaentropy.api.data_writer import (
     RawResultData,
     ExperimentEndData,
     Metadata,
-    ExecutionSerializer,
 )
 from quaentropy.api.execution import ExperimentExecutor, EntropyContext
 from quaentropy.api.memory_reader_writer import MemoryOnlyDataReaderWriter
@@ -31,14 +30,15 @@ class Experiment:
         )
         self._user: str = ""
         self._id: int = -1
+        self._executor = self._definition.get_execution_instructions()
 
     def run(self) -> bool:
         self._start_time = datetime.now()
         initial_data = ExperimentInitialData(
             label=self._definition.label,
             user=self._user,
-            lab_topology=self._used_topology,
-            script=self._definition.get_execution_serializer(),
+            lab_topology=self._used_topology.get_resources_description(),
+            script=self._definition.serialize(self._executor),
             start_time=self._start_time,
             story=self._definition.story,
         )
@@ -48,8 +48,7 @@ class Experiment:
 
         self.save_instruments_snapshot("instruments_start_snapshot")
 
-        executor = self._definition.get_execution_instructions()
-        result = executor.execute(
+        result = self._executor.execute(
             EntropyContext(
                 id=self._id, db=self._data_writer, used_topology=self._used_topology
             )
@@ -72,7 +71,7 @@ class Experiment:
         success = True
         end_data = ExperimentEndData(self._end_time, success)
         self._data_writer.save_experiment_end_data(self._id, end_data)
-        if executor.failed:
+        if self._executor.failed:
             raise RuntimeError("failed to execute graph")
         logger.info("Finished graph execution successfully")
         return success
@@ -83,7 +82,9 @@ class Experiment:
 
     def results_reader(self) -> SingleExperimentDataReader:
         if isinstance(self._data_writer, DataReader):
-            return SingleExperimentDataReader(self._id, self._data_writer)
+            return self._definition.get_data_reader(
+                self._id, self._data_writer, self._executor
+            )
         else:
             raise Exception("database has not implemented data reader interface")
 
@@ -107,8 +108,14 @@ class ExperimentDefinition(abc.ABC):
         return ExperimentTopology(self._topology)
 
     def run(self, db: Optional[DataWriter] = None, **kwargs) -> Experiment:
-        if db is None:
+        if db is None and (not self._topology or not self._topology.get_results_db()):
+            logger.warn(
+                f"Results of current execution {self.label} "
+                f"will be permanently lost on session close"
+            )
             db = MemoryOnlyDataReaderWriter()
+        elif db is None:
+            db = self._topology.get_results_db()
         self._kwargs = kwargs
         experiment = Experiment(self, db)
         experiment.run()
@@ -119,5 +126,9 @@ class ExperimentDefinition(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_execution_serializer(self) -> ExecutionSerializer:
+    def get_data_reader(self, exp_id, db, executor) -> SingleExperimentDataReader:
+        pass
+
+    @abc.abstractmethod
+    def serialize(self, executor) -> str:
         pass

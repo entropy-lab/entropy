@@ -1,3 +1,4 @@
+import enum
 import pickle
 from datetime import datetime
 
@@ -68,11 +69,16 @@ class ExperimentTable(Base):
     def from_initial_data(initial_data: ExperimentInitialData):
         return ExperimentTable(
             label=initial_data.label,
-            script=initial_data.script.serialize(),
+            script=initial_data.script,
             start_time=initial_data.start_time,
             user=initial_data.user,
             story=initial_data.story,
         )
+
+
+class ResultDataType(enum.Enum):
+    Pickled = 1
+    String = 2
 
 
 class ResultTable(Base):
@@ -85,24 +91,35 @@ class ResultTable(Base):
     label = Column(String)
     time = Column(DATETIME, nullable=False)
     data = Column(BLOB)
+    data_type = Column(Enum(ResultDataType))
 
     def __repr__(self):
         return f"<Result(id='{self.id}')>"
 
     def to_record(self):
+        if self.data_type == ResultDataType.Pickled:
+            data = pickle.loads(self.data)
+        else:
+            data = self.data.decode()
         return ResultRecord(
             experiment_id=self.experiment_id,
             id=self.id,
             label=self.label,
             story=self.story,
             stage=self.stage,
-            data=pickle.loads(self.data),
+            data=data,
         )
 
     @staticmethod
     def from_model(experiment_id: int, result: RawResultData):
         # if isinstance(result.data, (np.ndarray, np.generic) ):
-        serialized_data = pickle.dumps(result.data)
+        # TODO using repr
+        data_type = ResultDataType.Pickled
+        try:
+            serialized_data = pickle.dumps(result.data)
+        except Exception:
+            serialized_data = result.data.__repr__().encode(encoding="UTF-8")
+            data_type = ResultDataType.String
         return ResultTable(
             experiment_id=experiment_id,
             stage=result.stage,
@@ -110,6 +127,7 @@ class ResultTable(Base):
             label=result.label,
             time=datetime.now(),
             data=serialized_data,
+            data_type=data_type,
         )
 
 

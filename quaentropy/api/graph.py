@@ -63,12 +63,23 @@ class Node(ABC):
         pass
 
     @abstractmethod
-    async def execute(
+    async def execute_async(
         self,
         parents_results: List[Dict[str, Any]],
         context: EntropyContext,
         node_execution_id: int,
-        depth_from_last,
+        is_last,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        pass
+
+    @abstractmethod
+    def execute(
+        self,
+        parents_results: List[Dict[str, Any]],
+        context: EntropyContext,
+        node_execution_id: int,
+        is_last,
         **kwargs,
     ) -> Dict[str, Any]:
         pass
@@ -128,3 +139,34 @@ class Graph:
                 dot.edge(parent._label, node._label, ",".join(input_names))
 
         return dot
+
+    def nodes_in_topological_order(self):
+        start_nodes = self._calculate_start_nodes()
+
+        edges: Dict[Node, List] = {node: [] for node in self.nodes}
+        for node in self.nodes:
+            for parent in node.get_parents():
+                edges[parent].append(node)
+
+        sorted_list = []
+        global_visited = []
+        for node in start_nodes:
+            self._topological_sort(node, edges, global_visited, sorted_list)
+
+        # TODO: check if graph is acyclic on creation
+
+        return sorted_list
+
+    def _topological_sort(self, node, edges, visited, sorted):
+        if node not in visited:
+            visited.append(node)
+            for edge in edges[node]:
+                self._topological_sort(edge, edges, visited, sorted)
+            sorted.insert(0, node)
+
+    def _calculate_start_nodes(self):
+        start_nodes = []
+        for node in self.nodes:
+            if not node.get_parents():
+                start_nodes.append(node)
+        return start_nodes

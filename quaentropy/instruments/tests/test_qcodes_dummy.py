@@ -1,5 +1,6 @@
 from typing import Optional, Dict, Any
 
+import pytest
 from qcodes.instrument.base import InstrumentBase as qcodes_InstrumentBase
 
 from quaentropy.instruments.qcodes_wrapper import QcodesWrapper
@@ -18,6 +19,7 @@ class QcodesDummy(QcodesWrapper):
         super().__init__(MockQcodesDriver, name)
 
 
+@pytest.mark.skip()
 def test_qcodes_dummy():
     dummy = QcodesDummy("dummy_inst")
     dummy.discover_driver_specs()
@@ -27,6 +29,7 @@ def test_qcodes_dummy():
     dummy.teardown_driver()
 
 
+@pytest.mark.skip()
 def test_qcodes_dummy_object():
     dummy = QcodesWrapper(MockQcodesDriver, "dummy_inst")
     dummy.discover_driver_specs()

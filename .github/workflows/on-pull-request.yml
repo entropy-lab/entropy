@@ -45,19 +45,19 @@ jobs:
         run: |
           TEST_FAILED=0
           if [ ${{steps.back-check.outcome}} != 'success' ]; then
-             echo "black failed"
+             echo "black failed, result was: ${{teps.back-check.outcome}}"
              TEST_FAILED=1
           else
             echo "black passed"
           fi
           if [ ${{steps.flake8.outcome}} != 'success' ]; then
-             echo "flake8 failed"
+             echo "flake8 failed, result was: ${{steps.flake8.outcome}}"
              TEST_FAILED=1
           else
             echo "flake8 passed"
           fi
           if [ ${{steps.pytest.outcome}} != 'success' ]; then 
-            echo "pytest failed"
+            echo "pytest failed, result was: ${{steps.pytest.outcome}}"
             TEST_FAILED=1
           else
             echo "pytest passed"

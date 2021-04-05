@@ -3,7 +3,7 @@ on: [workflow_dispatch,pull_request]
 jobs:
   build-n-test:
     env:
-      POERTY_CACHE_FOLDER: '/home/runner/.cache/pypoetry/virtualenvs'
+      POETRY_CACHE_FOLDER: '/home/runner/.cache/pypoetry/virtualenvs'
     runs-on: ubuntu-20.04    
     steps:
       - uses: actions/checkout@v2
@@ -14,14 +14,14 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ${{ env.POERTY_CACHE_FOLDER }}
-          key:  poetry-pr-${{ runner.os }}-${{ hashFiles('poerty.lock') }}
+            ${{ env.POETRY_CACHE_FOLDER }}
+          key:  poetry-pr-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
       - run: poetry install
       - id: back-check
         run: poetry run black --check .
         continue-on-error: true
       - id: flake8
-        run: poerty run flake8
+        run: poetry run flake8
         continue-on-error: true
       - id: pytest
         run: |

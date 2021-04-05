@@ -44,22 +44,24 @@ jobs:
       - name: check tests results
         run: |
           TEST_FAILED=0
-          if [ ${{steps.back-check.outcome}} == 'failure' ]; then
+          if [ ${{steps.back-check.outcome}} != 'success' ]; then
              echo "black failed"
              TEST_FAILED=1
           else
             echo "black passed"
           fi
-          if [ ${{steps.flake8.outcome}} == 'failure' ]; then
+          if [ ${{steps.flake8.outcome}} != 'success' ]; then
              echo "flake8 failed"
              TEST_FAILED=1
           else
             echo "flake8 passed"
           fi
-          if [ ${{steps.pytest.outcome}} == 'failure' ]; then 
+          if [ ${{steps.pytest.outcome}} != 'success' ]; then 
             echo "pytest failed"
             TEST_FAILED=1
           else
             echo "pytest passed"
           fi
-          [ ${TEST_FAILED} != 0 ] && exit 1
+          if [ ${TEST_FAILED} -ne 0 ]; then
+            exit 1
+          fi

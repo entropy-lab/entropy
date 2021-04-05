@@ -45,7 +45,7 @@ jobs:
         run: |
           TEST_FAILED=0
           if [ ${{steps.back-check.outcome}} != 'success' ]; then
-             echo "black failed, result was: ${{teps.back-check.outcome}}"
+             echo "black failed, result was: ${{steps.back-check.outcome}}"
              TEST_FAILED=1
           else
             echo "black passed"

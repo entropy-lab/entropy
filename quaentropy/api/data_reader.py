@@ -76,6 +76,12 @@ class PlotRecord:
     story: Optional[str] = None
 
 
+@dataclass
+class NodeResults:
+    execution_id: int
+    results: Iterable[ResultRecord]
+
+
 class DataReader(ABC):
     def __init__(self):
         super().__init__()
@@ -133,6 +139,30 @@ class DataReader(ABC):
     def get_plots(self, experiment_id: int) -> List[PlotRecord]:
         pass
 
+    @abstractmethod
+    def get_nodes_id_by_label(self, experiment_id: int, label: str) -> List[int]:
+        pass
+
+    def get_results_from_node(
+        self, experiment_id: int, node_label: str, result_label: Optional[str] = None
+    ) -> Iterable[NodeResults]:
+        nodes = self.get_nodes_id_by_label(experiment_id, node_label)
+        if not nodes:
+            raise KeyError(f"node {node_label} not found")
+        nodes_results = []
+        for node_id in nodes:
+            nodes_results.append(
+                NodeResults(
+                    node_id,
+                    self.get_results(
+                        experiment_id,
+                        label=result_label,
+                        stage=node_id,
+                    ),
+                )
+            )
+        return nodes_results
+
 
 class SingleExperimentDataReader:
     def __init__(self, experiment_id: int, db: DataReader) -> None:
@@ -156,3 +186,6 @@ class SingleExperimentDataReader:
 
     def get_plots(self) -> List[PlotRecord]:
         return self._data_reader.get_plots(self._experiment_id)
+
+    def get_nodes_id_by_label(self, label: str):
+        return self._data_reader.get_nodes_id_by_label(self._experiment_id, label)

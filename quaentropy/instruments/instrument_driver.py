@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from difflib import ndiff
-from typing import Any, List, Optional, Type
+from typing import Any, List, Optional
 
 import jsonpickle
 import jsonpickle.ext.numpy as jsonpickle_numpy
@@ -21,10 +21,10 @@ class Resource(ABC):
     def snapshot(self, update: bool) -> str:
         pass
 
-    @staticmethod
-    @abstractmethod
-    def deserialize_function(snapshot: str, class_object: Type):
-        pass
+    def revert_to_snapshot(self, snapshot: str):
+        raise NotImplementedError(
+            f"resource {self._name} has not implemented revert to snapshot"
+        )
 
     def diff_from_snapshot(self, other_snapshot: str):
         snapshot = self.snapshot(False)
@@ -42,12 +42,8 @@ class PickledResource(Resource):
             raise Exception("snapshot is not accurate")
         return frozen
 
-    @staticmethod
-    def deserialize_function(snapshot: str, class_object: Type):
-        import jsonpickle
-
-        decoded = jsonpickle.decode(snapshot, classes=class_object)
-        return decoded
+    def revert_to_snapshot(self, snapshot: str):
+        super().revert_to_snapshot(snapshot)
 
 
 @dataclass
@@ -83,3 +79,7 @@ class Instrument(PickledResource):
 
     def discover_driver_specs(self):
         pass
+
+    def __del__(self):
+        # todo just if opened?
+        self.teardown_driver()

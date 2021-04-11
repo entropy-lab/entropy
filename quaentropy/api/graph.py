@@ -58,10 +58,6 @@ class Node(ABC):
     def get_inputs(self) -> List[Output]:
         return [var for var in self._input_vars.values()]
 
-    def run(self):
-        # todo guy
-        pass
-
     @abstractmethod
     async def execute_async(
         self,

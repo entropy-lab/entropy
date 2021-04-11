@@ -26,6 +26,7 @@ from quaentropy.api.data_writer import (
     Metadata,
     Debug,
     Plot,
+    NodeData,
 )
 from quaentropy.results_backend.sqlalchemy.model import (
     Base,
@@ -34,6 +35,7 @@ from quaentropy.results_backend.sqlalchemy.model import (
     ResultTable,
     DebugTable,
     MetadataTable,
+    NodeTable,
 )
 
 _SQL_ALCHEMY_MEMORY = ":memory:"
@@ -87,6 +89,10 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
 
     def save_plot(self, experiment_id: int, plot: Plot):
         transaction = PlotTable.from_model(experiment_id, plot)
+        return self._execute_transaction(transaction)
+
+    def save_node(self, experiment_id: int, node_data: NodeData):
+        transaction = NodeTable.from_model(experiment_id, node_data)
         return self._execute_transaction(transaction)
 
     def get_experiments_range(self, starting_from_index: int, count: int) -> DataFrame:
@@ -185,6 +191,13 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
             )
             if query:
                 return [plot.to_record() for plot in query]
+        return []
+
+    def get_nodes_id_by_label(self, experiment_id: int, label: str) -> List[int]:
+        with self._session_maker() as sess:
+            query = sess.query(NodeTable).filter(NodeTable.label == label).all()
+            if query:
+                return [node.id for node in query]
         return []
 
     def get_last_result_of_experiment(

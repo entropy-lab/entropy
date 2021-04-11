@@ -4,7 +4,7 @@ from datetime import datetime
 from quaentropy import ScriptExperiment
 from quaentropy.api.data_writer import RawResultData
 from quaentropy.api.execution import EntropyContext
-from quaentropy.instruments.lab_topology import LabTopology
+from quaentropy.instruments.lab_topology import PersistentLab, ExperimentResources
 from quaentropy.results_backend.sqlalchemy.db import SqlAlchemyDB
 from quaentropy.tests.mock_instruments import MockScope
 
@@ -45,13 +45,18 @@ def an_experiment(experiment: EntropyContext):
 def test_running_db_and_topology():
     try:
         db = SqlAlchemyDB("test_running_db_and_topo.db")
-        topology = LabTopology(db)
-        topology.add_resource_if_not_exist("scope_1", MockScope, "scope_1", "1.1.1.1")
+        topology = PersistentLab(db)
+        topology.register_resource_if_not_exist(
+            "scope_1", MockScope, "scope_1", "1.1.1.1"
+        )
         # topology.register_private_results_db(db)
         # topology.pause_save_to_results_db()
         # topology.resume_save_to_results_db()
 
-        definition = ScriptExperiment(topology, an_experiment, "with_db")
+        resources = ExperimentResources(db)
+        resources.import_persistent_resource("scope_1", MockScope)
+
+        definition = ScriptExperiment(resources, an_experiment, "with_db")
         # run twice
         definition.run()
         experiment = definition.run()

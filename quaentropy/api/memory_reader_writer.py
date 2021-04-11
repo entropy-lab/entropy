@@ -13,7 +13,7 @@ from quaentropy.api.data_reader import (
     ScriptViewer,
     PlotRecord,
 )
-from quaentropy.api.data_writer import DataWriter, Plot
+from quaentropy.api.data_writer import DataWriter, Plot, NodeData
 from quaentropy.api.data_writer import (
     ExperimentInitialData,
     ExperimentEndData,
@@ -33,6 +33,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         self._metadata: List[Metadata] = []
         self._debug: Optional[Debug] = None
         self._plot: List[Plot] = []
+        self._nodes: List[NodeData] = []
 
     def save_experiment_initial_data(self, initial_data: ExperimentInitialData) -> int:
         self._initial_data = initial_data
@@ -52,6 +53,9 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
 
     def save_plot(self, experiment_id: int, plot: Plot):
         self._plot.append(plot)
+
+    def save_node(self, experiment_id: int, node_data: NodeData):
+        self._nodes.append(node_data)
 
     def get_experiments_range(self, starting_from_index: int, count: int) -> DataFrame:
         raise NotImplementedError()
@@ -142,6 +146,9 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
             )
             for plot in self._plot
         ]
+
+    def get_nodes_id_by_label(self, experiment_id: int, label: str) -> List[int]:
+        return list(x.node_id for x in self._nodes if (not label or x.label == label))
 
     def get_last_result_of_experiment(
         self, experiment_id: int

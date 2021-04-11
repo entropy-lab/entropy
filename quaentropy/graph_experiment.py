@@ -2,31 +2,29 @@ import asyncio
 import enum
 import sys
 import traceback
-from dataclasses import dataclass
 from datetime import datetime
 from inspect import signature, iscoroutinefunction, getfullargspec
 from itertools import count
 from typing import Optional, Dict, Any, List, Set, Union, Callable, Coroutine, Iterable
 
-import jsonpickle
-
 from quaentropy.api.data_reader import (
     SingleExperimentDataReader,
     DataReader,
-    ResultRecord,
+    NodeResults,
 )
 from quaentropy.api.data_writer import (
     RawResultData,
     PlotDataType,
     Plot,
     DataWriter,
+    NodeData,
 )
 from quaentropy.api.errors import EntropyError
 from quaentropy.api.execution import ExperimentExecutor, EntropyContext
 from quaentropy.api.experiment import ExperimentDefinition
 from quaentropy.api.graph import Graph, Node, Output
 from quaentropy.api.plot import BokehCirclePlotGenerator
-from quaentropy.instruments.lab_topology import LabTopology
+from quaentropy.instruments.lab_topology import ExperimentResources
 from quaentropy.logger import logger
 
 
@@ -216,7 +214,7 @@ class _NodeExecutor:
         **kwargs,
     ) -> Dict[str, Any]:
         if self.to_run:
-            self._prepare_for_run()
+            self._prepare_for_run(context)
             self.result = self._node.execute(
                 parents_results,
                 context,
@@ -234,7 +232,7 @@ class _NodeExecutor:
         **kwargs,
     ) -> Dict[str, Any]:
         if self.to_run:
-            self._prepare_for_run()
+            self._prepare_for_run(context)
             self.result = await self._node.execute_async(
                 parents_results,
                 context,
@@ -261,14 +259,18 @@ class _NodeExecutor:
         )
         return self.result
 
-    def _prepare_for_run(self):
+    def _prepare_for_run(self, context):
         logger.info(
             f"Running node <{self._node.__class__.__name__}> {self._node.label}"
         )
         self._start_time = datetime.now()
         logger.debug(
             f"Saving metadata before running node "
-            f"<{self._node.__class__.__name__}> {self._node.label}"
+            f"<{self._node.__class__.__name__}> {self._node.label} id={self._node_execution_id}"
+        )
+        context._data_writer.save_node(
+            context._exp_id,
+            NodeData(self._node_execution_id, self._start_time, self._node.label),
         )
 
 
@@ -469,64 +471,16 @@ class _GraphExecutor(ExperimentExecutor):
             return
 
 
-@dataclass
-class NodeResults:
-    node: Node
-    execution_id: int
-    results: Iterable[ResultRecord]
-
-
 class SingleGraphExperimentDataReader(SingleExperimentDataReader):
-    def __init__(
-        self, experiment_id: int, db: DataReader, executor: _AsyncGraphExecutor
-    ) -> None:
+    def __init__(self, experiment_id: int, db: DataReader) -> None:
         super().__init__(experiment_id, db)
-        self._executor = executor
 
     def get_results_from_node(
         self, node_label: str, result_label: Optional[str] = None
     ) -> Iterable[NodeResults]:
-        # TODO should get from db and not from executor
-        nodes = list(
-            node for node in self._executor._graph.nodes if node.label == node_label
+        return self._data_reader.get_results_from_node(
+            self._experiment_id, node_label, result_label
         )
-        nodes_results = []
-        for node in nodes:
-            node_executor = self._executor._executors[node]
-            execution_id = node_executor._node_execution_id
-            nodes_results.append(
-                NodeResults(
-                    node,
-                    execution_id,
-                    self._data_reader.get_results(
-                        self._experiment_id,
-                        label=result_label,
-                        stage=execution_id,
-                    ),
-                )
-            )
-        return nodes_results
-
-
-class GraphSerializer:
-    def __init__(self, graph: Graph, executor: _AsyncGraphExecutor, to_node) -> None:
-        super().__init__()
-        self._graph = graph
-        self._executor = executor
-        self._to_node = to_node
-
-    def serialize(self) -> str:
-        return f"""
-dot:
-{self._graph.export_dot_graph()}
-
-nodes:
-{[jsonpickle.dumps(node) for node in self._graph.nodes]}
-
-nodes_Execution_ids:
-
-
-        """
 
 
 class GraphExecutionType(enum.Enum):
@@ -537,13 +491,13 @@ class GraphExecutionType(enum.Enum):
 class GraphExperiment(ExperimentDefinition):
     def __init__(
         self,
-        topology: Optional[LabTopology],
+        resources: Optional[ExperimentResources],
         graph: Union[Node, Graph],
         label: Optional[str] = None,
         story: str = None,
         execution_type: GraphExecutionType = GraphExecutionType.Sync,
     ) -> None:
-        super().__init__(topology, label, story)
+        super().__init__(resources, label, story)
         if isinstance(graph, Graph):
             self._graph: Graph = graph
         else:
@@ -564,10 +518,14 @@ class GraphExperiment(ExperimentDefinition):
             raise Exception(f"Execution type {self._execution_type} is not supported")
 
     def serialize(self, executor) -> str:
-        return GraphSerializer(self._graph, executor, self._to_node).serialize()
+        if self._to_node:
+            graph = self._to_node
+        else:
+            graph = self._graph
+        return str(graph.export_dot_graph())
 
     def get_data_reader(self, exp_id, db, executor) -> SingleExperimentDataReader:
-        return SingleGraphExperimentDataReader(exp_id, db, executor)
+        return SingleGraphExperimentDataReader(exp_id, db)
 
     def run_to_node(
         self,
@@ -592,8 +550,8 @@ class GraphExperiment(ExperimentDefinition):
             self.label = old_label
             self._to_node = None
 
-    def _fill_list_of_parents(self, list: Set, node):
+    def _fill_list_of_parents(self, parent_list: Set, node):
         for parent in node.get_parents():
-            if parent not in list:
-                list.add(parent)
-                self._fill_list_of_parents(list, parent)
+            if parent not in parent_list:
+                parent_list.add(parent)
+                self._fill_list_of_parents(parent_list, parent)

@@ -73,6 +73,13 @@ class Plot:
     story: Optional[str] = ""
 
 
+@dataclass
+class NodeData:
+    node_id: int
+    start_time: datetime
+    label: str
+
+
 class DataWriter(ABC):
     def __init__(self):
         super().__init__()
@@ -99,4 +106,8 @@ class DataWriter(ABC):
 
     @abstractmethod
     def save_plot(self, experiment_id: int, plot: Plot):
+        pass
+
+    @abstractmethod
+    def save_node(self, experiment_id: int, node_data: NodeData):
         pass

@@ -8,42 +8,42 @@ from quaentropy.api.data_writer import (
     Metadata,
     Plot,
 )
-from quaentropy.instruments.lab_topology import ExperimentTopology
+from quaentropy.instruments.lab_topology import ExperimentResources
 
 
 class EntropyContext:
     def __init__(
         self,
-        id: int,
+        exp_id: int,
         db: DataWriter,
-        used_topology: ExperimentTopology,
+        used_topology: ExperimentResources,
     ) -> None:
         super().__init__()
         self._data_writer = db
-        self._id = id
+        self._exp_id = exp_id
         self._used_topology = used_topology
 
     def add_result(self, result: RawResultData):
-        self._data_writer.save_result(self._id, result)
+        self._data_writer.save_result(self._exp_id, result)
 
     def add_metadata(self, metadata: Metadata):
-        self._data_writer.save_metadata(self._id, metadata)
+        self._data_writer.save_metadata(self._exp_id, metadata)
 
     def add_plot(self, plot: Plot):
-        self._data_writer.save_plot(self._id, plot)
+        self._data_writer.save_plot(self._exp_id, plot)
 
     def get_resource(self, name):
-        return self._used_topology.get(name)
+        return self._used_topology.get_resource(name)
 
     def save_instruments_snapshot(self, label: str):
-        snapshot = self._used_topology.get_snapshot()
+        snapshot = self._used_topology.serialize_resources_snapshot()
         self._data_writer.save_metadata(
-            self._id, Metadata(label, 0, snapshot)  # todo remember last stage
+            self._exp_id, Metadata(label, 0, snapshot)  # todo remember last stage
         )
 
     def current_experiment_results(self) -> SingleExperimentDataReader:
         if isinstance(self._data_writer, DataReader):
-            return SingleExperimentDataReader(self._id, self._data_writer)
+            return SingleExperimentDataReader(self._exp_id, self._data_writer)
         else:
             raise Exception("database has not implemented data reader interface")
 

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "quaentropy"
-version = "0.1.0-alpha15"
+version = "0.1.0-alpha17"
 description = ""
 authors = [
     "Tal Shani <tal@quantum-machines.co>",
@@ -19,10 +19,7 @@ exclude = [
 
 [tool.poetry.dependencies]
 python = "^3.7.1"
-colorama = "^0.4.4"
 sqlalchemy = "^1.4.0"
-Jinja2 = "^2.11.3"
-qcodes = "^0.23.0"
 PyVISA-py = "^0.5.2"
 panel = "^0.11.1"
 bokeh = "^2.3.0"
@@ -33,7 +30,6 @@ deepdiff = "^5.2.3"
 numpy = "^1.20.1"
 jsonpickle = "^2.0.0"
 graphviz = "^0.16"
-xarray = "^0.17.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"

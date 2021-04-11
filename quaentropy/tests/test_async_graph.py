@@ -1,7 +1,6 @@
 import asyncio
 
 import numpy as np
-from bokeh.io import save
 from bokeh.plotting import Figure
 
 from quaentropy.api.graph import Graph

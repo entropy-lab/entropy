@@ -1,4 +1,6 @@
 import inspect
+import sys
+import traceback
 from inspect import signature
 from typing import Callable, Any
 from typing import Optional
@@ -7,12 +9,12 @@ from quaentropy.api.data_reader import SingleExperimentDataReader
 from quaentropy.api.data_writer import DataWriter
 from quaentropy.api.execution import ExperimentExecutor, EntropyContext
 from quaentropy.api.experiment import ExperimentDefinition
-from quaentropy.instruments.lab_topology import LabTopology
+from quaentropy.instruments.lab_topology import PersistentLab, ExperimentResources
 from quaentropy.logger import logger
 
 
 def script_experiment(
-    label: str, topology: LabTopology = None, db: Optional[DataWriter] = None
+    label: str, topology: PersistentLab = None, db: Optional[DataWriter] = None
 ):
     def decorate(fn):
         ScriptExperiment(topology, fn, label).run(db)
@@ -40,7 +42,8 @@ class ScriptExecutor(ExperimentExecutor):
                 return self._script()
         except BaseException as e:
             self._stopped = True
-            logger.error("Stopping Script, Error:", e)
+            trace = traceback.format_exception(*sys.exc_info())
+            logger.error(f"Stopping Scrip, Error message: {e}\ntrace:\n{trace}")
             return
 
     @property
@@ -51,12 +54,12 @@ class ScriptExecutor(ExperimentExecutor):
 class ScriptExperiment(ExperimentDefinition):
     def __init__(
         self,
-        topology: Optional[LabTopology],
+        resources: Optional[ExperimentResources],
         script: Callable,
         label: Optional[str] = None,
         story: str = None,
     ) -> None:
-        super().__init__(topology, label, story)
+        super().__init__(resources, label, story)
         self._script = script
 
     def get_execution_instructions(self) -> ExperimentExecutor:

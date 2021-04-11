@@ -30,6 +30,7 @@ from quaentropy.api.data_writer import (
     Debug,
     Plot,
     PlotDataType,
+    NodeData,
 )
 
 Base = declarative_base()
@@ -142,7 +143,7 @@ class MetadataTable(Base):
     data = Column(BLOB)
 
     def __repr__(self):
-        return f"<Result(id='{self.id}')>"
+        return f"<Metadata(id='{self.id}')>"
 
     def to_record(self):
         return MetadataRecord(
@@ -162,6 +163,29 @@ class MetadataTable(Base):
             label=metadata.label,
             time=datetime.now(),
             data=serialized_data,
+        )
+
+
+class NodeTable(Base):
+    __tablename__ = "Nodes"
+
+    experiment_id = Column(
+        Integer, ForeignKey("Experiments.id", ondelete="CASCADE"), primary_key=True
+    )
+    id = Column(Integer, primary_key=True)
+    label = Column(String)
+    start = Column(DATETIME, nullable=False)
+
+    def __repr__(self):
+        return f"<Node(exp_id='{self.experiment_id}', id='{self.id}')>"
+
+    @staticmethod
+    def from_model(experiment_id: int, node_data: NodeData):
+        return NodeTable(
+            experiment_id=experiment_id,
+            id=node_data.node_id,
+            start=node_data.start_time,
+            label=node_data.label,
         )
 
 

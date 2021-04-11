@@ -1,4 +1,5 @@
 import abc
+import json
 from datetime import datetime
 from typing import Optional
 
@@ -9,11 +10,10 @@ from quaentropy.api.data_writer import (
     ExperimentInitialData,
     RawResultData,
     ExperimentEndData,
-    Metadata,
 )
 from quaentropy.api.execution import ExperimentExecutor, EntropyContext
 from quaentropy.api.memory_reader_writer import MemoryOnlyDataReaderWriter
-from quaentropy.instruments.lab_topology import LabTopology, ExperimentTopology
+from quaentropy.instruments.lab_topology import ExperimentResources
 from quaentropy.logger import logger
 
 
@@ -25,7 +25,7 @@ class Experiment:
             raise TypeError(f"db must be of type {DataWriter}")
         self._definition: ExperimentDefinition = definition
         self._data_writer: DataWriter = db
-        self._used_topology: ExperimentTopology = (
+        self._used_topology: ExperimentResources = (
             definition.get_used_instruments_topology()
         )
         self._user: str = ""
@@ -37,20 +37,18 @@ class Experiment:
         initial_data = ExperimentInitialData(
             label=self._definition.label,
             user=self._user,
-            lab_topology=self._used_topology.get_resources_description(),
+            lab_topology=json.dumps(self._used_topology.serialize_resources_snapshot()),
             script=self._definition.serialize(self._executor),
             start_time=self._start_time,
             story=self._definition.story,
         )
         self._id = self._data_writer.save_experiment_initial_data(initial_data)
 
-        self._used_topology.lock()
-
-        self.save_instruments_snapshot("instruments_start_snapshot")
+        self._used_topology.lock_all_resources()
 
         result = self._executor.execute(
             EntropyContext(
-                id=self._id, db=self._data_writer, used_topology=self._used_topology
+                exp_id=self._id, db=self._data_writer, used_topology=self._used_topology
             )
         )
         if result:
@@ -64,21 +62,16 @@ class Experiment:
                 ),
             )
 
-        self.save_instruments_snapshot("instruments_end_snapshot")
-        self._used_topology.release()
+        self._used_topology.release_all_resources()
         self._end_time = datetime.now()
 
         success = True
         end_data = ExperimentEndData(self._end_time, success)
         self._data_writer.save_experiment_end_data(self._id, end_data)
         if self._executor.failed:
-            raise RuntimeError("failed to execute graph")
-        logger.info("Finished graph execution successfully")
+            raise RuntimeError("failed to execute entropy experiment")
+        logger.info("Finished entropy experiment execution successfully")
         return success
-
-    def save_instruments_snapshot(self, label: str):
-        snapshot = self._used_topology.get_snapshot()
-        self._data_writer.save_metadata(self._id, Metadata(label, 0, snapshot))
 
     def results_reader(self) -> SingleExperimentDataReader:
         if isinstance(self._data_writer, DataReader):
@@ -92,30 +85,30 @@ class Experiment:
 class ExperimentDefinition(abc.ABC):
     def __init__(
         self,
-        topology: Optional[LabTopology],
+        resources: Optional[ExperimentResources],
         label: Optional[str] = None,
         story: str = None,
     ) -> None:
         super().__init__()
-        self._topology: LabTopology = topology
-        if self._topology is None:
-            self._topology = LabTopology()
+        self._resources: ExperimentResources = resources
+        if self._resources is None:
+            self._resources = ExperimentResources()
         self.label = label
         self.story = story
         self._kwargs = {}
 
-    def get_used_instruments_topology(self) -> ExperimentTopology:
-        return ExperimentTopology(self._topology)
+    def get_used_instruments_topology(self) -> ExperimentResources:
+        return self._resources
 
     def run(self, db: Optional[DataWriter] = None, **kwargs) -> Experiment:
-        if db is None and (not self._topology or not self._topology.get_results_db()):
+        if db is None and (not self._resources or not self._resources.get_results_db()):
             logger.warn(
                 f"Results of current execution {self.label} "
                 f"will be permanently lost on session close"
             )
             db = MemoryOnlyDataReaderWriter()
         elif db is None:
-            db = self._topology.get_results_db()
+            db = self._resources.get_results_db()
         self._kwargs = kwargs
         experiment = Experiment(self, db)
         experiment.run()

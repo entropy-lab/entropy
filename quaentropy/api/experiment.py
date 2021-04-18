@@ -25,44 +25,48 @@ class Experiment:
             raise TypeError(f"db must be of type {DataWriter}")
         self._definition: ExperimentDefinition = definition
         self._data_writer: DataWriter = db
-        self._used_topology: ExperimentResources = (
-            definition.get_used_instruments_topology()
+        self._experiment_resources: ExperimentResources = (
+            definition.get_experiment_resources()
         )
         self._user: str = ""
         self._id: int = -1
         self._executor = self._definition.get_execution_instructions()
 
     def run(self) -> bool:
-        self._start_time = datetime.now()
-        initial_data = ExperimentInitialData(
-            label=self._definition.label,
-            user=self._user,
-            lab_topology=json.dumps(self._used_topology.serialize_resources_snapshot()),
-            script=self._definition.serialize(self._executor),
-            start_time=self._start_time,
-            story=self._definition.story,
-        )
-        self._id = self._data_writer.save_experiment_initial_data(initial_data)
-
-        self._used_topology.lock_all_resources()
-
-        result = self._executor.execute(
-            EntropyContext(
-                exp_id=self._id, db=self._data_writer, used_topology=self._used_topology
-            )
-        )
-        if result:
-            self._data_writer.save_result(
-                self._id,
-                RawResultData(
-                    "experiment_result",
-                    result,
-                    0,
-                    story="Final output of the experiment",
+        try:
+            self._start_time = datetime.now()
+            initial_data = ExperimentInitialData(
+                label=self._definition.label,
+                user=self._user,
+                lab_topology=json.dumps(
+                    self._experiment_resources._serialize_resources_snapshot()
                 ),
+                script=self._definition.serialize(self._executor),
+                start_time=self._start_time,
+                story=self._definition.story,
             )
+            self._id = self._data_writer.save_experiment_initial_data(initial_data)
 
-        self._used_topology.release_all_resources()
+            self._experiment_resources._lock_all_resources()
+
+            result = self._executor.execute(
+                EntropyContext(
+                    exp_id=self._id, db=self._data_writer, used_topology=self._experiment_resources
+                )
+            )
+            if result:
+                self._data_writer.save_result(
+                    self._id,
+                    RawResultData(
+                        "experiment_result",
+                        result,
+                        -1,
+                        story="Final output of the experiment",
+                    ),
+                )
+        finally:
+            self._experiment_resources._release_all_resources()
+
         self._end_time = datetime.now()
 
         success = True
@@ -97,7 +101,7 @@ class ExperimentDefinition(abc.ABC):
         self.story = story
         self._kwargs = {}
 
-    def get_used_instruments_topology(self) -> ExperimentResources:
+    def get_experiment_resources(self) -> ExperimentResources:
         return self._resources
 
     def run(self, db: Optional[DataWriter] = None, **kwargs) -> Experiment:

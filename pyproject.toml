@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "quaentropy"
-version = "0.1.0-alpha17"
+version = "0.1.0-alpha27"
 description = ""
 authors = [
     "Tal Shani <tal@quantum-machines.co>",
@@ -26,10 +26,10 @@ bokeh = "^2.3.0"
 param = "^1.10.1"
 dill = "^0.3.3"
 pandas = "^1.2.3"
-deepdiff = "^5.2.3"
 numpy = "^1.20.1"
 jsonpickle = "^2.0.0"
 graphviz = "^0.16"
+networkx = "^2.5.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"

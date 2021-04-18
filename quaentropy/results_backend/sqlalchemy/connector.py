@@ -121,13 +121,13 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
     ) -> Iterable[ExperimentRecord]:
         with self._session_maker() as sess:
             query = sess.query(ExperimentTable)
-            if label:
+            if label is not None:
                 query = query.filter(ExperimentTable.label == label)
-            if success:
+            if success is not None:
                 query = query.filter(ExperimentTable.success == success)
-            if start_after:
+            if start_after is not None:
                 query = query.filter(ExperimentTable.start_time > start_after)
-            if end_after:
+            if end_after is not None:
                 query = query.filter(ExperimentTable.end_time > end_after)
             return [item.to_record() for item in query.all()]
 
@@ -139,12 +139,12 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
     ) -> Iterable[ResultRecord]:
         with self._session_maker() as sess:
             query = sess.query(ResultTable)
-            if experiment_id:
+            if experiment_id is not None:
                 query = query.filter(ResultTable.experiment_id == int(experiment_id))
-            if label:
-                query = query.filter(ResultTable.label == label)
-            if stage:
-                query = query.filter(ResultTable.stage == stage)
+            if label is not None:
+                query = query.filter(ResultTable.label == str(label))
+            if stage is not None:
+                query = query.filter(ResultTable.stage == int(stage))
             return [item.to_record() for item in query.all()]
 
     def get_metadata_records(
@@ -155,11 +155,11 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
     ) -> Iterable[MetadataRecord]:
         with self._session_maker() as sess:
             query = sess.query(MetadataTable)
-            if experiment_id:
+            if experiment_id is not None:
                 query = query.filter(MetadataTable.experiment_id == int(experiment_id))
-            if label:
+            if label is not None:
                 query = query.filter(MetadataTable.label == label)
-            if stage:
+            if stage is not None:
                 query = query.filter(MetadataTable.stage == stage)
             return [item.to_record() for item in query.all()]
 
@@ -193,11 +193,17 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
                 return [plot.to_record() for plot in query]
         return []
 
-    def get_nodes_id_by_label(self, experiment_id: int, label: str) -> List[int]:
+    def get_nodes_id_by_label(
+        self, label: str, experiment_id: Optional[int] = None
+    ) -> List[int]:
         with self._session_maker() as sess:
-            query = sess.query(NodeTable).filter(NodeTable.label == label).all()
-            if query:
-                return [node.id for node in query]
+            query = sess.query(NodeTable).filter(NodeTable.label == label)
+            if experiment_id is not None:
+                query.filter(NodeTable.experiment_id == int(experiment_id))
+
+            result = query.all()
+            if result:
+                return [node.id for node in result]
         return []
 
     def get_last_result_of_experiment(

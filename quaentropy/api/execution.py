@@ -35,12 +35,6 @@ class EntropyContext:
     def get_resource(self, name):
         return self._used_topology.get_resource(name)
 
-    def save_instruments_snapshot(self, label: str):
-        snapshot = self._used_topology.serialize_resources_snapshot()
-        self._data_writer.save_metadata(
-            self._exp_id, Metadata(label, 0, snapshot)  # todo remember last stage
-        )
-
     def current_experiment_results(self) -> SingleExperimentDataReader:
         if isinstance(self._data_writer, DataReader):
             return SingleExperimentDataReader(self._exp_id, self._data_writer)

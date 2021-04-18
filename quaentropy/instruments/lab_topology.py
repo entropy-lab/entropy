@@ -1,5 +1,6 @@
 import abc
 import enum
+import importlib
 import inspect
 from dataclasses import dataclass
 from typing import Type, Optional, Dict, Any, Iterable, List
@@ -21,11 +22,13 @@ class DriverType(enum.Enum):
 @dataclass
 class ResourceRecord:
     name: str
+    module: str
     class_name: str
     driver_code: str
     version: str
     driver_type: DriverType
     args: str
+    kwargs: str
 
 
 class PersistentLabDB(abc.ABC):
@@ -34,7 +37,20 @@ class PersistentLabDB(abc.ABC):
 
     @abc.abstractmethod
     def save_new_resource_driver(
-        self, name: str, driver_source_code: str, type_name: str, serialized_args: str
+        self,
+        name: str,
+        driver_source_code: str,
+        module: str,
+        class_name: str,
+        serialized_args: str,
+        serialized_kwargs: str,
+    ):
+        pass
+
+    @abc.abstractmethod
+    def remove_resource(
+        self,
+        name: str,
     ):
         pass
 
@@ -63,42 +79,47 @@ class PersistentLabDB(abc.ABC):
         pass
 
 
+def _get_class(module_name, class_name):
+    module = importlib.import_module(module_name)
+    if not hasattr(module, class_name):
+        raise Exception("class {} is not in {}".format(class_name, module_name))
+    logger.debug("reading class {} from module {}".format(class_name, module_name))
+    cls = getattr(module, class_name)
+    return cls
+
+
 @dataclass
 class _LabTopologyResourceInstance:
     name: str
     resource_class: Optional[Type]
     args: Optional[Any]
+    kwargs: Optional[Any]
     instance: Optional[Any]
 
 
-class PersistentLab:
+class LabResources:
     def __init__(self, persistence_db: PersistentLabDB) -> None:
         super().__init__()
         self._resources: Dict[str, _LabTopologyResourceInstance] = {}
         self._persistent_db = persistence_db
 
-    def resource_exist(self, name: str, resource_class: Type) -> bool:
+    def resource_exist(self, name: str) -> bool:
         if name in self._resources:
             return True
         else:
-            return self._get_resource_record(name, resource_class) is not None
-
-    def _get_resource_record(
-        self, name: str, resource_class: Type
-    ) -> Optional[ResourceRecord]:
-        resource_record = self._persistent_db.get_resource(name)
-        if resource_record:
-            # TODO: check if same version and code as given resource
-            return resource_record
-        else:
-            return None
+            return self._persistent_db.get_resource(name) is not None
 
     def get_resource(
-        self, name: str, resource_class: Type, runtime_args: Optional[List] = None
+        self,
+        name: str,
+        experiment_args: Optional[List] = None,
+        experiment_kwargs: Optional[Dict] = None,
     ):
         if name not in self._resources:
             resource_instance = self._get_instance(
-                name, resource_class, runtime_args=runtime_args
+                name,
+                experiment_args=experiment_args,
+                experiment_kwargs=experiment_kwargs,
             )
             self._resources[name] = resource_instance
             return resource_instance.instance
@@ -112,62 +133,76 @@ class PersistentLab:
             raise ResourceNotFound()
 
     def _get_instance(
-        self, name, resource_class: Type, runtime_args: Optional[List] = None
+        self,
+        name,
+        experiment_args: Optional[List] = None,
+        experiment_kwargs: Optional[Dict] = None,
     ):
         if name in self._resources:
             logger.debug(f"got device {name} from memory")
             return self._resources[name]
         else:
-            record = self._get_resource_record(name, resource_class)
+            record = self._persistent_db.get_resource(name)
             if record:
                 args = jsonpickle.loads(record.args)
-                if runtime_args:
-                    combined_args = list(*args) + list(*runtime_args)
-                else:
-                    combined_args = args
-                instance = resource_class(*combined_args)
+                kwargs = jsonpickle.loads(record.kwargs)
+                resource_class = _get_class(record.module, record.class_name)
+                # TODO should compare class to record
+                if args is None:
+                    args = []
+                if kwargs is None:
+                    kwargs = {}
+                if experiment_args is None:
+                    experiment_args = []
+                if experiment_kwargs is None:
+                    experiment_kwargs = {}
+                combined_args = list(args) + list(experiment_args)
+                combined_kwargs = {**kwargs, **experiment_kwargs}
+                instance = resource_class(*combined_args, **combined_kwargs)
+                if isinstance(instance, Resource):
+                    instance.set_entropy_name(name)
                 return _LabTopologyResourceInstance(
-                    record.name, resource_class, record.args, instance
+                    record.name,
+                    resource_class,
+                    combined_args,
+                    combined_kwargs,
+                    instance,
                 )
 
         raise ResourceNotFound()
 
     def register_resource(
-        self, name, resource_class: Type, *args, runtime_args: Optional[List] = None
+        self,
+        name,
+        resource_class: Type,
+        args: Optional[List] = None,
+        experiment_args: Optional[List] = None,
+        kwargs: Optional[Dict] = None,
+        experiment_kwargs: Optional[Dict] = None,
     ):
-        if name in self._resources or self.resource_exist(name, resource_class):
+        if name in self._resources or self.resource_exist(name):
             raise KeyError(f"instrument {name} already exist")
-        is_entropy_resource = issubclass(resource_class, Resource)
-        if not is_entropy_resource:
-            raise TypeError(
-                f"instrument {name} is not an quaentropy Resource and"
-                f" additional metadata won't be saved"
-            )
-        logger.debug(f"Initialize device {name}")
-        if runtime_args:
-            combined_args = list(*args) + list(*runtime_args)
-        else:
-            combined_args = args
-        instance = resource_class(*combined_args)
-        self._resources[name] = _LabTopologyResourceInstance(
-            name, resource_class, combined_args, instance
-        )
-        serialized_args = jsonpickle.dumps(list(args))
-        self._persistent_db.save_new_resource_driver(
-            name,
-            inspect.getsource(inspect.getmodule(resource_class)),
-            resource_class.__module__ + "." + resource_class.__name__,
-            serialized_args,
+        self.update_resource(
+            name, resource_class, args, experiment_args, kwargs, experiment_kwargs
         )
 
     def register_resource_if_not_exist(
-        self, name, resource_class: Type, *args, runtime_args: Optional[List] = None
+        self,
+        name,
+        resource_class: Type,
+        args: Optional[List] = None,
+        experiment_args: Optional[List] = None,
+        kwargs: Optional[Dict] = None,
+        experiment_kwargs: Optional[Dict] = None,
     ):
-        if name not in self._resources and not self.resource_exist(
-            name, resource_class
-        ):
+        if name not in self._resources and not self.resource_exist(name):
             self.register_resource(
-                name, resource_class, *args, runtime_args=runtime_args
+                name,
+                resource_class,
+                args,
+                experiment_args=experiment_args,
+                kwargs=kwargs,
+                experiment_kwargs=experiment_kwargs,
             )
 
     def save_snapshot(self, resource_name: str, snapshot_name: str):
@@ -222,11 +257,48 @@ class PersistentLab:
     def get_snapshot(self, resource_name: str, snapshot_name: str) -> str:
         return self._persistent_db.get_state(resource_name, snapshot_name)
 
-    def update_resource_version(self, resource_name, resource_class):
-        raise NotImplementedError()  # TODO
-
     def remove_resource(self, resource_name):
-        raise NotImplementedError()  # TODO
+        raise self._persistent_db.remove_resource(resource_name)
+
+    def update_resource(
+        self,
+        name,
+        resource_class: Type,
+        args: Optional[List] = None,
+        experiment_args: Optional[List] = None,
+        kwargs: Optional[Dict] = None,
+        experiment_kwargs: Optional[Dict] = None,
+    ):
+        is_entropy_resource = issubclass(resource_class, Resource)
+        if not is_entropy_resource:
+            logger.warn(
+                f"instrument {name} is not an quaentropy Resource and"
+                f" additional metadata won't be saved"
+            )
+
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
+        if experiment_args is None:
+            experiment_args = []
+        if experiment_kwargs is None:
+            experiment_kwargs = {}
+        combined_args = list(args) + list(experiment_args)
+        combined_kwargs = {**kwargs, **experiment_kwargs}
+
+        logger.debug(f"Initialize device {name}")
+        resource_class(*combined_args, **combined_kwargs)
+        serialized_args = jsonpickle.dumps(list(args))
+        serialized_kwargs = jsonpickle.dumps(kwargs)
+        self._persistent_db.save_new_resource_driver(
+            name,
+            inspect.getsource(inspect.getmodule(resource_class)),
+            resource_class.__module__,
+            resource_class.__qualname__,
+            serialized_args,
+            serialized_kwargs,
+        )
 
 
 class ExperimentResources:
@@ -237,7 +309,7 @@ class ExperimentResources:
         if isinstance(persistent_db, DataWriter):
             self._results_db = persistent_db
         if isinstance(persistent_db, PersistentLabDB):
-            self._persistent_lab_connector = PersistentLab(persistent_db)
+            self._persistent_lab_connector = LabResources(persistent_db)
         self._private_results_db = None
         self._resources: Dict[str, Type] = {}
         self._local_resources: Dict[str, Any] = {}
@@ -270,23 +342,24 @@ class ExperimentResources:
     def get_results_reader(self) -> DataReader:
         return self.get_results_db()
 
-    def import_persistent_resource(
+    def import_lab_resource(
         self,
         name: str,
-        resource_class: Type,
-        runtime_args: Optional[List] = None,
+        experiment_args: Optional[List] = None,
+        experiment_kwargs: Optional[Dict] = None,
         snapshot_name: Optional[str] = None,
     ):
-        if (
-            self._get_persistent_lab_connector().resource_exist(name, resource_class)
-            and name not in self._resources
-        ):
-            self._resources[name] = resource_class
-            self._get_persistent_lab_connector().get_resource(
-                name, self._resources[name], runtime_args=runtime_args
+        if name in self._resources:
+            raise Exception("can't import resource twice")
+        if self._get_persistent_lab_connector().resource_exist(name):
+            resource = self._get_persistent_lab_connector().get_resource(
+                name,
+                experiment_args=experiment_args,
+                experiment_kwargs=experiment_kwargs,
             )
+            self._resources[name] = resource
             if snapshot_name:
-                if issubclass(resource_class, Resource):
+                if isinstance(resource, Resource):
                     snap = self._get_persistent_lab_connector().get_snapshot(
                         name, snapshot_name
                     )
@@ -296,9 +369,13 @@ class ExperimentResources:
                     raise Exception(
                         "Resource is not an entropy resource and can't be reverted"
                     )
+        else:
+            raise Exception("Resource is not a part of the lab")
 
     def add_temp_resource(self, name: str, instance):
         if name not in self._local_resources:
+            if isinstance(instance, Resource):
+                instance.set_entropy_name(name)
             self._local_resources[name] = instance
         else:
             raise Exception(f"resource {name} already exist")
@@ -315,13 +392,13 @@ class ExperimentResources:
         if name in self._local_resources:
             return self._local_resources[name]
 
-    def lock_all_resources(self):
+    def _lock_all_resources(self):
         if self._resources:
             self._get_persistent_lab_connector().lock_resources(
                 [resource_name for resource_name in self._resources]
             )
 
-    def release_all_resources(self):
+    def _release_all_resources(self):
         if self._resources:
             self._get_persistent_lab_connector().release_resources(
                 [resource_name for resource_name in self._resources]
@@ -333,7 +410,7 @@ class ExperimentResources:
                     resource.teardown_driver()
                 del resource
 
-    def serialize_resources_snapshot(self) -> Dict[str, str]:
+    def _serialize_resources_snapshot(self) -> Dict[str, str]:
         snapshots = {}
         for resource_name in self._resources:
             lab = self._get_persistent_lab_connector()
@@ -341,3 +418,8 @@ class ExperimentResources:
             if resource and isinstance(resource, Resource):
                 snapshots[resource_name] = resource.snapshot(False)
         return snapshots
+
+    def save_snapshot(self, resource_name: str, snapshot_name: str):
+        if resource_name not in self._resources:
+            raise ResourceNotFound()
+        self._get_persistent_lab_connector().save_snapshot(resource_name, snapshot_name)

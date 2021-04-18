@@ -9,12 +9,12 @@ from quaentropy.api.data_reader import SingleExperimentDataReader
 from quaentropy.api.data_writer import DataWriter
 from quaentropy.api.execution import ExperimentExecutor, EntropyContext
 from quaentropy.api.experiment import ExperimentDefinition
-from quaentropy.instruments.lab_topology import PersistentLab, ExperimentResources
+from quaentropy.instruments.lab_topology import LabResources, ExperimentResources
 from quaentropy.logger import logger
 
 
 def script_experiment(
-    label: str, topology: PersistentLab = None, db: Optional[DataWriter] = None
+    label: str, topology: LabResources = None, db: Optional[DataWriter] = None
 ):
     def decorate(fn):
         ScriptExperiment(topology, fn, label).run(db)

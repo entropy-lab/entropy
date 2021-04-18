@@ -1,7 +1,16 @@
 from datetime import datetime
 from typing import Iterable, Optional
 
-from sqlalchemy import Column, Integer, String, DATETIME, ForeignKey, desc, Enum
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DATETIME,
+    ForeignKey,
+    desc,
+    Enum,
+    Boolean,
+)
 
 from quaentropy.instruments.lab_topology import (
     PersistentLabDB,
@@ -21,10 +30,13 @@ class Topology(Base):
     update_time = Column(DATETIME, nullable=False)
     name = Column(String)
     driver = Column(String)
-    type_name = Column(String)
+    module = Column(String)
+    class_name = Column(String)
     version = Column(String)
     driver_type = Column(Enum(DriverType))
     args = Column(String)
+    kwargs = Column(String)
+    deleted = Column(Boolean, default=False)
 
 
 class TopologySnapshots(Base):
@@ -44,18 +56,38 @@ class SqlalchemySqlitePandasAndTopologyConnector(
         super().__init__(backend, echo)
 
     def save_new_resource_driver(
-        self, name: str, driver_source_code: str, type_name: str, serialized_args: str
+        self,
+        name: str,
+        driver_source_code: str,
+        module: str,
+        class_name: str,
+        serialized_args: str,
+        serialized_kwargs: str,
     ):
         transaction = Topology(
             update_time=datetime.now(),
             name=name,
             driver=driver_source_code,
-            type_name=type_name,
+            module=module,
+            class_name=class_name,
             version=1,  # TODO
             driver_type=DriverType.Packaged,
             args=serialized_args,
+            kwargs=serialized_kwargs,
         )
         return self._execute_transaction(transaction)
+
+    def remove_resource(self, name: str):
+        with self._session_maker() as sess:
+            query = (
+                sess.query(Topology)
+                .filter(Topology.name == name)
+                .order_by(desc(Topology.update_time))
+                .first()
+            )
+            if query:
+                query.deleted = True
+                sess.flush()
 
     def save_state(self, name: str, state: str, snapshot_name: str):
         driver_id = self._get_driver_id(name)
@@ -100,14 +132,16 @@ class SqlalchemySqlitePandasAndTopologyConnector(
                 .order_by(desc(Topology.update_time))
                 .first()
             )
-            if query:
+            if query and not query.deleted:
                 return ResourceRecord(
                     query.name,
-                    query.type_name,
+                    query.module,
+                    query.class_name,
                     query.driver,
                     query.version,
                     query.driver_type,
                     query.args,
+                    query.kwargs,
                 )
             else:
                 return None
@@ -120,7 +154,7 @@ class SqlalchemySqlitePandasAndTopologyConnector(
                 .order_by(desc(Topology.update_time))
                 .first()
             )
-            if query:
+            if query and not query.deleted:
                 return int(query.id)
             else:
                 return -1

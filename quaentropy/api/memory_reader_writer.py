@@ -103,7 +103,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
                 x.data,
             )
             for x in self._results
-            if (not label or x.label == label) and (not stage or x.stage == stage)
+            if (not label or x.label == label) and (stage is None or x.stage == stage)
         )
 
     def get_metadata_records(
@@ -117,7 +117,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
                 experiment_id, self._metadata.index(x), x.label, x.stage, x.data
             )
             for x in self._metadata
-            if (not label or x.label == label) and (not stage or x.stage == stage)
+            if (not label or x.label == label) and (stage is None or x.stage == stage)
         )
 
     def get_debug_record(self, experiment_id: int) -> Optional[DebugRecord]:
@@ -138,16 +138,18 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
             PlotRecord(
                 experiment_id,
                 self._plot.index(plot),
-                plot.label,
-                plot.story,
                 plot.data,
                 plot.data_type,
                 plot.bokeh_generator,
+                plot.label,
+                plot.story,
             )
             for plot in self._plot
         ]
 
-    def get_nodes_id_by_label(self, experiment_id: int, label: str) -> List[int]:
+    def get_nodes_id_by_label(
+        self, label: str, experiment_id: Optional[int] = None
+    ) -> List[int]:
         return list(x.node_id for x in self._nodes if (not label or x.label == label))
 
     def get_last_result_of_experiment(

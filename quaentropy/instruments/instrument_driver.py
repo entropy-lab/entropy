@@ -6,16 +6,17 @@ from typing import Any, List, Optional
 import jsonpickle
 import jsonpickle.ext.numpy as jsonpickle_numpy
 import jsonpickle.ext.pandas as jsonpickle_pandas
-from deepdiff import DeepDiff
 
 jsonpickle_numpy.register_handlers()
 jsonpickle_pandas.register_handlers()
 
+Entropy_Resource_Name = "entropy_name"
+
 
 class Resource(ABC):
-    def __init__(self, name):
+    def __init__(self, **kwargs):
         super().__init__()
-        self._name = name
+        self._entropy_name = kwargs.get(Entropy_Resource_Name, "")
 
     @abstractmethod
     def snapshot(self, update: bool) -> str:
@@ -23,27 +24,23 @@ class Resource(ABC):
 
     def revert_to_snapshot(self, snapshot: str):
         raise NotImplementedError(
-            f"resource {self._name} has not implemented revert to snapshot"
+            f"resource {self.__class__.__qualname__} has not implemented revert to snapshot"
         )
 
     def diff_from_snapshot(self, other_snapshot: str):
         snapshot = self.snapshot(False)
         return ndiff(snapshot, other_snapshot)
 
+    def set_entropy_name(self, name: str):
+        self._entropy_name = name
+
 
 class PickledResource(Resource):
-    def __init__(self, name: str):
-        super().__init__(name)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def snapshot(self, update: bool) -> str:
-        frozen = jsonpickle.encode(self)
-        decoded = jsonpickle.decode(frozen, classes=type(self))
-        if len(DeepDiff(self, decoded).to_dict()):
-            raise Exception("snapshot is not accurate")
-        return frozen
-
-    def revert_to_snapshot(self, snapshot: str):
-        super().revert_to_snapshot(snapshot)
+        return jsonpickle.encode(self)
 
 
 @dataclass
@@ -64,8 +61,8 @@ class Function:
 
 
 class Instrument(PickledResource):
-    def __init__(self, name: str):
-        super().__init__(name)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self._parameters: List[Parameter] = []
         self._functions: List[Function] = []
 
@@ -81,5 +78,4 @@ class Instrument(PickledResource):
         pass
 
     def __del__(self):
-        # todo just if opened?
         self.teardown_driver()

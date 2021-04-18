@@ -9,6 +9,7 @@ from quaentropy.instruments.instrument_driver import (
     Instrument as EntropyInstrument,
     Parameter,
     Function as EntropyFunction,
+    Entropy_Resource_Name,
 )
 
 
@@ -41,11 +42,13 @@ def _get_transformed_functions(functions):
 
 
 class QcodesWrapper(EntropyInstrument):
-    def __init__(self, driver: Type[InstrumentBase], name: str, *args):
-        super().__init__(name)
+    def __init__(self, driver: Type[InstrumentBase], *args, **kwargs):
+        super().__init__(**kwargs)
         self._instance: InstrumentBase = None
         self._driver = driver
         self._args = args
+        self._kwargs = kwargs
+        self._kwargs.pop(Entropy_Resource_Name, None)
 
     def discover_driver_specs(self):
         """
@@ -79,9 +82,7 @@ class QcodesWrapper(EntropyInstrument):
             setattr(
                 self,
                 f"get_{param.name}",
-                types.MethodType(
-                    lambda self, value: self._instance.get(param.name, value), self
-                ),
+                types.MethodType(lambda self: self._instance.get(param.name), self),
             )
         for func in self._functions:
             setattr(
@@ -109,10 +110,15 @@ class QcodesWrapper(EntropyInstrument):
             self._extract_submodule_specs(f"{submodule_name}_{name}", sub)
 
     def setup_driver(self):
-        self._instance = self._driver(*self._args)
+        self._instance = self._driver(*self._args, **self._kwargs)
 
     def teardown_driver(self):
         del self._instance
 
     def snapshot(self, update: Optional[bool]):
         return self._instance.snapshot(update=update)
+
+    def revert_to_snapshot(self, snapshot: str):
+        raise NotImplementedError(
+            f"resource {self.__class__.__qualname__} has not implemented revert to snapshot"
+        )

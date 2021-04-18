@@ -67,8 +67,6 @@ class ResultRecord:
 class PlotRecord:
     experiment_id: int
     id: int
-    label: str
-    story: str
     plot_data: Any = None
     data_type: PlotDataType = PlotDataType.unknown
     bokeh_generator: Optional[BokehPlotGenerator] = None
@@ -136,17 +134,26 @@ class DataReader(ABC):
         pass
 
     @abstractmethod
-    def get_plots(self, experiment_id: int) -> List[PlotRecord]:
+    def get_plots(
+        self, experiment_id: int
+    ) -> List[PlotRecord]:  # TODO return something else?
         pass
 
     @abstractmethod
-    def get_nodes_id_by_label(self, experiment_id: int, label: str) -> List[int]:
+    def get_nodes_id_by_label(
+        self, label: str, experiment_id: Optional[int] = None
+    ) -> List[int]:
         pass
 
     def get_results_from_node(
-        self, experiment_id: int, node_label: str, result_label: Optional[str] = None
+        self,
+        node_label: str,
+        experiment_id: Optional[int] = None,
+        result_label: Optional[str] = None,
     ) -> Iterable[NodeResults]:
-        nodes = self.get_nodes_id_by_label(experiment_id, node_label)
+        nodes = self.get_nodes_id_by_label(
+            node_label, experiment_id
+        )  # TODO should return a list of exp ids and node ids
         if not nodes:
             raise KeyError(f"node {node_label} not found")
         nodes_results = []
@@ -188,4 +195,4 @@ class SingleExperimentDataReader:
         return self._data_reader.get_plots(self._experiment_id)
 
     def get_nodes_id_by_label(self, label: str):
-        return self._data_reader.get_nodes_id_by_label(self._experiment_id, label)
+        return self._data_reader.get_nodes_id_by_label(label, self._experiment_id)

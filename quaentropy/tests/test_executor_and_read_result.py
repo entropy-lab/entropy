@@ -4,7 +4,7 @@ from datetime import datetime
 from quaentropy import ScriptExperiment
 from quaentropy.api.data_writer import RawResultData
 from quaentropy.api.execution import EntropyContext
-from quaentropy.instruments.lab_topology import PersistentLab, ExperimentResources
+from quaentropy.instruments.lab_topology import LabResources, ExperimentResources
 from quaentropy.results_backend.sqlalchemy.db import SqlAlchemyDB
 from quaentropy.tests.mock_instruments import MockScope
 
@@ -45,16 +45,16 @@ def an_experiment(experiment: EntropyContext):
 def test_running_db_and_topology():
     try:
         db = SqlAlchemyDB("test_running_db_and_topo.db")
-        topology = PersistentLab(db)
+        topology = LabResources(db)
         topology.register_resource_if_not_exist(
-            "scope_1", MockScope, "scope_1", "1.1.1.1"
+            "scope_1", MockScope, args=["1.1.1.1", ""]
         )
         # topology.register_private_results_db(db)
         # topology.pause_save_to_results_db()
         # topology.resume_save_to_results_db()
 
         resources = ExperimentResources(db)
-        resources.import_persistent_resource("scope_1", MockScope)
+        resources.import_lab_resource("scope_1")
 
         definition = ScriptExperiment(resources, an_experiment, "with_db")
         # run twice
@@ -67,6 +67,7 @@ def test_running_db_and_topology():
         assert len(list(reader.get_results())) == total_results_in_experiments
         assert len(list(reader.get_results("a_result"))) == repeats * 1
         assert len(list(db.get_results(label="a_result"))) == repeats * 2
+
         all_experiments = db.get_experiments()
         with_db_experiments = db.get_experiments(label="with_db")
         assert len(list(all_experiments)) == 2

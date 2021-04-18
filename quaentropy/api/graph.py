@@ -4,12 +4,13 @@ from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from typing import Set, Dict, Any, List, Optional
 
+import networkx as nx
 from graphviz import Digraph
 
 from quaentropy.api.execution import EntropyContext
 
 
-@dataclass
+@dataclass(frozen=True, eq=True)
 class Output:
     node: Node
     name: str
@@ -72,13 +73,21 @@ class Node(ABC):
     @abstractmethod
     def execute(
         self,
-        parents_results: List[Dict[str, Any]],
+        parents_results: List[Dict[Output, Any]],
         context: EntropyContext,
         node_execution_id: int,
         is_last,
         **kwargs,
     ) -> Dict[str, Any]:
         pass
+
+    def ancestors_set(self) -> Set[Node]:
+        parents: Set[Node] = set([var.node for var in self._input_vars.values()])
+        ancestors = parents.copy()
+        ancestors.add(self)
+        for anc in parents:
+            ancestors.update(anc.ancestors_set())
+        return ancestors
 
 
 class Graph:
@@ -120,9 +129,24 @@ class Graph:
         Converts the graph into DOT graph format
         :return: str
         """
+        visited_labels = {}
+        node_labels = {}
+
+        def unique_label(node):
+            if node in node_labels:
+                return node_labels[node]
+            if node.label in visited_labels:
+                index = visited_labels[node.label] + 1
+                visited_labels[node.label] = index
+                node_labels[node] = f"{node.label}_{str(index)}"
+            else:
+                visited_labels[node.label] = 1
+                node_labels[node] = node.label
+            return node_labels[node]
+
         dot = Digraph(comment=self.label)
         for node in self._nodes:
-            dot.node(node._label, shape="box")
+            dot.node(unique_label(node), shape="box")
 
         for node in self._nodes:
             parents = node.get_parents()
@@ -132,37 +156,36 @@ class Graph:
                     input.name
                     for input in filter(lambda input: input.node == parent, inputs)
                 ]
-                dot.edge(parent._label, node._label, ",".join(input_names))
+                dot.edge(
+                    unique_label(parent), unique_label(node), ",".join(input_names)
+                )
 
         return dot
+        #
+        # g = nx.DiGraph()
+        #
+        # def unique_label(node):
+        #     return f"{node.label} at {id(node)}"
+        #
+        # for node in self.nodes:
+        #     g.add_node(unique_label(node))
+        #
+        # for node in self.nodes:
+        #     for parent in node.get_parents():
+        #         g.add_edge(unique_label(parent), unique_label(node))
+        # dot = nx.nx_pydot.to_pydot(g)
+        # return dot
 
     def nodes_in_topological_order(self):
-        start_nodes = self._calculate_start_nodes()
+        g = nx.DiGraph()
 
-        edges: Dict[Node, List] = {node: [] for node in self.nodes}
+        for node in self.nodes:
+            g.add_node(node)
+
         for node in self.nodes:
             for parent in node.get_parents():
-                edges[parent].append(node)
+                g.add_edge(parent, node)
 
-        sorted_list = []
-        global_visited = []
-        for node in start_nodes:
-            self._topological_sort(node, edges, global_visited, sorted_list)
+        sorted_list = nx.topological_sort(g)
 
-        # TODO: check if graph is acyclic on creation
-
-        return sorted_list
-
-    def _topological_sort(self, node, edges, visited, sorted):
-        if node not in visited:
-            visited.append(node)
-            for edge in edges[node]:
-                self._topological_sort(edge, edges, visited, sorted)
-            sorted.insert(0, node)
-
-    def _calculate_start_nodes(self):
-        start_nodes = []
-        for node in self.nodes:
-            if not node.get_parents():
-                start_nodes.append(node)
-        return start_nodes
+        return list(sorted_list)

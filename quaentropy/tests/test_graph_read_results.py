@@ -32,7 +32,8 @@ def test_async_graph_single_data_reader():
         g = Graph({a1, b1, c1}, "hello", plot_outputs={"y_z"})
 
         run = GraphExperiment(None, g, "run_a").run(db)
-        run = GraphExperiment(None, g, "run_a").run(db)
+        run = GraphExperiment(None, g, "run_b").run(db)
+
         reader: SingleGraphExperimentDataReader = run.results_reader()
         nodes_results = reader.get_results_from_node(node_label="c")
         for node_results in nodes_results:
@@ -44,13 +45,14 @@ def test_async_graph_single_data_reader():
 
         # GraphReader(db, exp_id).get_results_from_node(label="")
     finally:
+        print("deleting db")
         os.remove("test_running_db_graph.db")
         pass
 
 
 def test_async_graph_multi_data_reader():
     try:
-        db = SqlAlchemyDB("test_running_db_graph.db")
+        db = SqlAlchemyDB("test_running_db_graph1.db")
         a1 = PyNode("a", a, output_vars={"x"})
 
         b1 = PyNode("b", b, output_vars={"y"})
@@ -60,6 +62,11 @@ def test_async_graph_multi_data_reader():
 
         run = GraphExperiment(None, g, "run_a").run(db)
         run = GraphExperiment(None, g, "run_a").run(db)
+
+        # db.results_reader()
+        # reader =ResultsReader(db)
+        # reader
+
         nodes_results = db.get_results_from_node(run._id, node_label="c")
         for node_results in nodes_results:
             print(node_results.results)
@@ -68,5 +75,6 @@ def test_async_graph_multi_data_reader():
             assert results[0].label == "output_z"
             assert results[0].data == 1.5
     finally:
-        os.remove("test_running_db_graph.db")
+        print("deleting db")
+        os.remove("test_running_db_graph1.db")
         pass

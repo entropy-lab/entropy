@@ -11,21 +11,29 @@ class MockQcodesDriver(qcodes_InstrumentBase):
         super().__init__(name, metadata)
         self.add_parameter("p")
         setter = lambda val: print(val)
-        self.add_parameter("s", set_cmd=setter)
+        self.add_parameter("s", set_cmd=self.setter, get_cmd=self.getter)
+
+    def setter(self, val):
+        print(val)
+        self.s = val
+
+    def getter(self):
+        return self.s
 
 
 class QcodesDummy(QcodesWrapper):
-    def __init__(self, name: str):
-        super().__init__(MockQcodesDriver, name)
+    def __init__(self):
+        super().__init__(MockQcodesDriver, "QcodesDummy")
 
 
 @pytest.mark.skip()
 def test_qcodes_dummy():
-    dummy = QcodesDummy("dummy_inst")
+    dummy = QcodesDummy()
     dummy.discover_driver_specs()
     print(dummy)
     dummy.setup_driver()
     dummy.set_s("printed")
+    assert dummy.get_s() == "printed"
     dummy.teardown_driver()
 
 

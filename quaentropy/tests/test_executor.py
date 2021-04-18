@@ -6,12 +6,9 @@ import pytest
 from quaentropy.api.data_writer import RawResultData, Plot, PlotDataType
 from quaentropy.api.execution import EntropyContext
 from quaentropy.api.plot import BokehCirclePlotGenerator, BokehLinePlotGenerator
-from quaentropy.instruments.lab_topology import PersistentLab, ExperimentResources
+from quaentropy.instruments.lab_topology import LabResources, ExperimentResources
 from quaentropy.results_backend.sqlalchemy.connector import (
     SqlalchemySqlitePandasConnector,
-)
-from quaentropy.results_backend.sqlalchemy.connector_and_topology import (
-    SqlalchemySqlitePandasAndTopologyConnector,
 )
 from quaentropy.results_backend.sqlalchemy.db import SqlAlchemyDB
 from quaentropy.script_experiment import ScriptExperiment, script_experiment
@@ -32,6 +29,7 @@ def do_something2():
 
 def an_experiment(experiment: EntropyContext):
     scope = experiment.get_resource("scope_1")
+    print(scope.extra)
     a1 = do_something()
     scope.get_trig()
     for i in range(30):
@@ -120,7 +118,7 @@ def test_running_no_db_no_runner():
 
 def test_running_no_db():
     resources = ExperimentResources()
-    resources.add_temp_resource("scope_1", MockScope("scope_1", "1.1.1.1"))
+    resources.add_temp_resource("scope_1", MockScope("1.1.1.1", ""))
     runner = ScriptExperiment(resources, an_experiment, "no_db").run()
     reader = runner.results_reader()
     print(reader.get_experiment_info())
@@ -131,7 +129,7 @@ def test_running_no_db():
 def test_running_db():
     try:
         resources = ExperimentResources()
-        resources.add_temp_resource("scope_1", MockScope("scope_1", "1.1.1.1"))
+        resources.add_temp_resource("scope_1", MockScope("1.1.1.1", ""))
         db = SqlalchemySqlitePandasConnector("my_db.db")
 
         definition = ScriptExperiment(resources, an_experiment, "with_db")
@@ -152,40 +150,41 @@ def test_running_db_and_topology():
     try:
         # setup lab environment one time
         db = SqlAlchemyDB("db_and_topo.db")
-        lab = PersistentLab(db)
-        lab.register_resource("scope_1", MockScope, "scope_1", "1.1.1.1")
-        # TODO get package version if installed from pip, or git commit if using local driver code inside git repo
+        lab = LabResources(db)
+        lab.register_resource(
+            "scope_1",
+            MockScope,
+            args=["1.1.1.1"],
+            experiment_args=["blah"],
+        )
         lab.register_resource_if_not_exist(
-            "scope_1", MockScope, "scope_1", "1.1.1.1", runtime_args=[]
-        )  # TODO extra info about installation?
-        # lab.update_resource_version("scope_1", MockScope2)
+            "scope_1", MockScope, args=["1.1.1.1"], experiment_args=["blah"]
+        )
+        # lab.update_resource("scope_1", "scope_1", "1.1.1.1", experiment_args=["blah"])
         # lab.remove_resource("scope_1")
         lab.list_resources()
         print(lab.get_resource_info("scope_1"))
 
         # setup experiment
         resources = ExperimentResources(db)
-        resources.import_persistent_resource(  # use / import/ include
-            "scope_1", MockScope
-        )  # that will enforce importing the type in the local env
-        resources.add_temp_resource("temp_scope", MockScope("temp_scope", "2.2.2.2"))
+        resources.import_lab_resource(
+            "scope_1",
+            experiment_args=["blah1"],
+        )
+        resources.add_temp_resource("temp_scope", MockScope("2.2.2.2", "blah"))
 
         # revert resource to snapshot if needed
+        lab.get_resource("scope_1", experiment_args=["blah1"])
         lab.save_snapshot("scope_1", "snapshot_name")
         snap = lab.get_snapshot("scope_1", "snapshot_name")
         scope = resources.get_resource("scope_1")
         scope.revert_to_snapshot(snap)  # if implemented
 
-        # runtime args todo test
-        # scope = resources.import_persistent_resource(
-        #     "scope_1", MockScope, runtime_args=[]
+        # add resource in a specific snapshot
+        # resources.import_lab_resource(
+        #     "scope_1", snapshot_name="snapshot_name", experiment_args=["blah2"]
         # )
 
-        # add resource in a specific snapshot
-        resources.import_persistent_resource(
-            "scope_1", MockScope, snapshot_name="snapshot_name"
-        )
-
         # define experiment
         definition = ScriptExperiment(resources, an_experiment, "with_db")
         experiment_runner = definition.run(db)
@@ -195,7 +194,7 @@ def test_running_db_and_topology():
 
         # setup experiment
         resources = ExperimentResources(db)
-        resources.import_persistent_resource("scope_1", MockScope)
+        resources.import_lab_resource("scope_1", experiment_args=["blah2"])
         # define experiment
         definition = ScriptExperiment(resources, an_experiment, "with_db")
         experiment_runner = definition.run(db)
@@ -205,7 +204,7 @@ def test_running_db_and_topology():
 
         # setup experiment
         resources = ExperimentResources(db)
-        resources.import_persistent_resource("scope_1", MockScope)
+        resources.import_lab_resource("scope_1", experiment_args=["blah3"])
         # define experiment
         definition = ScriptExperiment(resources, an_experiment, "with_db")
         experiment_runner = definition.run(db)
@@ -218,10 +217,52 @@ def test_running_db_and_topology():
         pass
 
 
+def test_running_db_and_topology_with_kwargs():
+    try:
+        # setup lab environment one time
+        db = SqlAlchemyDB("db_and_topo.db")
+        lab = LabResources(db)
+        lab.register_resource(
+            "scope_1",
+            MockScope,
+            kwargs={"address": "1.1.1.1"},
+            experiment_kwargs={"extra": "blah"},
+        )
+
+        resources = ExperimentResources(db)
+        resources.import_lab_resource(
+            "scope_1",
+            experiment_kwargs={"extra": "blah1"},
+        )
+
+        # define experiment
+        definition = ScriptExperiment(resources, an_experiment, "with_db")
+        experiment_runner = definition.run(db)
+        reader = experiment_runner.results_reader()
+        print(reader.get_experiment_info())
+        print(reader.get_experiment_info().script.print_all())
+
+        # setup experiment
+        resources = ExperimentResources(db)
+        resources.import_lab_resource(
+            "scope_1",
+            experiment_kwargs={"extra": "blah2"},
+        )
+        # define experiment
+        definition = ScriptExperiment(resources, an_experiment, "with_db")
+        experiment_runner = definition.run(db)
+        reader = experiment_runner.results_reader()
+        print(reader.get_experiment_info())
+        print(reader.get_experiment_info().script.print_all())
+    finally:
+        os.remove("db_and_topo.db")
+        pass
+
+
 def test_executor_decorator():
     resources = ExperimentResources()
-    resources.add_temp_resource("scope_1", MockScope("scope_1", "1.1.1.1"))
-    resources.add_temp_resource("scope_2", MockScope("scope_2", "1.1.1.1"))
+    resources.add_temp_resource("scope_1", MockScope("1.1.1.1", ""))
+    resources.add_temp_resource("scope_2", MockScope("1.1.1.1", ""))
     db = SqlalchemySqlitePandasConnector()
 
     @script_experiment("the best", resources, db)

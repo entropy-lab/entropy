@@ -78,7 +78,7 @@ class PyNode(Node):
 
     def execute(
         self,
-        parents_results: List[Dict[str, Any]],
+        parents_results: List[Dict[Output, Any]],
         context: EntropyContext,
         node_execution_id: int,
         is_last,
@@ -120,14 +120,18 @@ class PyNode(Node):
                 )
         return outputs
 
-    def _prepare_for_execution(self, context, is_last, kwargs, parents_results):
-        function_parameters = {k: v for d in parents_results for k, v in d.items()}
+    def _prepare_for_execution(
+        self, context, is_last, kwargs, parents_results: List[Dict[Output, Any]]
+    ):
+        flat_parent_results = {k: v for d in parents_results for k, v in d.items()}
+        flat_parent_results_names = [parent.name for parent in flat_parent_results]
         sig = signature(self._program)
+        keyword_function_parameters = {}
         for param in sig.parameters:
             if sig.parameters[param].annotation is EntropyContext:
-                function_parameters[param] = context
+                keyword_function_parameters[param] = context
         if "is_last" in sig.parameters:
-            function_parameters["is_last"] = is_last
+            keyword_function_parameters["is_last"] = is_last
         (
             args,
             varargs,
@@ -137,10 +141,10 @@ class PyNode(Node):
             kwonlydefaults,
             annotations,
         ) = getfullargspec(self._program)
-        keyword_function_parameters = {}
         for arg in args + kwonlyargs:
             if (
-                arg not in function_parameters
+                arg not in flat_parent_results_names
+                and arg not in keyword_function_parameters
                 and arg not in kwargs
                 and (
                     (defaults and arg not in defaults)
@@ -149,15 +153,16 @@ class PyNode(Node):
             ):
                 logger.error(f"Error in node {self.label} - {arg} is not in parameters")
                 raise KeyError(arg)
-            if arg in function_parameters:
-                keyword_function_parameters[arg] = function_parameters[arg]
+            if arg in flat_parent_results_names:
+                key = list(res for res in flat_parent_results if (res.name == arg))[0]
+                keyword_function_parameters[arg] = flat_parent_results[key]
             elif arg in kwargs:
                 keyword_function_parameters[arg] = kwargs[arg]
         args_parameters = []
         if varargs is not None:
-            for item in function_parameters:
-                if item not in keyword_function_parameters:
-                    args_parameters.append(function_parameters[item])
+            for item in flat_parent_results:
+                if item.name not in keyword_function_parameters:
+                    args_parameters.append(flat_parent_results[item])
         return args_parameters, keyword_function_parameters
 
 
@@ -185,7 +190,7 @@ class SubGraphNode(Node):
 
     def execute(
         self,
-        parents_results: List[Dict[str, Any]],
+        parents_results: List[Dict[Output, Any]],
         context: EntropyContext,
         node_execution_id: int,
         is_last,
@@ -208,7 +213,7 @@ class _NodeExecutor:
 
     def run(
         self,
-        parents_results: List[Dict[str, Any]],
+        parents_results: List[Dict[Output, Any]],
         context: EntropyContext,
         is_last: int,
         **kwargs,
@@ -378,8 +383,8 @@ class _GraphExecutor(ExperimentExecutor):
     def execute(self, context: EntropyContext) -> Any:
         sorted_nodes = self._graph.nodes_in_topological_order()
 
-        results = []
         for node in sorted_nodes:
+            results = []
             for parent in node.get_inputs():
                 if (
                     parent.node not in self._executors
@@ -389,7 +394,7 @@ class _GraphExecutor(ExperimentExecutor):
                         f"node {node.label} input is missing: {parent.name}"
                     )
                 results.append(
-                    {parent.name: self._executors[parent.node].result[parent.name]}
+                    {parent: self._executors[parent.node].result[parent.name]}
                 )
             node_executor = self._executors[node]
             try:

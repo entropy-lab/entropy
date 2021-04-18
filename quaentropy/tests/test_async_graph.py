@@ -53,7 +53,7 @@ async def e(y, z):
 
 def f(x):
     print(x)
-    return {"y_z": x}  # guy how not to do that
+    return {"y_z": x}
 
 
 def test_async_graph_short():

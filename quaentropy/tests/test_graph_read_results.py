@@ -67,7 +67,7 @@ def test_async_graph_multi_data_reader():
         # reader =ResultsReader(db)
         # reader
 
-        nodes_results = db.get_results_from_node(run._id, node_label="c")
+        nodes_results = db.get_results_from_node(experiment_id=run._id, node_label="c")
         for node_results in nodes_results:
             print(node_results.results)
             results = list(node_results.results)

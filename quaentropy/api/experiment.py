@@ -51,7 +51,9 @@ class Experiment:
 
             result = self._executor.execute(
                 EntropyContext(
-                    exp_id=self._id, db=self._data_writer, used_topology=self._experiment_resources
+                    exp_id=self._id,
+                    db=self._data_writer,
+                    used_topology=self._experiment_resources,
                 )
             )
             if result:

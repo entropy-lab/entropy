@@ -4,6 +4,7 @@ jobs:
   build-n-test:
     env:
       POETRY_CACHE_FOLDER: '/home/runner/.cache/pypoetry/virtualenvs'
+      JUNIT_REPORT_PATH: pytest-junit-report
     runs-on: ubuntu-20.04    
     steps:
       - uses: actions/checkout@v2
@@ -26,8 +27,8 @@ jobs:
       - id: pytest
         run: |
           [ -d pytest-cov-report ] || mkdir -p pytest-cov-report
-          [ -d pytest-junit-report ] || mkdir -p pytest-junit-report
-          poetry run pytest --junitxml=pytest-junit-report/report.xml --cov=pytest-cov-report --cov-report=xml
+          [ -d ${JUNIT_REPORT_PATH} ] || mkdir -p ${JUNIT_REPORT_PATH}
+          poetry run pytest --junitxml=${JUNIT_REPORT_PATH}/report.xml --cov=pytest-cov-report --cov-report=xml
         continue-on-error: true
       - id: collect-pytest-reports
         if: always()
@@ -41,6 +42,11 @@ jobs:
         with:
           name: pytest-cov-report
           path: pytest-cov-report
+      - name: Display JUnit results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        with:
+          files: ${{env.JUNIT_REPORT_PATH}}/*.xml
       - name: check tests results
         run: |
           TEST_FAILED=0
@@ -62,6 +68,9 @@ jobs:
           else
             echo "pytest passed"
           fi
+          
           if [ ${TEST_FAILED} -ne 0 ]; then
             exit 1
           fi
+          
+      

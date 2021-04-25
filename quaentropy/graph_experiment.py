@@ -231,7 +231,7 @@ class _NodeExecutor:
 
     async def run_async(
         self,
-        parents_results: List[Dict[str, Any]],
+        parents_results: List[Dict[Output, Any]],
         context: EntropyContext,
         is_last: int,
         **kwargs,
@@ -351,7 +351,7 @@ class _AsyncGraphExecutor(ExperimentExecutor):
                         f"node {node.label} input is missing: {parent.name}"
                     )
                 results.append(
-                    {parent.name: self._executors[parent.node].result[parent.name]}
+                    {parent: self._executors[parent.node].result[parent.name]}
                 )
         node_executor = self._executors[node]
         try:
@@ -484,7 +484,7 @@ class SingleGraphExperimentDataReader(SingleExperimentDataReader):
         self, node_label: str, result_label: Optional[str] = None
     ) -> Iterable[NodeResults]:
         return self._data_reader.get_results_from_node(
-            self._experiment_id, node_label, result_label
+            node_label, self._experiment_id, result_label
         )
 
 

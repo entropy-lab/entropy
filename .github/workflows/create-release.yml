@@ -1,0 +1,26 @@
+name: release-version
+on: 
+  workflow_dispatch:
+  release:
+    types: [created]
+
+jobs:
+  publish:
+    runs-on: ubuntu-20.04    
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - uses: Gr1N/setup-poetry@v4
+      - name: Build package
+        run: |
+          export RELEASE_VERSION="${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          poetry version ${RELEASE_VERSION}
+          poetry build
+      - name: Upload package
+        run: |
+          RELEASE_VERSION="${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          echo ${{secrets.GITHUB_TOKEN}} | gh auth login --with-token
+          gh release upload --clobber ${RELEASE_VERSION} ./dist/*.tar.gz ./dist/*.whl
+      

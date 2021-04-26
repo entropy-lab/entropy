@@ -1,0 +1,76 @@
+name: on-pull-request
+on: [workflow_dispatch,pull_request]
+jobs:
+  build-n-test:
+    env:
+      POETRY_CACHE_FOLDER: '/home/runner/.cache/pypoetry/virtualenvs'
+      JUNIT_REPORT_PATH: pytest-junit-report
+    runs-on: ubuntu-20.04    
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - uses: Gr1N/setup-poetry@v4
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ${{ env.POETRY_CACHE_FOLDER }}
+          key:  poetry-pr-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+      - run: poetry install
+      - id: back-check
+        run: poetry run black --check .
+        continue-on-error: true
+      - id: flake8
+        run: poetry run flake8
+        continue-on-error: true
+      - id: pytest
+        run: |
+          [ -d pytest-cov-report ] || mkdir -p pytest-cov-report
+          [ -d ${JUNIT_REPORT_PATH} ] || mkdir -p ${JUNIT_REPORT_PATH}
+          poetry run pytest --junitxml=${JUNIT_REPORT_PATH}/report.xml --cov=pytest-cov-report --cov-report=xml
+        continue-on-error: true
+      - id: collect-pytest-reports
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: pytest-report
+          path: pytest-junit-report
+      - id: collect-pytest-cov-reports
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: pytest-cov-report
+          path: pytest-cov-report
+      - name: Display JUnit results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        with:
+          files: ${{env.JUNIT_REPORT_PATH}}/*.xml
+      - name: check tests results
+        run: |
+          TEST_FAILED=0
+          if [ ${{steps.back-check.outcome}} != 'success' ]; then
+             echo "black failed, result was: ${{steps.back-check.outcome}}"
+             TEST_FAILED=1
+          else
+            echo "black passed"
+          fi
+          if [ ${{steps.flake8.outcome}} != 'success' ]; then
+             echo "flake8 failed, result was: ${{steps.flake8.outcome}}"
+             TEST_FAILED=1
+          else
+            echo "flake8 passed"
+          fi
+          if [ ${{steps.pytest.outcome}} != 'success' ]; then 
+            echo "pytest failed, result was: ${{steps.pytest.outcome}}"
+            TEST_FAILED=1
+          else
+            echo "pytest passed"
+          fi
+          
+          if [ ${TEST_FAILED} -ne 0 ]; then
+            exit 1
+          fi
+          
+      

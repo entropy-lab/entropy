@@ -7,14 +7,12 @@ from inspect import signature, iscoroutinefunction, getfullargspec
 from itertools import count
 from typing import Optional, Dict, Any, Set, Union, Callable, Coroutine, Iterable
 
-import matplotlib.pyplot as plt
-
 from quaentropy.api.data_reader import (
     SingleExperimentDataReader,
     DataReader,
     NodeResults,
 )
-from quaentropy.api.data_writer import RawResultData, DataWriter, NodeData, PlotSpec
+from quaentropy.api.data_writer import RawResultData, DataWriter, NodeData
 from quaentropy.api.errors import EntropyError
 from quaentropy.api.execution import ExperimentExecutor, EntropyContext
 from quaentropy.api.experiment import ExperimentDefinition
@@ -358,7 +356,8 @@ class _AsyncGraphExecutor(ExperimentExecutor):
             self._stopped = True
             trace = traceback.format_exception(*sys.exc_info())
             logger.error(
-                f"Stopping Graph, Error in node {node.label} of type {e.__class__.__qualname__}. message: {e}\ntrace:\n{trace}"
+                f"Stopping Graph, Error in node {node.label} "
+                f"of type {e.__class__.__qualname__}. message: {e}\ntrace:\n{trace}"
             )
             return
 
@@ -409,7 +408,8 @@ class _GraphExecutor(ExperimentExecutor):
                 self._stopped = True
                 trace = traceback.format_exception(*sys.exc_info())
                 logger.error(
-                    f"Stopping Graph, Error in node {node.label} of type {e.__class__.__qualname__}. message: {e}\ntrace:\n{trace}"
+                    f"Stopping Graph, Error in node {node.label} of type "
+                    f"{e.__class__.__qualname__}. message: {e}\ntrace:\n{trace}"
                 )
                 return
         combined_result = {}

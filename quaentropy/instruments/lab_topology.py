@@ -3,7 +3,7 @@ import enum
 import importlib
 import inspect
 from dataclasses import dataclass
-from typing import Type, Optional, Dict, Any, Iterable, List
+from typing import Type, Optional, Dict, Any, Iterable, List, Set
 
 import jsonpickle
 
@@ -76,6 +76,10 @@ class PersistentLabDB(abc.ABC):
 
     @abc.abstractmethod
     def set_released(self, resource_name):
+        pass
+
+    @abc.abstractmethod
+    def get_all_resources(self) -> Set[str]:
         pass
 
 
@@ -218,10 +222,8 @@ class LabResources:
             )
         self._persistent_db.save_state(device.name, str_snapshot, snapshot_name)
 
-    def list_resources(self) -> Dict[str, Resource]:
-        return {
-            resource.name: resource.instance for resource in self._resources.values()
-        }
+    def list_resources(self) -> Set[str]:
+        return self._persistent_db.get_all_resources()
 
     def lock_resources(self, resources_names: List[str]):
         for resource_name in resources_names:
@@ -290,9 +292,14 @@ class LabResources:
         resource_class(*combined_args, **combined_kwargs)
         serialized_args = jsonpickle.dumps(list(args))
         serialized_kwargs = jsonpickle.dumps(kwargs)
+        try:
+            source = inspect.getsource(inspect.getmodule(resource_class))
+        except Exception:
+            logger.warn(f"could not save source of {resource_class.__qualname__}")
+            source = ""
         self._persistent_db.save_new_resource_driver(
             name,
-            inspect.getsource(inspect.getmodule(resource_class)),
+            source,
             resource_class.__module__,
             resource_class.__qualname__,
             serialized_args,
@@ -313,7 +320,7 @@ class ExperimentResources:
         self._resources: Dict[str, Type] = {}
         self._local_resources: Dict[str, Any] = {}
 
-    def _get_persistent_lab_connector(self):
+    def _get_persistent_lab_connector(self) -> LabResources:
         if not self._persistent_lab_connector:
             raise Exception("persistent lab is not configured for this experiment")
         return self._persistent_lab_connector
@@ -381,7 +388,7 @@ class ExperimentResources:
 
     def get_resource(self, name):
         if name not in self._resources and name not in self._local_resources:
-            raise Exception(
+            raise KeyError(
                 "can not used resource that wasn't added to experiment resources"
             )
         if name in self._resources:
@@ -390,6 +397,9 @@ class ExperimentResources:
             )
         if name in self._local_resources:
             return self._local_resources[name]
+
+    def has_resource(self, name):
+        return name in self._resources or name in self._local_resources
 
     def _lock_all_resources(self):
         if self._resources:

@@ -1,7 +1,11 @@
 import enum
+import importlib
 import pickle
 from datetime import datetime
+from io import BytesIO
+from typing import Any
 
+import numpy as np
 from sqlalchemy import (
     Column,
     Integer,
@@ -28,10 +32,48 @@ from quaentropy.api.data_writer import (
     RawResultData,
     Metadata,
     Debug,
-    Plot,
-    PlotDataType,
+    PlotSpec,
     NodeData,
 )
+from quaentropy.logger import logger
+
+
+def _get_class(module_name, class_name):
+    module = importlib.import_module(module_name)
+    if not hasattr(module, class_name):
+        raise Exception("class {} is not in {}".format(class_name, module_name))
+    logger.debug("reading class {} from module {}".format(class_name, module_name))
+    cls = getattr(module, class_name)
+    return cls
+
+
+def _encode_serialized_data(data):
+    if isinstance(data, (np.ndarray, np.generic)):
+        bio = BytesIO()
+        np.save(bio, data)
+        bio.seek(0)
+        serialized_data = bio.read()
+        data_type = ResultDataType.Npy
+    else:
+        try:
+            serialized_data = pickle.dumps(data)
+            data_type = ResultDataType.Pickled
+        except Exception:
+            serialized_data = data.__repr__().encode(encoding="UTF-8")
+            data_type = ResultDataType.String
+    return data_type, serialized_data
+
+
+def _decode_serialized_data(serialized_data, data_type):
+    if data_type == ResultDataType.Pickled:
+        data = pickle.loads(serialized_data)
+    elif data_type == ResultDataType.Npy:
+        bio = BytesIO(serialized_data)
+        data = np.load(bio)
+    else:
+        data = serialized_data.decode()
+    return data
+
 
 Base = declarative_base()
 
@@ -80,6 +122,7 @@ class ExperimentTable(Base):
 class ResultDataType(enum.Enum):
     Pickled = 1
     String = 2
+    Npy = 3
 
 
 class ResultTable(Base):
@@ -98,10 +141,7 @@ class ResultTable(Base):
         return f"<Result(id='{self.id}')>"
 
     def to_record(self):
-        if self.data_type == ResultDataType.Pickled:
-            data = pickle.loads(self.data)
-        else:
-            data = self.data.decode()
+        data = _decode_serialized_data(self.data, self.data_type)
         return ResultRecord(
             experiment_id=self.experiment_id,
             id=self.id,
@@ -113,13 +153,7 @@ class ResultTable(Base):
 
     @staticmethod
     def from_model(experiment_id: int, result: RawResultData):
-        # if isinstance(result.data, (np.ndarray, np.generic) ):
-        data_type = ResultDataType.Pickled
-        try:
-            serialized_data = pickle.dumps(result.data)
-        except Exception:
-            serialized_data = result.data.__repr__().encode(encoding="UTF-8")
-            data_type = ResultDataType.String
+        data_type, serialized_data = _encode_serialized_data(result.data)
         return ResultTable(
             experiment_id=experiment_id,
             stage=result.stage,
@@ -140,28 +174,31 @@ class MetadataTable(Base):
     label = Column(String)
     time = Column(DATETIME, nullable=False)
     data = Column(BLOB)
+    data_type = Column(Enum(ResultDataType))
 
     def __repr__(self):
         return f"<Metadata(id='{self.id}')>"
 
     def to_record(self):
+        data = _decode_serialized_data(self.data, self.data_type)
         return MetadataRecord(
             experiment_id=self.experiment_id,
             id=self.id,
             label=self.label,
             stage=self.stage,
-            data=pickle.loads(self.data),
+            data=data,
         )
 
     @staticmethod
     def from_model(experiment_id: int, metadata: Metadata):
-        serialized_data = pickle.dumps(metadata.data)
+        data_type, serialized_data = _encode_serialized_data(metadata.data)
         return MetadataTable(
             experiment_id=experiment_id,
             stage=metadata.stage,
             label=metadata.label,
             time=datetime.now(),
             data=serialized_data,
+            data_type=data_type,
         )
 
 
@@ -174,6 +211,7 @@ class NodeTable(Base):
     id = Column(Integer, primary_key=True)
     label = Column(String)
     start = Column(DATETIME, nullable=False)
+    is_key_node = Column(Boolean)
 
     def __repr__(self):
         return f"<Node(exp_id='{self.experiment_id}', id='{self.id}')>"
@@ -185,6 +223,7 @@ class NodeTable(Base):
             id=node_data.node_id,
             start=node_data.start_time,
             label=node_data.label,
+            is_key_node=node_data.is_key_node,
         )
 
 
@@ -194,41 +233,37 @@ class PlotTable(Base):
     id = Column(Integer, primary_key=True)
     experiment_id = Column(Integer, ForeignKey("Experiments.id", ondelete="CASCADE"))
     plot_data = Column(BLOB)
-    data_type = Column(Enum(PlotDataType))
-    bokeh_generator = Column(BLOB)
+    data_type = Column(Enum(ResultDataType))
+    generator_module = Column(String)
+    generator_class = Column(String)
     time = Column(DATETIME)
     label = Column(String)
     story = Column(String)
 
     def __repr__(self):
-        return f"<Plot(id='{self.id}')>"
+        return f"<PlotSpec(id='{self.id}')>"
 
     def to_record(self) -> PlotRecord:
+        data = _decode_serialized_data(self.data, self.data_type)
+        generator = _get_class(self.generator_module, self.generator_class)
         return PlotRecord(
             experiment_id=self.experiment_id,
             id=self.id,
             label=self.label,
             story=self.story,
-            plot_data=pickle.loads(self.plot_data),
-            data_type=self.data_type,
-            bokeh_generator=pickle.loads(self.bokeh_generator),
+            plot_data=data,
+            generator=generator(),
         )
 
     @staticmethod
-    def from_model(experiment_id: int, plot: Plot):
-        try:
-            plot_data = pickle.dumps(plot.data)
-        except BaseException:
-            plot_data = None
-        try:
-            generator = pickle.dumps(plot.bokeh_generator)
-        except BaseException:
-            generator = None
+    def from_model(experiment_id: int, plot: PlotSpec, data: Any):
+        data_type, serialized_data = _encode_serialized_data(data)
         return PlotTable(
             experiment_id=experiment_id,
-            plot_data=plot_data,
-            data_type=plot.data_type,
-            bokeh_generator=generator,
+            plot_data=serialized_data,
+            data_type=data_type,
+            generator_module=plot.generator.__module__,
+            generator_class=plot.generator.__qualname__,
             time=datetime.now(),
             label=plot.label,
             story=plot.story,

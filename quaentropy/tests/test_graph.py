@@ -1,11 +1,14 @@
 import asyncio
+import os
 from time import sleep
 
-import numpy as np
 from bokeh.io import save
 from bokeh.plotting import Figure
 
+from quaentropy.api.data_writer import PlotSpec
+from quaentropy.api.execution import EntropyContext
 from quaentropy.api.graph import Graph
+from quaentropy.api.plot import CirclePlotGenerator
 from quaentropy.graph_experiment import GraphExperiment, PyNode, pynode
 
 
@@ -41,11 +44,18 @@ def d(x, y):
     return {"x_y": x + y}
 
 
-async def e(y, z):
+async def e(y, z, context: EntropyContext):
     print(f"Node e resting for {y / z}")
-    await asyncio.sleep(y / z)
     print(f"e Result: {y + z}")
-    return {"y_z": np.array([[0, 1, 2, 3, 4, 5], [y + z, 7, 6, 20, 10, 11]])}
+    context.add_plot(
+        PlotSpec(CirclePlotGenerator, "the best plot"),
+        data=[[0, 1, 2, 3, 4, 5], [y + z, 7, 6, 20, 10, 11]],
+    )
+    return {"y_z": [0, 1, 2, 3, 4, 5, y + z, 7, 6, 20, 10, 11]}
+
+
+def process_y_z(y_z):
+    return {"data": [y_z, y_z]}
 
 
 def f(x):
@@ -124,7 +134,7 @@ def test_sync_graph():
     e1 = PyNode("e", e, {"y": b1.outputs["y"], "z": c1.outputs["z"]}, {"y_z"})
     e1 = PyNode("a", e, {"y": b1.outputs["y"], "z": c1.outputs["z"]}, {"y_z"})
 
-    g = Graph({a1, b1, c1, d1, d2, e1}, "hello", plot_outputs={"y_z"})
+    g = Graph({a1, b1, c1, d1, d2, e1}, "hello")
     print()
     dot = g.export_dot_graph()
     print(dot)
@@ -133,11 +143,16 @@ def test_sync_graph():
 
     run = GraphExperiment(None, g, "run_a").run()
     print(run.results_reader().get_experiment_info())
+
+    run = GraphExperiment(None, g, "run_a").run()
+    print(run.results_reader().get_experiment_info())
     plots = run.results_reader().get_plots()
     for plot in plots:
         figure = Figure()
-        plot.bokeh_generator.plot_in_figure(figure, plot.plot_data, plot.data_type)
-        # save(figure, f"try{plot.label}.html")
+        plot.generator.plot_bokeh(figure, plot.plot_data)
+        if not os.path.exists("tests_cache"):
+            os.mkdir("tests_cache")
+        save(figure, f"tests_cache/bokeh-exported-{plot.label}.html")
 
 
 def test_sync_graph_run_to_node():
@@ -155,7 +170,7 @@ def test_sync_graph_run_to_node():
     d2 = PyNode("d2", d, {"x": a1.outputs["x"], "y": b1.outputs["y"]}, {"x_y"})
     e1 = PyNode("e", e, {"y": b1.outputs["y"], "z": c1.outputs["z"]}, {"y_z"})
 
-    g = Graph({a1, b1, c1, d1, d2, e1}, "hello", plot_outputs={"y_z"})
+    g = Graph({a1, b1, c1, d1, d2, e1}, "hello")
     definition = GraphExperiment(None, g, "run_a")
     reader = definition.run_to_node(a1).results_reader()
     print(reader.get_experiment_info())

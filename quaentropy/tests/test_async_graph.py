@@ -132,7 +132,7 @@ def test_async_graph():
     d2 = PyNode("d2", d, {"x": a1.outputs["x"], "y": b1.outputs["y"]}, {"x_y"})
     e1 = PyNode("e", e, {"y": b1.outputs["y"], "z": c1.outputs["z"]}, {"y_z"})
 
-    g = Graph({a1, b1, c1, d1, d2, e1}, "hello", plot_outputs={"y_z"})
+    g = Graph({a1, b1, c1, d1, d2, e1}, "hello")
     print()
     dot = g.export_dot_graph()
     print(dot)
@@ -146,7 +146,7 @@ def test_async_graph():
     plots = run.results_reader().get_plots()
     for plot in plots:
         figure = Figure()
-        plot.bokeh_generator.plot_in_figure(figure, plot.plot_data, plot.data_type)
+        plot.generator.plot_bokeh(figure, plot.plot_data)
         # save(figure, f"try{plot.label}.html")
 
 
@@ -165,7 +165,7 @@ def test_async_graph_run_to_node():
     d2 = PyNode("d2", d, {"x": a1.outputs["x"], "y": b1.outputs["y"]}, {"x_y"})
     e1 = PyNode("e", e, {"y": b1.outputs["y"], "z": c1.outputs["z"]}, {"y_z"})
 
-    g = Graph({a1, b1, c1, d1, d2, e1}, "hello", plot_outputs={"y_z"})
+    g = Graph({a1, b1, c1, d1, d2, e1}, "hello")
     definition = GraphExperiment(
         None, g, "run_a", execution_type=GraphExecutionType.Async
     )

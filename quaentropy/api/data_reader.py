@@ -5,7 +5,7 @@ from typing import List, Any, Optional, Iterable
 
 from pandas import DataFrame
 
-from quaentropy.api.data_writer import PlotDataType, BokehPlotGenerator
+from quaentropy.api.data_writer import PlotGenerator
 
 
 class ScriptViewer:
@@ -68,8 +68,7 @@ class PlotRecord:
     experiment_id: int
     id: int
     plot_data: Any = None
-    data_type: PlotDataType = PlotDataType.unknown
-    bokeh_generator: Optional[BokehPlotGenerator] = None
+    generator: Optional[PlotGenerator] = None
     label: Optional[str] = None
     story: Optional[str] = None
 

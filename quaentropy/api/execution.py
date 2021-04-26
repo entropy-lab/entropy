@@ -6,7 +6,7 @@ from quaentropy.api.data_writer import (
     DataWriter,
     RawResultData,
     Metadata,
-    Plot,
+    PlotSpec,
 )
 from quaentropy.instruments.lab_topology import ExperimentResources
 
@@ -29,8 +29,8 @@ class EntropyContext:
     def add_metadata(self, metadata: Metadata):
         self._data_writer.save_metadata(self._exp_id, metadata)
 
-    def add_plot(self, plot: Plot):
-        self._data_writer.save_plot(self._exp_id, plot)
+    def add_plot(self, plot: PlotSpec, data: Any):
+        self._data_writer.save_plot(self._exp_id, plot, data)
 
     def get_resource(self, name):
         return self._used_topology.get_resource(name)

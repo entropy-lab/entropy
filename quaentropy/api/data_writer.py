@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Type
 
 from bokeh.models import Renderer
 from bokeh.plotting import Figure
+from matplotlib.figure import Figure as matplotlibFigure
 
 
 @dataclass
@@ -47,28 +47,22 @@ class Debug:
     extra: str
 
 
-class PlotDataType(Enum):
-    unknown = 0
-    np_2d = 1
-    py_2d = 2
-
-
-class BokehPlotGenerator(ABC):
+class PlotGenerator(ABC):
     def __init__(self) -> None:
         super().__init__()
 
     @abstractmethod
-    def plot_in_figure(
-        self, figure: Figure, data, data_type: PlotDataType, **kwargs
-    ) -> Renderer:
+    def plot_bokeh(self, figure: Figure, data, **kwargs) -> Renderer:
+        pass
+
+    @abstractmethod
+    def plot_matplotlib(self, figure: matplotlibFigure, data, **kwargs):
         pass
 
 
-@dataclass
-class Plot:
-    data: Any
-    data_type: PlotDataType
-    bokeh_generator: Optional[BokehPlotGenerator] = None
+@dataclass(frozen=True, eq=True)
+class PlotSpec:
+    generator: Optional[Type[PlotGenerator]] = None
     label: Optional[str] = None
     story: Optional[str] = ""
 
@@ -78,6 +72,7 @@ class NodeData:
     node_id: int
     start_time: datetime
     label: str
+    is_key_node: bool
 
 
 class DataWriter(ABC):
@@ -105,7 +100,7 @@ class DataWriter(ABC):
         pass
 
     @abstractmethod
-    def save_plot(self, experiment_id: int, plot: Plot):
+    def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
         pass
 
     @abstractmethod

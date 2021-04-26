@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Set
 
 from sqlalchemy import (
     Column,
@@ -164,3 +164,16 @@ class SqlalchemySqlitePandasAndTopologyConnector(
 
     def set_released(self, resource_name):
         pass
+
+    def get_all_resources(self) -> Set[str]:
+        with self._session_maker() as sess:
+            query = (
+                sess.query(Topology)
+                .filter(Topology.deleted == False)  # noqa: E712
+                .group_by(Topology.name)
+                .all()
+            )
+            if query is not None:
+                return {item.name for item in query}
+            else:
+                return {}

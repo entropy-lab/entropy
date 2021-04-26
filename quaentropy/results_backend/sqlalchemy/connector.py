@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import List, TypeVar, Optional, ContextManager, Iterable, Union
+from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
 
 import pandas as pd
 from pandas import DataFrame
@@ -25,7 +25,7 @@ from quaentropy.api.data_writer import (
     RawResultData,
     Metadata,
     Debug,
-    Plot,
+    PlotSpec,
     NodeData,
 )
 from quaentropy.results_backend.sqlalchemy.model import (
@@ -87,8 +87,8 @@ class SqlalchemySqlitePandasConnector(DataWriter, DataReader):
         transaction = DebugTable.from_model(experiment_id, debug)
         return self._execute_transaction(transaction)
 
-    def save_plot(self, experiment_id: int, plot: Plot):
-        transaction = PlotTable.from_model(experiment_id, plot)
+    def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
+        transaction = PlotTable.from_model(experiment_id, plot, data)
         return self._execute_transaction(transaction)
 
     def save_node(self, experiment_id: int, node_data: NodeData):

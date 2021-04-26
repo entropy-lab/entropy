@@ -5,25 +5,20 @@ import traceback
 from datetime import datetime
 from inspect import signature, iscoroutinefunction, getfullargspec
 from itertools import count
-from typing import Optional, Dict, Any, List, Set, Union, Callable, Coroutine, Iterable
+from typing import Optional, Dict, Any, Set, Union, Callable, Coroutine, Iterable
+
+import matplotlib.pyplot as plt
 
 from quaentropy.api.data_reader import (
     SingleExperimentDataReader,
     DataReader,
     NodeResults,
 )
-from quaentropy.api.data_writer import (
-    RawResultData,
-    PlotDataType,
-    Plot,
-    DataWriter,
-    NodeData,
-)
+from quaentropy.api.data_writer import RawResultData, DataWriter, NodeData, PlotSpec
 from quaentropy.api.errors import EntropyError
 from quaentropy.api.execution import ExperimentExecutor, EntropyContext
 from quaentropy.api.experiment import ExperimentDefinition
 from quaentropy.api.graph import Graph, Node, Output
-from quaentropy.api.plot import BokehCirclePlotGenerator
 from quaentropy.instruments.lab_topology import ExperimentResources
 from quaentropy.logger import logger
 
@@ -54,14 +49,14 @@ class PyNode(Node):
 
     async def execute_async(
         self,
-        parents_results: List[Dict[str, Any]],
+        input_values: Dict[str, Any],
         context: EntropyContext,
         node_execution_id: int,
         is_last,
         **kwargs,
     ) -> Dict[str, Any]:
         args_parameters, keyword_function_parameters = self._prepare_for_execution(
-            context, is_last, kwargs, parents_results
+            context, is_last, kwargs, input_values
         )
 
         try:
@@ -78,14 +73,14 @@ class PyNode(Node):
 
     def execute(
         self,
-        parents_results: List[Dict[Output, Any]],
+        input_values: Dict[str, Any],
         context: EntropyContext,
         node_execution_id: int,
         is_last,
         **kwargs,
     ) -> Dict[str, Any]:
         args_parameters, keyword_function_parameters = self._prepare_for_execution(
-            context, is_last, kwargs, parents_results
+            context, is_last, kwargs, input_values
         )
 
         try:
@@ -121,10 +116,8 @@ class PyNode(Node):
         return outputs
 
     def _prepare_for_execution(
-        self, context, is_last, kwargs, parents_results: List[Dict[Output, Any]]
+        self, context, is_last, kwargs, input_values: Dict[str, Any]
     ):
-        flat_parent_results = {k: v for d in parents_results for k, v in d.items()}
-        flat_parent_results_names = [parent.name for parent in flat_parent_results]
         sig = signature(self._program)
         keyword_function_parameters = {}
         for param in sig.parameters:
@@ -143,7 +136,7 @@ class PyNode(Node):
         ) = getfullargspec(self._program)
         for arg in args + kwonlyargs:
             if (
-                arg not in flat_parent_results_names
+                arg not in input_values
                 and arg not in keyword_function_parameters
                 and arg not in kwargs
                 and (
@@ -153,16 +146,16 @@ class PyNode(Node):
             ):
                 logger.error(f"Error in node {self.label} - {arg} is not in parameters")
                 raise KeyError(arg)
-            if arg in flat_parent_results_names:
-                key = list(res for res in flat_parent_results if (res.name == arg))[0]
-                keyword_function_parameters[arg] = flat_parent_results[key]
+
+            if arg in input_values:
+                keyword_function_parameters[arg] = input_values[arg]
             elif arg in kwargs:
                 keyword_function_parameters[arg] = kwargs[arg]
         args_parameters = []
         if varargs is not None:
-            for item in flat_parent_results:
-                if item.name not in keyword_function_parameters:
-                    args_parameters.append(flat_parent_results[item])
+            for item in input_values:
+                if item not in keyword_function_parameters:
+                    args_parameters.append(input_values[item])
         return args_parameters, keyword_function_parameters
 
 
@@ -180,7 +173,7 @@ class SubGraphNode(Node):
 
     async def execute_async(
         self,
-        parents_results: List[Dict[str, Any]],
+        input_values: Dict[str, Any],
         context: EntropyContext,
         node_execution_id: int,
         is_last,
@@ -190,7 +183,7 @@ class SubGraphNode(Node):
 
     def execute(
         self,
-        parents_results: List[Dict[Output, Any]],
+        input_values: Dict[str, Any],
         context: EntropyContext,
         node_execution_id: int,
         is_last,
@@ -202,7 +195,7 @@ class SubGraphNode(Node):
 
 
 class _NodeExecutor:
-    def __init__(self, node: Node, node_execution_id: int) -> None:
+    def __init__(self, node: Node, node_execution_id: int, is_key_node: bool) -> None:
         super().__init__()
         self._node: Node = node
         self._start_time: Optional[datetime] = None
@@ -210,10 +203,11 @@ class _NodeExecutor:
         self.result: Dict[str, Any] = {}
         self.to_run = True
         self._node_execution_id = node_execution_id
+        self._is_key_node = is_key_node
 
     def run(
         self,
-        parents_results: List[Dict[Output, Any]],
+        input_values: Dict[str, Any],
         context: EntropyContext,
         is_last: int,
         **kwargs,
@@ -221,7 +215,7 @@ class _NodeExecutor:
         if self.to_run:
             self._prepare_for_run(context)
             self.result = self._node.execute(
-                parents_results,
+                input_values,
                 context,
                 self._node_execution_id,
                 is_last,
@@ -231,7 +225,7 @@ class _NodeExecutor:
 
     async def run_async(
         self,
-        parents_results: List[Dict[Output, Any]],
+        input_values: Dict[str, Any],
         context: EntropyContext,
         is_last: int,
         **kwargs,
@@ -239,7 +233,7 @@ class _NodeExecutor:
         if self.to_run:
             self._prepare_for_run(context)
             self.result = await self._node.execute_async(
-                parents_results,
+                input_values,
                 context,
                 self._node_execution_id,
                 is_last,
@@ -253,7 +247,7 @@ class _NodeExecutor:
             output = self.result[output_id]
             context.add_result(
                 RawResultData(
-                    label=f"output_{output_id}",
+                    label=f"{output_id}",
                     data=output,
                     stage=self._node_execution_id,
                 )
@@ -275,7 +269,12 @@ class _NodeExecutor:
         )
         context._data_writer.save_node(
             context._exp_id,
-            NodeData(self._node_execution_id, self._start_time, self._node.label),
+            NodeData(
+                self._node_execution_id,
+                self._start_time,
+                self._node.label,
+                self._is_key_node,
+            ),
         )
 
 
@@ -290,7 +289,9 @@ class _AsyncGraphExecutor(ExperimentExecutor):
         self._node_id_iter = count(start=0, step=1)
         self._executors: Dict[Node, _NodeExecutor] = dict()
         for node in self._graph.nodes:
-            self._executors[node] = _NodeExecutor(node, next(self._node_id_iter))
+            self._executors[node] = _NodeExecutor(
+                node, next(self._node_id_iter), node in self._graph.key_nodes
+            )
 
     def execute(self, context: EntropyContext) -> Any:
         async_result = asyncio.run(self.execute_async(context))
@@ -302,7 +303,7 @@ class _AsyncGraphExecutor(ExperimentExecutor):
 
     async def execute_async(self, context: EntropyContext):
         # traverse the graph and run the nodes
-        end_nodes = self._graph.end_nodes()
+        end_nodes = self._graph.end_nodes
 
         chains = []
         for node in end_nodes:
@@ -311,58 +312,53 @@ class _AsyncGraphExecutor(ExperimentExecutor):
         result = await asyncio.gather(*chains)
         result = [x for x in result if x is not None]
         combined_result = {}
+
         if result:
             combined_result = {k: v for d in result for k, v in d.items()}
-            for output in self._graph.plot_outputs:
-                if output in combined_result:
-                    context.add_plot(
-                        Plot(
-                            label=f"graph result {output}",
-                            data=combined_result[output],
-                            data_type=PlotDataType.np_2d,
-                            bokeh_generator=BokehCirclePlotGenerator(),
-                        )
-                    )
         return combined_result
 
     async def _run_node_and_ancestors(
         self, node: Node, context: EntropyContext, is_last: int
     ):
         tasks = []
-        for parent in node.get_parents():
-            if parent not in self._tasks:
-                task = self._run_node_and_ancestors(parent, context, is_last + 1)
+        for input_name in node.get_parents():
+            if input_name not in self._tasks:
+                task = self._run_node_and_ancestors(input_name, context, is_last + 1)
                 tasks.append(task)
-                self._tasks[parent] = task
+                self._tasks[input_name] = task
             else:
-                tasks.append(self._tasks[parent])
+                tasks.append(self._tasks[input_name])
         results = []
         if len(tasks) > 0:
             await asyncio.wait(tasks)
             if self._stopped:
                 return None
-            results = []
-            for parent in node.get_inputs():
+            results = {}
+            inputs_by_name = node.get_inputs_by_name()
+            for input_name in inputs_by_name:
+                parent_node = inputs_by_name[input_name].node
+                parent_output_name = inputs_by_name[input_name].name
                 if (
-                    parent.node not in self._executors
-                    or parent.name not in self._executors[parent.node].result
+                    parent_node not in self._executors
+                    or parent_output_name not in self._executors[parent_node].result
                 ):
                     raise EntropyError(
-                        f"node {node.label} input is missing: {parent.name}"
+                        f"node {node.label} input is missing: {parent_output_name}"
                     )
-                results.append(
-                    {parent: self._executors[parent.node].result[parent.name]}
-                )
+                results[input_name] = self._executors[parent_node].result[
+                    parent_output_name
+                ]
+
         node_executor = self._executors[node]
         try:
             return await node_executor.run_async(
-                results, context, node in self._graph.end_nodes(), **self._node_kwargs
+                results, context, node in self._graph.end_nodes, **self._node_kwargs
             )
         except BaseException as e:
             self._stopped = True
             trace = traceback.format_exception(*sys.exc_info())
             logger.error(
-                f"Stopping Graph, Error in node {node.label}. message: {e}\ntrace:\n{trace}"
+                f"Stopping Graph, Error in node {node.label} of type {e.__class__.__qualname__}. message: {e}\ntrace:\n{trace}"
             )
             return
 
@@ -378,53 +374,48 @@ class _GraphExecutor(ExperimentExecutor):
         self._node_id_iter = count(start=0, step=1)
         self._executors: Dict[Node, _NodeExecutor] = dict()
         for node in self._graph.nodes:
-            self._executors[node] = _NodeExecutor(node, next(self._node_id_iter))
+            self._executors[node] = _NodeExecutor(
+                node, next(self._node_id_iter), node in self._graph.key_nodes
+            )
 
     def execute(self, context: EntropyContext) -> Any:
         sorted_nodes = self._graph.nodes_in_topological_order()
 
         for node in sorted_nodes:
-            results = []
-            for parent in node.get_inputs():
+            results = {}
+            inputs_by_name = node.get_inputs_by_name()
+            for input_name in inputs_by_name:
+                parent_node = inputs_by_name[input_name].node
+                parent_output_name = inputs_by_name[input_name].name
                 if (
-                    parent.node not in self._executors
-                    or parent.name not in self._executors[parent.node].result
+                    parent_node not in self._executors
+                    or parent_output_name not in self._executors[parent_node].result
                 ):
                     raise EntropyError(
-                        f"node {node.label} input is missing: {parent.name}"
+                        f"node {node.label} input is missing: {parent_output_name}"
                     )
-                results.append(
-                    {parent: self._executors[parent.node].result[parent.name]}
-                )
+                results[input_name] = self._executors[parent_node].result[
+                    parent_output_name
+                ]
             node_executor = self._executors[node]
             try:
                 node_executor.run(
                     results,
                     context,
-                    node in self._graph.end_nodes(),
+                    node in self._graph.end_nodes,
                     **self._node_kwargs,
                 )
             except BaseException as e:
                 self._stopped = True
                 trace = traceback.format_exception(*sys.exc_info())
                 logger.error(
-                    f"Stopping Graph, Error in node {node.label}. message: {e}\ntrace:\n{trace}"
+                    f"Stopping Graph, Error in node {node.label} of type {e.__class__.__qualname__}. message: {e}\ntrace:\n{trace}"
                 )
                 return
         combined_result = {}
-        for node in self._graph.end_nodes():
+        for node in self._graph.end_nodes:
             result = self._executors[node].result
             if result:
-                for output in self._graph.plot_outputs:
-                    if output in result:
-                        context.add_plot(
-                            Plot(
-                                label=f"graph result {output}",
-                                data=result[output],
-                                data_type=PlotDataType.np_2d,
-                                bokeh_generator=BokehCirclePlotGenerator(),
-                            )
-                        )
                 for key in result:
                     combined_result[key] = result[key]
 
@@ -433,47 +424,6 @@ class _GraphExecutor(ExperimentExecutor):
     @property
     def failed(self) -> bool:
         return self._stopped
-
-    async def _run_node_and_ancestors(
-        self, node: Node, context: EntropyContext, is_last: int
-    ):
-        tasks = []
-        for parent in node.get_parents():
-            if parent not in self._tasks:
-                task = self._run_node_and_ancestors(parent, context, is_last + 1)
-                tasks.append(task)
-                self._tasks[parent] = task
-            else:
-                tasks.append(self._tasks[parent])
-        results = []
-        if len(tasks) > 0:
-            await asyncio.wait(tasks)
-            if self._stopped:
-                return None
-            results = []
-            for parent in node.get_inputs():
-                if (
-                    parent.node not in self._executors
-                    or parent.name not in self._executors[parent.node].result
-                ):
-                    raise EntropyError(
-                        f"node {node.label} input is missing: {parent.name}"
-                    )
-                results.append(
-                    {parent.name: self._executors[parent.node].result[parent.name]}
-                )
-        node_executor = self._executors[node]
-        try:
-            return await node_executor.run_async(
-                results, context, is_last, **self._node_kwargs
-            )
-        except BaseException as e:
-            self._stopped = True
-            trace = traceback.format_exception(*sys.exc_info())
-            logger.error(
-                f"Stopping Graph, Error in node {node.label}. message: {e}\ntrace:\n{trace}"
-            )
-            return
 
 
 class SingleGraphExperimentDataReader(SingleExperimentDataReader):
@@ -545,7 +495,7 @@ class GraphExperiment(ExperimentDefinition):
         nodes = {node}
         self._fill_list_of_parents(nodes, node)
 
-        self._to_node = Graph(nodes, self._graph.label, self._graph.plot_outputs)
+        self._to_node = Graph(nodes, self._graph.label, self._graph.key_nodes)
         old_label = self.label
         if label:
             self.label = label

@@ -43,7 +43,7 @@ class ScriptExecutor(ExperimentExecutor):
         except BaseException as e:
             self._stopped = True
             trace = traceback.format_exception(*sys.exc_info())
-            logger.error(f"Stopping Scrip, Error message: {e}\ntrace:\n{trace}")
+            logger.error(f"Stopping Script, Error message: {e} of type {e.__class__.__qualname__}.\ntrace:\n{trace}")
             return
 
     @property

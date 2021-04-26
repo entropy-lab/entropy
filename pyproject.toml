@@ -30,6 +30,7 @@ numpy = "^1.20.1"
 jsonpickle = "^2.0.0"
 graphviz = "^0.16"
 networkx = "^2.5.1"
+matplotlib = "^3.4.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"

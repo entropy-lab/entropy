@@ -3,9 +3,9 @@ from datetime import datetime
 
 import pytest
 
-from quaentropy.api.data_writer import RawResultData, Plot, PlotDataType
+from quaentropy.api.data_writer import RawResultData, PlotSpec
 from quaentropy.api.execution import EntropyContext
-from quaentropy.api.plot import BokehCirclePlotGenerator, BokehLinePlotGenerator
+from quaentropy.api.plot import CirclePlotGenerator, LinePlotGenerator
 from quaentropy.instruments.lab_topology import LabResources, ExperimentResources
 from quaentropy.results_backend.sqlalchemy.connector import (
     SqlalchemySqlitePandasConnector,
@@ -75,38 +75,36 @@ def an_experiment_with_plot(experiment: EntropyContext):
         )
     micro = datetime.now().microsecond
     experiment.add_plot(
-        Plot(
+        PlotSpec(
             label="plot",
             story="created this plot in experiment",
-            data=[
-                [
-                    1 * micro,
-                    2 * micro,
-                    3 * micro,
-                    4 * micro,
-                    5 * micro,
-                    6 * micro,
-                    7 * micro,
-                    8 * micro,
-                ],
-                [0, 1, 2, 3, 4, 5, 6, 7],
+            generator=CirclePlotGenerator,
+        ),
+        data=[
+            [
+                1 * micro,
+                2 * micro,
+                3 * micro,
+                4 * micro,
+                5 * micro,
+                6 * micro,
+                7 * micro,
+                8 * micro,
             ],
-            data_type=PlotDataType.py_2d,
-            bokeh_generator=BokehCirclePlotGenerator(),
-        )
+            [0, 1, 2, 3, 4, 5, 6, 7],
+        ],
     )
 
     experiment.add_plot(
-        Plot(
+        PlotSpec(
             label="another plot",
             story="just showing off now",
-            data=[
-                [1, 2, 3, 4, 5, 6, 7, 8],
-                [4, 5, 6, 7, 0, 1, 2, 3],
-            ],
-            data_type=PlotDataType.np_2d,
-            bokeh_generator=BokehLinePlotGenerator(),
-        )
+            generator=LinePlotGenerator,
+        ),
+        data=[
+            [1, 2, 3, 4, 5, 6, 7, 8],
+            [4, 5, 6, 7, 0, 1, 2, 3],
+        ],
     )
 
 

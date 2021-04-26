@@ -57,12 +57,15 @@ class Node(ABC):
         )
 
     def get_inputs(self) -> List[Output]:
-        return [var for var in self._input_vars.values()]
+        return list(self._input_vars.values())
+
+    def get_inputs_by_name(self) -> Dict[str, Output]:
+        return self._input_vars
 
     @abstractmethod
     async def execute_async(
         self,
-        parents_results: List[Dict[str, Any]],
+        input_values: Dict[str, Any],
         context: EntropyContext,
         node_execution_id: int,
         is_last,
@@ -73,7 +76,7 @@ class Node(ABC):
     @abstractmethod
     def execute(
         self,
-        parents_results: List[Dict[Output, Any]],
+        input_values: Dict[str, Any],
         context: EntropyContext,
         node_execution_id: int,
         is_last,
@@ -95,15 +98,15 @@ class Graph:
         self,
         nodes: Set[Node],
         label: str = None,
-        plot_outputs: Optional[Set[str]] = None,
+        key_nodes: Optional[Set[Node]] = None,
     ) -> None:
         super().__init__()
         self.label: str = label
         self._nodes: Set[Node] = nodes
         self._end_nodes = self._calculate_last_nodes(nodes)
-        self._plot_outputs = plot_outputs
-        if self._plot_outputs is None:
-            self._plot_outputs = set()
+        self._key_nodes = key_nodes
+        if self._key_nodes is None:
+            self._key_nodes = set()
 
     def _calculate_last_nodes(self, nodes):
         end_nodes = nodes.copy()
@@ -117,12 +120,13 @@ class Graph:
     def nodes(self) -> Set[Node]:
         return self._nodes
 
+    @property
     def end_nodes(self) -> List[Node]:
         return self._end_nodes
 
     @property
-    def plot_outputs(self) -> Set[str]:
-        return self._plot_outputs
+    def key_nodes(self) -> Set[Node]:
+        return self._key_nodes
 
     def export_dot_graph(self) -> Digraph:
         """

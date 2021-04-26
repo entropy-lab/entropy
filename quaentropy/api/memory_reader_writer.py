@@ -1,6 +1,6 @@
 from datetime import datetime
 from time import time_ns
-from typing import List, Optional, Iterable
+from typing import List, Optional, Iterable, Any, Dict
 
 from pandas import DataFrame
 
@@ -13,7 +13,7 @@ from quaentropy.api.data_reader import (
     ScriptViewer,
     PlotRecord,
 )
-from quaentropy.api.data_writer import DataWriter, Plot, NodeData
+from quaentropy.api.data_writer import DataWriter, PlotSpec, NodeData
 from quaentropy.api.data_writer import (
     ExperimentInitialData,
     ExperimentEndData,
@@ -32,7 +32,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         self._results: List[RawResultData] = []
         self._metadata: List[Metadata] = []
         self._debug: Optional[Debug] = None
-        self._plot: List[Plot] = []
+        self._plot: Dict[PlotSpec, Any] = {}
         self._nodes: List[NodeData] = []
 
     def save_experiment_initial_data(self, initial_data: ExperimentInitialData) -> int:
@@ -51,8 +51,8 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
     def save_debug(self, experiment_id: int, debug: Debug):
         self._debug = debug
 
-    def save_plot(self, experiment_id: int, plot: Plot):
-        self._plot.append(plot)
+    def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
+        self._plot[plot] = data
 
     def save_node(self, experiment_id: int, node_data: NodeData):
         self._nodes.append(node_data)
@@ -137,10 +137,9 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         return [
             PlotRecord(
                 experiment_id,
-                self._plot.index(plot),
-                plot.data,
-                plot.data_type,
-                plot.bokeh_generator,
+                id(plot),
+                self._plot[plot],
+                plot.generator(),
                 plot.label,
                 plot.story,
             )

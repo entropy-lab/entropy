@@ -398,7 +398,7 @@ class ExperimentResources:
         if name in self._local_resources:
             return self._local_resources[name]
 
-    def has_resource(self, name):
+    def has_resource(self, name) -> bool:
         return name in self._resources or name in self._local_resources
 
     def _lock_all_resources(self):

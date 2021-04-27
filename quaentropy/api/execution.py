@@ -16,12 +16,12 @@ class EntropyContext:
         self,
         exp_id: int,
         db: DataWriter,
-        used_topology: ExperimentResources,
+        experiment_resources: ExperimentResources,
     ) -> None:
         super().__init__()
         self._data_writer = db
         self._exp_id = exp_id
-        self._used_topology = used_topology
+        self._experiment_resources = experiment_resources
 
     def add_result(self, result: RawResultData):
         self._data_writer.save_result(self._exp_id, result)
@@ -33,7 +33,10 @@ class EntropyContext:
         self._data_writer.save_plot(self._exp_id, plot, data)
 
     def get_resource(self, name):
-        return self._used_topology.get_resource(name)
+        return self._experiment_resources.get_resource(name)
+
+    def has_resource(self, name) -> bool:
+        return self._experiment_resources.has_resource(name)
 
     def current_experiment_results(self) -> SingleExperimentDataReader:
         if isinstance(self._data_writer, DataReader):

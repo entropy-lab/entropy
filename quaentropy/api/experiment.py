@@ -53,7 +53,7 @@ class Experiment:
                 EntropyContext(
                     exp_id=self._id,
                     db=self._data_writer,
-                    used_topology=self._experiment_resources,
+                    experiment_resources=self._experiment_resources,
                 )
             )
             if result:

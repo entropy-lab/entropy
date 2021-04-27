@@ -18,9 +18,11 @@ jobs:
           export RELEASE_VERSION="${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
           poetry version ${RELEASE_VERSION}
           poetry build
-      - name: Upload package
-        run: |
-          RELEASE_VERSION="${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-          echo ${{secrets.GITHUB_TOKEN}} | gh auth login --with-token
-          gh release upload --clobber ${RELEASE_VERSION} ./dist/*.tar.gz ./dist/*.whl
-      
+      - name: Upload assets
+        uses: qm-devops/qm-upload-release-assets@v1
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+          path: |
+            ./dist/*.tar.gz
+            ./dist/*.whl
+       

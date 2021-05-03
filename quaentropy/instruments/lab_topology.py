@@ -389,7 +389,7 @@ class ExperimentResources:
     def get_resource(self, name):
         if name not in self._resources and name not in self._local_resources:
             raise KeyError(
-                "can not used resource that wasn't added to experiment resources"
+                "cannot use a resource that wasn't added to experiment resources"
             )
         if name in self._resources:
             return self._get_persistent_lab_connector()._get_resource_if_already_initialized(

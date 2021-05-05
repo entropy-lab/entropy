@@ -1,5 +1,6 @@
 import pytest
 
+from entropylab.api.errors import ResourceNotFound
 from entropylab.instruments.lab_topology import LabResources, ExperimentResources
 from entropylab.results_backend.sqlalchemy.db import SqlAlchemyDB
 
@@ -54,3 +55,12 @@ def test_import_twice():
         exp = ExperimentResources(db)
         exp.add_temp_resource("float", 0.2)
         exp.add_temp_resource("float", 0.2)
+
+
+def test_remove_resource():
+    db = SqlAlchemyDB()
+    lab = LabResources(db)
+    lab.register_resource("integer", int, [1])
+    lab.remove_resource("integer")
+    with pytest.raises(ResourceNotFound):
+        lab.get_resource("integer")

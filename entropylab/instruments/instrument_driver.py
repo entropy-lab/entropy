@@ -66,7 +66,7 @@ class Resource(ABC):
 
 class PickledResource(Resource):
     """
-        An implemetation of "snapshot" function using jsonpickle
+    An implemetation of "snapshot" function using jsonpickle
     """
 
     def __init__(self, **kwargs):
@@ -99,9 +99,9 @@ class Function:
 
 class Instrument(PickledResource):
     """
-        A special type of resource, which describes an actual instrument in the lab.
-        Entropy will call the "setup_driver" when starting the driver,
-        and the "teardown_driver" on close, so no connections will be left open
+    A special type of resource, which describes an actual instrument in the lab.
+    Entropy will call the "setup_driver" when starting the driver,
+    and the "teardown_driver" on close, so no connections will be left open
     """
 
     def __init__(self, **kwargs):

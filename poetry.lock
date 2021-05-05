@@ -561,36 +561,6 @@ optional = false
 python-versions = "*"
 
 [[package]]
-name = "pyvisa"
-version = "1.11.3"
-description = "Python VISA bindings for GPIB, RS232, TCPIP and USB instruments"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-importlib-metadata = {version = "*", markers = "python_version < \"3.8\""}
-typing-extensions = "*"
-
-[[package]]
-name = "pyvisa-py"
-version = "0.5.2"
-description = "Python VISA bindings for GPIB, RS232, and USB instruments"
-category = "main"
-optional = false
-python-versions = ">=3.6"
-
-[package.dependencies]
-importlib-metadata = {version = "*", markers = "python_version < \"3.8\""}
-pyvisa = ">=1.11.0"
-typing-extensions = "*"
-
-[package.extras]
-gpib_ctypes = ["gpib-ctypes (>=0.3.0)"]
-serial = ["pyserial (>=3.0)"]
-usb = ["pyusb"]
-
-[[package]]
 name = "pyviz-comms"
 version = "2.0.1"
 description = "Bidirectional communication for the HoloViz ecosystem."
@@ -751,7 +721,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pyt
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.1"
-content-hash = "935a0d851f8bf05480898e7709489fd4434fd55925ab728d492ddd69d94c07bf"
+content-hash = "e61be4a05f677eb26d6eafa861d60f362ef9d46db6359e229391797e547ca4f5"
 
 [metadata.files]
 appdirs = [
@@ -1194,14 +1164,6 @@ python-dateutil = [
 pytz = [
     {file = "pytz-2021.1-py2.py3-none-any.whl", hash = "sha256:eb10ce3e7736052ed3623d49975ce333bcd712c7bb19a58b9e2089d4057d0798"},
     {file = "pytz-2021.1.tar.gz", hash = "sha256:83a4a90894bf38e243cf052c8b58f381bfe9a7a483f6a9cab140bc7f702ac4da"},
-]
-pyvisa = [
-    {file = "PyVISA-1.11.3-py3-none-any.whl", hash = "sha256:0a03d86cb0ec7b660cdade20d0c868f90feaecfda20dd5569be2cbb8e34cb394"},
-    {file = "PyVISA-1.11.3.tar.gz", hash = "sha256:fb4b601d49fce1a00926fcdde5548bd54f0511f549188a3e0c1e4628c3d86703"},
-]
-pyvisa-py = [
-    {file = "PyVISA-py-0.5.2.tar.gz", hash = "sha256:70fdf68e6dabd45dab28ddcd73460d66c525acd7ff6d66a59c4dd8ff8afc7214"},
-    {file = "PyVISA_py-0.5.2-py3-none-any.whl", hash = "sha256:fd5fc0189e7f968505bcbd67e7f3477eebcc9b6e7e32a970a5cd0fba79b2403a"},
 ]
 pyviz-comms = [
     {file = "pyviz_comms-2.0.1-py2.py3-none-any.whl", hash = "sha256:cb464384d3ee130169f2eb52c262c8377615a46c92ce3f2a620394d92c2dbc9b"},

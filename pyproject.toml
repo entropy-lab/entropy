@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "quaentropy"
+name = "entropylab"
 version = "v0.0.0"
 description = ""
 authors = [
@@ -9,7 +9,7 @@ authors = [
     "Tal Shani <tal@quantum-machines.co>"
 ]
 packages = [
-    { include = "quaentropy" }
+    { include = "entropylab" }
 ]
 include = [
 ]
@@ -20,7 +20,6 @@ exclude = [
 [tool.poetry.dependencies]
 python = "^3.7.1"
 sqlalchemy = "^1.4.0"
-PyVISA-py = "^0.5.2"
 panel = "^0.11.1"
 bokeh = "^2.3.0"
 param = "^1.10.1"

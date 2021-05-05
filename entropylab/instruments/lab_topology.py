@@ -406,7 +406,7 @@ class LabResources:
         """
         remove the given resource from the persistent lab.
         """
-        raise self._persistent_db.remove_resource(resource_name)
+        self._persistent_db.remove_resource(resource_name)
 
     def update_resource(
         self,

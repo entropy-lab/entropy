@@ -77,6 +77,7 @@ class ResultRecord:
     story: str
     stage: int
     data: Any
+    time: datetime
 
 
 @dataclass

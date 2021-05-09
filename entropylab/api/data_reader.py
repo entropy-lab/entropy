@@ -49,6 +49,7 @@ class MetadataRecord:
     label: str
     stage: int
     data: Any
+    time: datetime
 
 
 @dataclass

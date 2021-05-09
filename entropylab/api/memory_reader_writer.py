@@ -1,6 +1,6 @@
 from datetime import datetime
 from time import time_ns
-from typing import List, Optional, Iterable, Any, Dict
+from typing import List, Optional, Iterable, Any, Dict, Tuple
 
 from pandas import DataFrame
 
@@ -35,8 +35,8 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         super(DataReader, self).__init__()
         self._initial_data: Optional[ExperimentInitialData] = None
         self._end_data: Optional[ExperimentEndData] = None
-        self._results: List[RawResultData] = []
-        self._metadata: List[Metadata] = []
+        self._results: List[Tuple[RawResultData, datetime]] = []
+        self._metadata: List[Tuple[Metadata, datetime]] = []
         self._debug: Optional[Debug] = None
         self._plot: Dict[PlotSpec, Any] = {}
         self._nodes: List[NodeData] = []
@@ -49,10 +49,10 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         self._end_data = end_data
 
     def save_result(self, experiment_id: int, result: RawResultData):
-        self._results.append(result)
+        self._results.append((result, datetime.now()))
 
     def save_metadata(self, experiment_id: int, metadata: Metadata):
-        self._metadata.append(metadata)
+        self._metadata.append((metadata, datetime.now()))
 
     def save_debug(self, experiment_id: int, debug: Debug):
         self._debug = debug
@@ -103,13 +103,15 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
             ResultRecord(
                 experiment_id,
                 self._results.index(x),
-                x.label,
-                x.story,
-                x.stage,
-                x.data,
+                x[0].label,
+                x[0].story,
+                x[0].stage,
+                x[0].data,
+                x[1],
             )
             for x in self._results
-            if (not label or x.label == label) and (stage is None or x.stage == stage)
+            if (not label or x[0].label == label)
+            and (stage is None or x[0].stage == stage)
         )
 
     def get_metadata_records(
@@ -120,10 +122,16 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
     ) -> Iterable[MetadataRecord]:
         return list(
             MetadataRecord(
-                experiment_id, self._metadata.index(x), x.label, x.stage, x.data
+                experiment_id,
+                self._metadata.index(x),
+                x[0].label,
+                x[0].stage,
+                x[0].data,
+                x[1],
             )
             for x in self._metadata
-            if (not label or x.label == label) and (stage is None or x.stage == stage)
+            if (not label or x[0].label == label)
+            and (stage is None or x[0].stage == stage)
         )
 
     def get_debug_record(self, experiment_id: int) -> Optional[DebugRecord]:
@@ -167,10 +175,11 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
                 return ResultRecord(
                     experiment_id,
                     index,
-                    raw_result.label,
-                    raw_result.story,
-                    raw_result.stage,
-                    raw_result.data,
+                    raw_result[0].label,
+                    raw_result[0].story,
+                    raw_result[0].stage,
+                    raw_result[0].data,
+                    raw_result[1],
                 )
             else:
                 return None

@@ -188,6 +188,7 @@ class MetadataTable(Base):
             label=self.label,
             stage=self.stage,
             data=data,
+            time=self.time,
         )
 
     @staticmethod

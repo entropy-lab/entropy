@@ -149,6 +149,7 @@ class ResultTable(Base):
             story=self.story,
             stage=self.stage,
             data=data,
+            time=self.time,
         )
 
     @staticmethod
@@ -187,6 +188,7 @@ class MetadataTable(Base):
             label=self.label,
             stage=self.stage,
             data=data,
+            time=self.time,
         )
 
     @staticmethod

@@ -49,6 +49,7 @@ class MetadataRecord:
     label: str
     stage: int
     data: Any
+    time: datetime
 
 
 @dataclass
@@ -77,6 +78,7 @@ class ResultRecord:
     story: str
     stage: int
     data: Any
+    time: datetime
 
 
 @dataclass

@@ -50,3 +50,4 @@ Thumbs.db
 
 tests_cache/
 docs_cache/
+docs/.ipynb_checkpoints/

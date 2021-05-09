@@ -6,7 +6,10 @@
 
 Entropy is a lab workflow managment package built for, but not limitied-to, streamlining the process of running quantum information processing experiments. 
 
-Entropy is built to solve three major problems: data collection, device managment and calibration automation. 
+Entropy is built to solve three major problems: 
+1. Data collection
+2. Device management
+3. Calibration automation
 
 The device managment problem is handled via shared resources. 
 
@@ -18,13 +21,17 @@ the system is built with customization in mind, allowing deploy a host of differ
 
 Installation is done from pypi using the following command
 
-`pip install entropylab`
+```shell
+pip install entropylab
+```
 
 ## Testing your installation
 
-import the library by running `from entropylab import *`
+import the library from `entropylab`
 
-```
+```python
+from entropylab import *
+
 def my_func():
     return {'res':1}
 
@@ -35,7 +42,7 @@ handle = experiment.run()
 
 ## Usage
 
-See jupyter notebooks in this repository
+See [docs](\docs) folder in this repository for all the dirty details.
 
 
 

@@ -16,5 +16,5 @@ document is available for review as a PDF.
 > If your contribution is part of your employment or your contribution
 > is the property of your employer, then you will likely need to sign a
 > [corporate CLA](CLA/Entropy_CLA_Corporate.pdf) too and
-> email it to us at <gal@quantum-machines.co>.
+> email it to us at <entropy@quantum-machines.co>.
 

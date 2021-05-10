@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-# entropy
+# Entropy
 
 Entropy is a lab workflow managment package built for, but not limitied-to, streamlining the process of running quantum information processing experiments. 
 
@@ -27,6 +27,16 @@ calibration steps. The documentation section will show how this can be done.
 
 The Entropy system is built with concrete implemnetations of the various parts (database backend, resource managment and others) but is meant to be completely customizable. Any or every part of the system can be tailored by end users. 
 
+## Versioning and the Alpha release 
+
+The current release of Entropy is version 0.1.0. You can learn more about the Entropy versioning scheme in the versioning
+document. This means this version is a work in progress in several important ways: 
+
+1. It is not fully tested
+2. There are important features missing, such as the results GUI which will enable visual results viewing and automatic plotting
+3. There will more than likely be breaking changes to the API for a while until we learn how things should be done. 
+
+Keep this in mind as you start your journey. 
 
 ## Installation
 

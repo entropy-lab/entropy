@@ -64,7 +64,7 @@ class _Experiment:
             )
             self._id = self._data_writer.save_experiment_initial_data(initial_data)
 
-            self._experiment_resources._lock_all_resources()
+            self._experiment_resources.start_experiment()
             result = self._executor.execute(
                 _EntropyContextFactory(
                     exp_id=self._id,
@@ -83,7 +83,7 @@ class _Experiment:
                     ),
                 )
         finally:
-            self._experiment_resources._release_all_resources()
+            self._experiment_resources.end_experiment()
 
         self._end_time = datetime.now()
 

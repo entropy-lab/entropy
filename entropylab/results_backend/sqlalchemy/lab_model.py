@@ -30,6 +30,7 @@ class Resources(Base):
     deleted = Column(Boolean, default=False)
     number_of_experiment_args = Column(Integer)
     keys_of_experiment_kwargs = Column(String)
+    cached_metadata = Column(String)
 
 
 class ResourcesSnapshots(Base):

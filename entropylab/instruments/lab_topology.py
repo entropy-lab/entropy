@@ -2,15 +2,18 @@ import abc
 import enum
 import importlib
 import inspect
+import pickle
 from dataclasses import dataclass
 from typing import Type, Optional, Dict, Any, Iterable, List, Set
-
-import jsonpickle
 
 from entropylab.api.data_reader import DataReader
 from entropylab.api.data_writer import DataWriter
 from entropylab.api.errors import ResourceNotFound, EntropyError
-from entropylab.instruments.instrument_driver import Resource, Instrument
+from entropylab.instruments.instrument_driver import (
+    Resource,
+    Function,
+    Parameter,
+)
 from entropylab.logger import logger
 
 
@@ -29,6 +32,9 @@ class ResourceRecord:
     driver_type: DriverType
     args: str
     kwargs: str
+    cached_functions: List[Function]
+    cached_parameters: List[Parameter]
+    cached_undeclared_functions: List[Function]
 
 
 class PersistentLabDB(abc.ABC):
@@ -50,8 +56,11 @@ class PersistentLabDB(abc.ABC):
         class_name: str,
         serialized_args: str,
         serialized_kwargs: str,
-        number_of_experiment_args,
-        keys_of_experiment_kwargs,
+        number_of_experiment_args: int,
+        keys_of_experiment_kwargs: List[str],
+        functions: List[Function],
+        parameters: List[Parameter],
+        undeclared_functions: List[Function],
     ):
         """
             saves all required data for restoring a resource
@@ -65,6 +74,9 @@ class PersistentLabDB(abc.ABC):
                                             on every request
         :param keys_of_experiment_kwargs: the keys of key word arguments that are
                                         passed on every request
+        :param functions: cached list of functions
+        :param undeclared_functions: cached list of undeclared functions
+        :param parameters:  cached list of parameters
         """
         pass
 
@@ -158,7 +170,7 @@ class _LabTopologyResourceInstance:
     resource_class: Optional[Type]
     args: Optional[Any]
     kwargs: Optional[Any]
-    instance: Optional[Any]
+    resource: Optional[Any]
 
 
 class LabResources:
@@ -205,19 +217,19 @@ class LabResources:
                                 resource, as specified in register.
         """
         if name not in self._resources:
-            resource_instance = self._get_instance(
+            loaded_resource = self._get_instance(
                 name,
                 experiment_args=experiment_args,
                 experiment_kwargs=experiment_kwargs,
             )
-            self._resources[name] = resource_instance
-            return resource_instance.instance
+            self._resources[name] = loaded_resource
+            return loaded_resource.resource
         else:
-            return self._resources[name].instance
+            return self._resources[name].resource
 
     def _get_resource_if_already_initialized(self, name: str):
         if name in self._resources:
-            return self._resources[name].instance
+            return self._resources[name].resource
         else:
             raise ResourceNotFound()
 
@@ -233,8 +245,8 @@ class LabResources:
         else:
             record = self._persistent_db.get_resource(name)
             if record:
-                args = jsonpickle.loads(record.args)
-                kwargs = jsonpickle.loads(record.kwargs)
+                args = pickle.loads(record.args)
+                kwargs = pickle.loads(record.kwargs)
                 resource_class = _get_class(record.module, record.class_name)
                 if args is None:
                     args = []
@@ -267,6 +279,7 @@ class LabResources:
         experiment_args: Optional[List] = None,
         kwargs: Optional[Dict] = None,
         experiment_kwargs: Optional[Dict] = None,
+        dynamic_driver_specs_discovery: bool = False,
     ):
         """
             register a new resource and it's driver to the persistent lab.
@@ -283,11 +296,19 @@ class LabResources:
         :param experiment_kwargs: more keyword arguments for initializing
                                 the driver, won't be save to the persistent lab, and
                                 should be specified on every import.
+        :param dynamic_driver_specs_discovery: whether to run active discovery of
+                                                driver functionality
         """
         if name in self._resources or self.resource_exist(name):
             raise KeyError(f"instrument {name} already exist")
         self.update_resource(
-            name, resource_class, args, experiment_args, kwargs, experiment_kwargs
+            name,
+            resource_class,
+            args,
+            experiment_args,
+            kwargs,
+            experiment_kwargs,
+            dynamic_driver_specs_discovery,
         )
 
     def register_resource_if_not_exist(
@@ -338,7 +359,7 @@ class LabResources:
         device = self._resources[resource_name]
         is_entropy_resource = issubclass(device.resource_class, Resource)
         if is_entropy_resource:
-            str_snapshot = device.instance.snapshot(False)
+            str_snapshot = device.resource.snapshot(False)
         else:
             raise TypeError(
                 "resource is not an entropy resource and snapshot can't be saved"
@@ -374,8 +395,8 @@ class LabResources:
             try:
                 if resource_name in self._resources:
                     resource = self._resources[resource_name]
-                    if isinstance(resource, Instrument):
-                        resource.teardown_driver()
+                    if isinstance(resource, Resource):
+                        resource.teardown()
                     self._persistent_db.set_released(resource_name)
             except Exception:
                 failed = True
@@ -416,6 +437,7 @@ class LabResources:
         experiment_args: Optional[List] = None,
         kwargs: Optional[Dict] = None,
         experiment_kwargs: Optional[Dict] = None,
+        dynamic_driver_specs_discovery: bool = False,
     ):
         """
             update the given resource with a new driver
@@ -431,6 +453,8 @@ class LabResources:
         :param experiment_kwargs: more keyword arguments for initializing
                                 the driver, won't be save to the persistent lab, and
                                 should be specified on every import.
+        :param dynamic_driver_specs_discovery: whether to run active discovery of
+                                                driver functionality
         """
         is_entropy_resource = issubclass(resource_class, Resource)
         if not is_entropy_resource:
@@ -453,9 +477,19 @@ class LabResources:
         keys_of_experiment_kwargs = kwargs.keys()
 
         logger.debug(f"Initialize device {name}")
-        resource_class(*combined_args, **combined_kwargs)
-        serialized_args = jsonpickle.dumps(list(args))
-        serialized_kwargs = jsonpickle.dumps(kwargs)
+        instance = resource_class(*combined_args, **combined_kwargs)
+        serialized_args = pickle.dumps(args)
+        serialized_kwargs = pickle.dumps(kwargs)
+        if isinstance(instance, Resource) and dynamic_driver_specs_discovery:
+            driver_spec = instance.get_dynamic_driver_specs()
+            functions = driver_spec.functions
+            undeclared_functions = driver_spec.undeclared_functions
+            parameters = driver_spec.parameters
+        else:
+            functions = []
+            parameters = []
+            undeclared_functions = []
+        del instance
         try:
             source = inspect.getsource(inspect.getmodule(resource_class))
         except Exception:
@@ -469,8 +503,17 @@ class LabResources:
             serialized_args,
             serialized_kwargs,
             number_of_experiment_args,
-            keys_of_experiment_kwargs,
+            list(keys_of_experiment_kwargs),
+            functions,
+            parameters,
+            undeclared_functions,
         )
+
+
+@dataclass()
+class _ExperimentResource:
+    resource: Any
+    snapshot_name: Optional[str] = None
 
 
 class ExperimentResources:
@@ -493,8 +536,9 @@ class ExperimentResources:
         if isinstance(persistent_db, PersistentLabDB):
             self._persistent_lab_connector = LabResources(persistent_db)
         self._private_results_db = None
-        self._resources: Dict[str, Type] = {}
+        self._resources: Dict[str, _ExperimentResource] = {}
         self._local_resources: Dict[str, Any] = {}
+        self._started = False
 
     def _get_persistent_lab_connector(self) -> LabResources:
         if not self._persistent_lab_connector:
@@ -577,18 +621,11 @@ class ExperimentResources:
                 experiment_args=experiment_args,
                 experiment_kwargs=experiment_kwargs,
             )
-            self._resources[name] = resource
-            if snapshot_name:
-                if isinstance(resource, Resource):
-                    snap = self._get_persistent_lab_connector().get_snapshot(
-                        name, snapshot_name
-                    )
-                    resource = self.get_resource(name)
-                    resource.revert_to_snapshot(snap)
-                else:
-                    raise Exception(
-                        "Resource is not an entropy resource and can't be reverted"
-                    )
+            self._resources[name] = _ExperimentResource(resource, snapshot_name)
+            if snapshot_name and not isinstance(resource, Resource):
+                raise Exception(
+                    "Resource is not an entropy resource and can't be reverted"
+                )
         else:
             raise Exception("Resource is not a part of the lab")
 
@@ -613,16 +650,19 @@ class ExperimentResources:
         :param name: resource name
         :return: resource instance
         """
-        if name not in self._resources and name not in self._local_resources:
+        if name in self._resources:
+            lab_connector = self._get_persistent_lab_connector()
+            resource = lab_connector._get_resource_if_already_initialized(name)
+        elif name in self._local_resources:
+            resource = self._local_resources[name]
+        else:
             raise KeyError(
                 "cannot use a resource that wasn't added to experiment resources"
             )
-        if name in self._resources:
-            return self._get_persistent_lab_connector()._get_resource_if_already_initialized(
-                name
-            )
-        if name in self._local_resources:
-            return self._local_resources[name]
+
+        if isinstance(resource, Resource):
+            resource = resource.get_instance()
+        return resource
 
     def has_resource(self, name) -> bool:
         """
@@ -632,23 +672,44 @@ class ExperimentResources:
         """
         return name in self._resources or name in self._local_resources
 
-    def _lock_all_resources(self):
+    def start_experiment(self):
+        if self._started:
+            raise EntropyError("can not start experiment twice")
+        self._started = True
+
         if self._resources:
             self._get_persistent_lab_connector().lock_resources(
                 set([resource_name for resource_name in self._resources])
             )
 
-    def _release_all_resources(self):
-        if self._resources:
-            self._get_persistent_lab_connector().release_resources(
-                set([resource_name for resource_name in self._resources])
-            )
-        if self._local_resources:
-            for resource_name in self._local_resources:
-                resource = self._local_resources[resource_name]
-                if isinstance(resource, Instrument):
-                    resource.teardown_driver()
-                del resource
+        # connect to all resources
+        for resource_name in self._resources:
+            resource = self._resources[resource_name]
+            if isinstance(resource, Resource):
+                resource.connect()
+            snapshot_name = resource.snapshot_name
+            if snapshot_name is not None:
+                snap = self._get_persistent_lab_connector().get_snapshot(
+                    resource_name, snapshot_name
+                )
+                resource_name = self.get_resource(resource_name)
+                resource_name.revert_to_snapshot(snap)
+
+    def end_experiment(self):
+        if self._started:
+            if self._resources:
+                self._get_persistent_lab_connector().release_resources(
+                    set([resource_name for resource_name in self._resources])
+                )
+            if self._local_resources:
+                for resource_name in self._local_resources:
+                    resource = self._local_resources[resource_name]
+                    if isinstance(resource, Resource):
+                        resource.teardown()
+                    del resource
+            self._started = False
+        else:
+            raise EntropyError("can not end not-started or finished experiment")
 
     def _serialize_resources_snapshot(self) -> Dict[str, str]:
         snapshots = {}

@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
 from typing import Set
 
+import jsonpickle
 import pandas as pd
 from pandas import DataFrame
 from sqlalchemy import create_engine, desc
@@ -29,6 +30,7 @@ from entropylab.api.data_writer import (
     PlotSpec,
     NodeData,
 )
+from entropylab.instruments.instrument_driver import Function, Parameter
 from entropylab.instruments.lab_topology import (
     PersistentLabDB,
     DriverType,
@@ -282,6 +284,9 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         serialized_kwargs: str,
         number_of_experiment_args: int,
         keys_of_experiment_kwargs: List[str],
+        functions: List[Function],
+        parameters: List[Parameter],
+        undeclared_functions: List[Function],
     ):
         transaction = Resources(
             update_time=datetime.now(),
@@ -295,6 +300,13 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
             kwargs=serialized_kwargs,
             number_of_experiment_args=number_of_experiment_args,
             keys_of_experiment_kwargs=", ".join(keys_of_experiment_kwargs),
+            cached_metadata=jsonpickle.dumps(
+                {
+                    "functions": functions,
+                    "undeclared_functions": undeclared_functions,
+                    "parameters": parameters,
+                }
+            ),
         )
         return self._execute_transaction(transaction)
 
@@ -354,6 +366,7 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 .first()
             )
             if query and not query.deleted:
+                cached_metadata = jsonpickle.loads(query.cached_metadata)
                 return ResourceRecord(
                     query.name,
                     query.module,
@@ -363,6 +376,9 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                     query.driver_type,
                     query.args,
                     query.kwargs,
+                    cached_metadata["functions"],
+                    cached_metadata["parameters"],
+                    cached_metadata["undeclared_functions"],
                 )
             else:
                 return None

@@ -1,21 +1,18 @@
-from entropylab.instruments.instrument_driver import Instrument
+from entropylab.instruments.instrument_driver import Resource
 
 
-class MockScope(Instrument):
+class MockScope(Resource):
     def __init__(self, address: str, extra: str, **kwargs):
         super().__init__(**kwargs)
         self.index = 0
         self.address = address
         self.extra = extra
 
-    def setup_driver(self):
+    def connect(self):
         pass
 
-    def teardown_driver(self):
+    def teardown(self):
         pass
-
-    def dynamic_driver_specs(self):
-        super().dynamic_driver_specs()
 
     def get_trig(self):
         self.index += 1

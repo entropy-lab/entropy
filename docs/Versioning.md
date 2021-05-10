@@ -5,12 +5,12 @@ Entropy version is defined using 3 part version number:
 **Major version**
 
 This version is kept pretty stable, change in the major number implies that a big feature os set of features was added.
-Change in the major version might also 
+Change in the major version might also make incompatible API changes.
 
 **Minor version**
 
-This version number is used to signal feature set.
-Change in the minor version should add functionality in a backwards compatible manner
+This version number is used to signal a feature set.
+Change in the minor version should add functionality in a backwards compatible manner.
 
 **patch number**
 

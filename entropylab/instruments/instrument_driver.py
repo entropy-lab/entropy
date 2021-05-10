@@ -13,6 +13,36 @@ jsonpickle_pandas.register_handlers()
 Entropy_Resource_Name = "entropy_name"
 
 
+@dataclass
+class Parameter:
+    """"""
+
+    name: str
+    unit: Optional[str]
+    step: float
+    scale: float
+    offset: float
+    vals: Any
+    submodule: str = None
+
+
+@dataclass
+class Function:
+    """"""
+
+    name: str
+    parameters = None
+
+
+@dataclass
+class DriverSpec:
+    """"""
+
+    parameters: List[Parameter]
+    functions: List[Function]
+    undeclared_functions: List[Function]
+
+
 class Resource(ABC):
     """
     An abstract class with extra functionality.
@@ -23,6 +53,42 @@ class Resource(ABC):
     def __init__(self, **kwargs):
         super().__init__()
         self._entropy_name = kwargs.get(Entropy_Resource_Name, "")
+
+    @abstractmethod
+    def connect(self):
+        """
+        Start the driver, open needed connections or call any other functions that
+        are needed for using the driver
+        """
+        pass
+
+    @abstractmethod
+    def teardown(self):
+        """
+        Gracefully close all driver connections and links
+        """
+        pass
+
+    def get_dynamic_driver_specs(self) -> DriverSpec:
+        """
+        add metadata for the driver functionality, if discovered dynamically
+        """
+        pass
+
+    def __del__(self):
+        self.teardown()
+
+    def get_instance(self):
+        """
+            Returns the actual instance of the driver.
+
+            If the driver is wrapping a different instrument, should return the
+            actual instance.
+
+        :return:
+        """
+        # TODO check if driver has connected
+        return self
 
     @abstractmethod
     def snapshot(self, update: bool) -> str:
@@ -71,53 +137,17 @@ class PickledResource(Resource):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def snapshot(self, update: bool) -> str:
+    def snapshot(self, update: bool = True) -> str:
+        """
+            serialize the current resource state to string with jsonpickle
+             package.
+        :param update: Whether to update the resource state actively, or use the
+                        cached data
+        """
         return jsonpickle.encode(self)
 
-
-@dataclass
-class Parameter:
-    """"""
-
-    name: str
-    unit: Optional[str]
-    step: float
-    scale: float
-    offset: float
-    vals: Any
-    submodule: str = None
-
-
-@dataclass
-class Function:
-    """"""
-
-    name: str
-    parameters = None
-
-
-@dataclass
-class DriverSpec:
-    """"""
-
-    parameters: List[Parameter]
-    functions: List[Function]
-    undeclared_functions: List[Function]
-
-
-class Instrument(PickledResource):
-    # TODO decide if to put a different interafce and abstract methods or same with just pass
-    """
-    A special type of resource, which describes an actual instrument in the lab.
-    Entropy will call the "setup_driver" when starting the driver,
-    and the "teardown_driver" on close, so no connections will be left open
-    """
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
     @abstractmethod
-    def setup_driver(self):
+    def connect(self):
         """
         Start the driver, open needed connections or call any other functions that
         are needed for using the driver
@@ -125,17 +155,30 @@ class Instrument(PickledResource):
         pass
 
     @abstractmethod
-    def teardown_driver(self):
+    def teardown(self):
         """
         Gracefully close all driver connections and links
         """
         pass
 
-    def get_dynamic_driver_specs(self) -> DriverSpec:
+    def revert_to_snapshot(self, snapshot: str):
         """
-        add metadata for the driver functionality, if discovered dynamically
+            revert the current resource to a different state, using a saved
+            snapshot
+        :param snapshot: a serialized state of the resource, created by
+                        the "snapshot" function
         """
-        pass
+        raise NotImplementedError(
+            f"resource {self.__class__.__qualname__} has not implemented revert to snapshot"
+        )
 
-    def __del__(self):
-        self.teardown_driver()
+
+# class Instrument(PickledResource):
+# """
+# A special type of resource, which describes an actual instrument in the lab.
+# Entropy will call the "setup_driver" when starting the driver,
+# and the "teardown_driver" on close, so no connections will be left open
+# """
+#
+# def __init__(self, **kwargs):
+#     super().__init__(**kwargs)

@@ -5,11 +5,11 @@ from qcodes.instrument.base import InstrumentBase
 from qcodes.instrument.parameter import _BaseParameter
 
 from entropylab.instruments.instrument_driver import (
-    Instrument as EntropyInstrument,
     Parameter,
     Function as EntropyFunction,
     Entropy_Resource_Name,
     DriverSpec,
+    Resource,
 )
 
 
@@ -61,7 +61,7 @@ def _get_undeclared_functions(instance, functions: List[EntropyFunction]):
     return entropy_extra_methods
 
 
-class QcodesAdapter(EntropyInstrument):
+class QcodesAdapter(Resource):
     """"""
 
     def __init__(self, driver: Type[InstrumentBase], *args, **kwargs):
@@ -79,7 +79,7 @@ class QcodesAdapter(EntropyInstrument):
         this function will add all the parameters to the driver, can be used outside and saved
 
         """
-        self.setup_driver()
+        self.connect()
         parameters = _get_transformed_parameters(self._instance.parameters.values())
         functions = _get_transformed_functions(self._instance.functions.values())
         undeclared_functions = _get_undeclared_functions(self._instance, functions)
@@ -88,7 +88,7 @@ class QcodesAdapter(EntropyInstrument):
             parameters.extend(sub_params)
             functions.extend(sub_functions)
 
-        self.teardown_driver()
+        self.teardown()
         return DriverSpec(parameters, functions, undeclared_functions)
 
     def _extract_submodule_specs(
@@ -107,10 +107,13 @@ class QcodesAdapter(EntropyInstrument):
 
         return parameters, functions
 
-    def setup_driver(self):
+    def connect(self):
         self._instance = self._driver(*self._args, **self._kwargs)
 
-    def teardown_driver(self):
+    def get_instance(self):
+        return self._instance
+
+    def teardown(self):
         try:
             del self._instance
         except Exception as e:

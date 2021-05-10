@@ -11,7 +11,6 @@ from entropylab.api.data_writer import DataWriter
 from entropylab.api.errors import ResourceNotFound, EntropyError
 from entropylab.instruments.instrument_driver import (
     Resource,
-    Instrument,
     Function,
     Parameter,
 )
@@ -171,7 +170,7 @@ class _LabTopologyResourceInstance:
     resource_class: Optional[Type]
     args: Optional[Any]
     kwargs: Optional[Any]
-    instance: Optional[Any]
+    resource: Optional[Any]
 
 
 class LabResources:
@@ -218,19 +217,25 @@ class LabResources:
                                 resource, as specified in register.
         """
         if name not in self._resources:
-            resource_instance = self._get_instance(
+            loaded_resource = self._get_instance(
                 name,
                 experiment_args=experiment_args,
                 experiment_kwargs=experiment_kwargs,
             )
-            self._resources[name] = resource_instance
-            return resource_instance.instance
+            self._resources[name] = loaded_resource
+            if (
+                isinstance(loaded_resource.resource, Resource)
+                and loaded_resource.resource.get_instance() is not None
+            ):
+                return loaded_resource.resource.get_instance()
+            else:
+                return loaded_resource.resource
         else:
-            return self._resources[name].instance
+            return self._resources[name].resource
 
     def _get_resource_if_already_initialized(self, name: str):
         if name in self._resources:
-            return self._resources[name].instance
+            return self._resources[name].resource
         else:
             raise ResourceNotFound()
 
@@ -360,7 +365,7 @@ class LabResources:
         device = self._resources[resource_name]
         is_entropy_resource = issubclass(device.resource_class, Resource)
         if is_entropy_resource:
-            str_snapshot = device.instance.snapshot(False)
+            str_snapshot = device.resource.snapshot(False)
         else:
             raise TypeError(
                 "resource is not an entropy resource and snapshot can't be saved"
@@ -396,8 +401,8 @@ class LabResources:
             try:
                 if resource_name in self._resources:
                     resource = self._resources[resource_name]
-                    if isinstance(resource, Instrument):
-                        resource.teardown_driver()
+                    if isinstance(resource, Resource):
+                        resource.teardown()
                     self._persistent_db.set_released(resource_name)
             except Exception:
                 failed = True
@@ -481,7 +486,7 @@ class LabResources:
         instance = resource_class(*combined_args, **combined_kwargs)
         serialized_args = pickle.dumps(args)
         serialized_kwargs = pickle.dumps(kwargs)
-        if isinstance(instance, Instrument) and dynamic_driver_specs_discovery:
+        if isinstance(instance, Resource) and dynamic_driver_specs_discovery:
             driver_spec = instance.get_dynamic_driver_specs()
             functions = driver_spec.functions
             undeclared_functions = driver_spec.undeclared_functions
@@ -684,8 +689,8 @@ class ExperimentResources:
         if self._local_resources:
             for resource_name in self._local_resources:
                 resource = self._local_resources[resource_name]
-                if isinstance(resource, Instrument):
-                    resource.teardown_driver()
+                if isinstance(resource, Resource):
+                    resource.teardown()
                 del resource
 
     def _serialize_resources_snapshot(self) -> Dict[str, str]:

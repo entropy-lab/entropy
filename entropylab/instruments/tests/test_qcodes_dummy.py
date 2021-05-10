@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any
 import pytest
 
 
-@pytest.mark.skip()
+# @pytest.mark.skip()
 def test_qcodes_dummy():
     from qcodes.instrument.base import InstrumentBase as qcodes_InstrumentBase
     from entropylab.instruments.qcodes_adapter import QcodesAdapter
@@ -38,16 +38,17 @@ def test_qcodes_dummy():
 
     dummy = QcodesDummy()
     print(dummy)
-    dummy.setup_driver()
-    dummy.instance.set("s", "printed")
-    dummy.instance.free_function()
-    dummy.instance.set("g", "g")
-    assert dummy.instance.get("s") == "printed"
-    assert dummy.instance.get("g") == 1
-    dummy.teardown_driver()
+    dummy.connect()
+    instance = dummy.get_instance()
+    instance.set("s", "printed")
+    instance.free_function()
+    instance.set("g", "g")
+    assert instance.get("s") == "printed"
+    assert instance.get("g") == 1
+    dummy.teardown()
 
 
-@pytest.mark.skip()
+# @pytest.mark.skip()
 def test_qcodes_dummy_object():
     # Importing in test so general pytest discovery wont enforce qcodes installation
     from qcodes.instrument.base import InstrumentBase as qcodes_InstrumentBase
@@ -75,16 +76,17 @@ def test_qcodes_dummy_object():
             print("i'm free")
 
     dummy = QcodesAdapter(MockQcodesDriver, "dummy_inst")
-    dummy.setup_driver()
-    dummy.instance.set("s", "printed")
-    dummy.instance.free_function()
-    dummy.instance.set("g", "g")
-    assert dummy.instance.get("s") == "printed"
-    assert dummy.instance.get("g") == 1
-    dummy.teardown_driver()
+    dummy.connect()
+    instance = dummy.get_instance()
+    instance.set("s", "printed")
+    instance.free_function()
+    instance.set("g", "g")
+    assert instance.get("s") == "printed"
+    assert instance.get("g") == 1
+    dummy.teardown()
 
 
-@pytest.mark.skip()
+# @pytest.mark.skip()
 def test_qcodes_dummy_object_dynamic_spec():
     # Importing in test so general pytest discovery wont enforce qcodes installation
     from qcodes.instrument.base import InstrumentBase as qcodes_InstrumentBase
@@ -121,3 +123,8 @@ def test_qcodes_dummy_object_dynamic_spec():
     assert len(driver_spec.functions) == 0
     assert len(driver_spec.undeclared_functions) == 3
     assert driver_spec.undeclared_functions[0].name == "free_function"
+
+
+# TODO test snapshot
+
+# TODO maybe in entropy return just the instance

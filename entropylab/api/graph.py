@@ -230,6 +230,7 @@ class GraphHelper:
                     unique_label(parent), unique_label(node.node), ",".join(input_names)
                 )
 
+        dot.graph_attr["rankdir"] = "LR"
         return dot
 
     def nodes_in_topological_order(self) -> List[Node]:

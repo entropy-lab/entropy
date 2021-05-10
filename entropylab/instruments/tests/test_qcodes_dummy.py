@@ -1,7 +1,9 @@
 from typing import Optional, Dict, Any
 
+import pytest
 
-# @pytest.mark.skip()
+
+@pytest.mark.skip()
 def test_qcodes_dummy():
     from qcodes.instrument.base import InstrumentBase as qcodes_InstrumentBase
     from entropylab.instruments.qcodes_adapter import QcodesAdapter
@@ -46,7 +48,7 @@ def test_qcodes_dummy():
     dummy.teardown()
 
 
-# @pytest.mark.skip()
+@pytest.mark.skip()
 def test_qcodes_dummy_object():
     # Importing in test so general pytest discovery wont enforce qcodes installation
     from qcodes.instrument.base import InstrumentBase as qcodes_InstrumentBase
@@ -84,7 +86,7 @@ def test_qcodes_dummy_object():
     dummy.teardown()
 
 
-# @pytest.mark.skip()
+@pytest.mark.skip()
 def test_qcodes_dummy_object_dynamic_spec():
     # Importing in test so general pytest discovery wont enforce qcodes installation
     from qcodes.instrument.base import InstrumentBase as qcodes_InstrumentBase
@@ -123,7 +125,7 @@ def test_qcodes_dummy_object_dynamic_spec():
     assert driver_spec.undeclared_functions[0].name == "free_function"
 
 
-# @pytest.mark.skip()
+@pytest.mark.skip()
 def test_qcodes_dummy_snapshot():
     # Importing in test so general pytest discovery wont enforce qcodes installation
     from qcodes.instrument.base import InstrumentBase as qcodes_InstrumentBase

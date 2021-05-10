@@ -2,6 +2,7 @@
 name = "entropylab"
 version = "v0.0.0"
 description = ""
+license = "BSD-3-Clause"
 authors = [
     "Guy Kerem <guy@quantum-machines.co>",
     "Ilan Mitnikov <ilan@quantum-machines.co>",
@@ -17,6 +18,7 @@ exclude = [
     "**/tests/**",
 ]
 readme = "README.md"
+homepage = "https://github.com/entropy-lab/entropy"
 
 [tool.poetry.dependencies]
 python = "^3.7.1"

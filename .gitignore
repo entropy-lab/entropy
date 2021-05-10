@@ -49,3 +49,5 @@ Thumbs.db
 *.wmv
 
 tests_cache/
+docs_cache/
+docs/.ipynb_checkpoints/

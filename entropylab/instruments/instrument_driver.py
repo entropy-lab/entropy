@@ -58,8 +58,7 @@ class Resource(ABC):
 
     def set_entropy_name(self, name: str):
         """
-            helper function for entropy, to set names of resources
-        :param name:
+        helper function for entropy, to set names of resources
         """
         self._entropy_name = name
 
@@ -97,7 +96,17 @@ class Function:
     parameters = None
 
 
+@dataclass
+class DriverSpec:
+    """"""
+
+    parameters: List[Parameter]
+    functions: List[Function]
+    undeclared_functions: List[Function]
+
+
 class Instrument(PickledResource):
+    # TODO decide if to put a different interafce and abstract methods or same with just pass
     """
     A special type of resource, which describes an actual instrument in the lab.
     Entropy will call the "setup_driver" when starting the driver,
@@ -106,8 +115,6 @@ class Instrument(PickledResource):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._parameters: List[Parameter] = []
-        self._functions: List[Function] = []
 
     @abstractmethod
     def setup_driver(self):
@@ -124,7 +131,7 @@ class Instrument(PickledResource):
         """
         pass
 
-    def dynamic_driver_specs(self):
+    def get_dynamic_driver_specs(self) -> DriverSpec:
         """
         add metadata for the driver functionality, if discovered dynamically
         """

@@ -14,9 +14,6 @@ class MockScope(Instrument):
     def teardown_driver(self):
         pass
 
-    def dynamic_driver_specs(self):
-        super().dynamic_driver_specs()
-
     def get_trig(self):
         self.index += 1
         print(f"got trig {self.index}")

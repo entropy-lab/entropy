@@ -2,15 +2,19 @@ import abc
 import enum
 import importlib
 import inspect
+import pickle
 from dataclasses import dataclass
 from typing import Type, Optional, Dict, Any, Iterable, List, Set
-
-import jsonpickle
 
 from entropylab.api.data_reader import DataReader
 from entropylab.api.data_writer import DataWriter
 from entropylab.api.errors import ResourceNotFound, EntropyError
-from entropylab.instruments.instrument_driver import Resource, Instrument
+from entropylab.instruments.instrument_driver import (
+    Resource,
+    Instrument,
+    Function,
+    Parameter,
+)
 from entropylab.logger import logger
 
 
@@ -29,6 +33,9 @@ class ResourceRecord:
     driver_type: DriverType
     args: str
     kwargs: str
+    cached_functions: List[Function]
+    cached_parameters: List[Parameter]
+    cached_undeclared_functions: List[Function]
 
 
 class PersistentLabDB(abc.ABC):
@@ -50,8 +57,11 @@ class PersistentLabDB(abc.ABC):
         class_name: str,
         serialized_args: str,
         serialized_kwargs: str,
-        number_of_experiment_args,
-        keys_of_experiment_kwargs,
+        number_of_experiment_args: int,
+        keys_of_experiment_kwargs: List[str],
+        functions: List[Function],
+        parameters: List[Parameter],
+        undeclared_functions: List[Function],
     ):
         """
             saves all required data for restoring a resource
@@ -65,6 +75,9 @@ class PersistentLabDB(abc.ABC):
                                             on every request
         :param keys_of_experiment_kwargs: the keys of key word arguments that are
                                         passed on every request
+        :param functions: cached list of functions
+        :param undeclared_functions: cached list of undeclared functions
+        :param parameters:  cached list of parameters
         """
         pass
 
@@ -233,8 +246,8 @@ class LabResources:
         else:
             record = self._persistent_db.get_resource(name)
             if record:
-                args = jsonpickle.loads(record.args)
-                kwargs = jsonpickle.loads(record.kwargs)
+                args = pickle.loads(record.args)
+                kwargs = pickle.loads(record.kwargs)
                 resource_class = _get_class(record.module, record.class_name)
                 if args is None:
                     args = []
@@ -267,6 +280,7 @@ class LabResources:
         experiment_args: Optional[List] = None,
         kwargs: Optional[Dict] = None,
         experiment_kwargs: Optional[Dict] = None,
+        dynamic_driver_specs_discovery: bool = False,
     ):
         """
             register a new resource and it's driver to the persistent lab.
@@ -283,11 +297,19 @@ class LabResources:
         :param experiment_kwargs: more keyword arguments for initializing
                                 the driver, won't be save to the persistent lab, and
                                 should be specified on every import.
+        :param dynamic_driver_specs_discovery: whether to run active discovery of
+                                                driver functionality
         """
         if name in self._resources or self.resource_exist(name):
             raise KeyError(f"instrument {name} already exist")
         self.update_resource(
-            name, resource_class, args, experiment_args, kwargs, experiment_kwargs
+            name,
+            resource_class,
+            args,
+            experiment_args,
+            kwargs,
+            experiment_kwargs,
+            dynamic_driver_specs_discovery,
         )
 
     def register_resource_if_not_exist(
@@ -416,6 +438,7 @@ class LabResources:
         experiment_args: Optional[List] = None,
         kwargs: Optional[Dict] = None,
         experiment_kwargs: Optional[Dict] = None,
+        dynamic_driver_specs_discovery: bool = False,
     ):
         """
             update the given resource with a new driver
@@ -431,6 +454,8 @@ class LabResources:
         :param experiment_kwargs: more keyword arguments for initializing
                                 the driver, won't be save to the persistent lab, and
                                 should be specified on every import.
+        :param dynamic_driver_specs_discovery: whether to run active discovery of
+                                                driver functionality
         """
         is_entropy_resource = issubclass(resource_class, Resource)
         if not is_entropy_resource:
@@ -453,9 +478,19 @@ class LabResources:
         keys_of_experiment_kwargs = kwargs.keys()
 
         logger.debug(f"Initialize device {name}")
-        resource_class(*combined_args, **combined_kwargs)
-        serialized_args = jsonpickle.dumps(list(args))
-        serialized_kwargs = jsonpickle.dumps(kwargs)
+        instance = resource_class(*combined_args, **combined_kwargs)
+        serialized_args = pickle.dumps(args)
+        serialized_kwargs = pickle.dumps(kwargs)
+        if isinstance(instance, Instrument) and dynamic_driver_specs_discovery:
+            driver_spec = instance.get_dynamic_driver_specs()
+            functions = driver_spec.functions
+            undeclared_functions = driver_spec.undeclared_functions
+            parameters = driver_spec.parameters
+        else:
+            functions = []
+            parameters = []
+            undeclared_functions = []
+        del instance
         try:
             source = inspect.getsource(inspect.getmodule(resource_class))
         except Exception:
@@ -469,7 +504,10 @@ class LabResources:
             serialized_args,
             serialized_kwargs,
             number_of_experiment_args,
-            keys_of_experiment_kwargs,
+            list(keys_of_experiment_kwargs),
+            functions,
+            parameters,
+            undeclared_functions,
         )
 
 

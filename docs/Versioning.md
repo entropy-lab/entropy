@@ -19,4 +19,4 @@ This version number states bug fixes patches
 
 **Major version 0 (<1.0.0)**
 
-All versions <1.0.0 are experimental and might contain incompatible API changes.
+All versions up to the release of 1.0.0 are experimental and might contain incompatible API changes.

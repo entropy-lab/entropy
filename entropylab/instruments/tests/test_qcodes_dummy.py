@@ -1,7 +1,5 @@
 from typing import Optional, Dict, Any
 
-import pytest
-
 
 # @pytest.mark.skip()
 def test_qcodes_dummy():
@@ -125,6 +123,35 @@ def test_qcodes_dummy_object_dynamic_spec():
     assert driver_spec.undeclared_functions[0].name == "free_function"
 
 
-# TODO test snapshot
+# @pytest.mark.skip()
+def test_qcodes_dummy_snapshot():
+    # Importing in test so general pytest discovery wont enforce qcodes installation
+    from qcodes.instrument.base import InstrumentBase as qcodes_InstrumentBase
+    from entropylab.instruments.qcodes_adapter import QcodesAdapter
 
-# TODO maybe in entropy return just the instance
+    class MockQcodesDriver(qcodes_InstrumentBase):
+        def __init__(
+            self, name: str, metadata: Optional[Dict[Any, Any]] = None
+        ) -> None:
+            super().__init__(name, metadata)
+            self.add_parameter("p")
+            setter = lambda val: print(val)
+            getter = lambda: 1
+            self.add_parameter("s", set_cmd=self.setter, get_cmd=self.getter)
+            self.add_parameter("g", set_cmd=setter, get_cmd=getter)
+
+        def setter(self, val):
+            print(val)
+            self.s = val
+
+        def getter(self):
+            return self.s
+
+        def free_function(self):
+            print("i'm free")
+
+    dummy = QcodesAdapter(MockQcodesDriver, "dummy_inst")
+    dummy.connect()
+    snapshot = dummy.snapshot(True)
+    print(snapshot)
+    assert len(snapshot) > 0

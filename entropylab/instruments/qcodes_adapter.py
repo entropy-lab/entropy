@@ -1,9 +1,11 @@
 from typing import Type, Union, Optional, List
 
+import jsonpickle
 from qcodes import Function, ChannelList
 from qcodes.instrument.base import InstrumentBase
 from qcodes.instrument.parameter import _BaseParameter
 
+from entropylab.api.errors import EntropyError
 from entropylab.instruments.instrument_driver import (
     Parameter,
     Function as EntropyFunction,
@@ -11,6 +13,7 @@ from entropylab.instruments.instrument_driver import (
     DriverSpec,
     Resource,
 )
+from entropylab.logger import logger
 
 
 def _transform_parameter(parameter: _BaseParameter) -> Parameter:
@@ -71,6 +74,7 @@ class QcodesAdapter(Resource):
         self._args = args
         self._kwargs = kwargs
         self._kwargs.pop(Entropy_Resource_Name, None)
+        self._is_connected = False
 
     def get_dynamic_driver_specs(self) -> DriverSpec:
         """
@@ -108,24 +112,43 @@ class QcodesAdapter(Resource):
         return parameters, functions
 
     def connect(self):
+        self._is_connected = True
         self._instance = self._driver(*self._args, **self._kwargs)
 
     def get_instance(self):
-        return self._instance
+        if self._is_connected:
+            return self._instance
+        else:
+            self.connect()
+            return self._instance
 
     def teardown(self):
         try:
-            del self._instance
+            if self._is_connected:
+                del self._instance
+            self._is_connected = False
         except Exception as e:
-            print(e)
+            logger.debug("Exception during resource teardown", e)
 
     @property
     def instance(self):
         return self._instance
 
-    def snapshot(self, update: Optional[bool]):
-        qcodes_snapshot_dict = self._instance.snapshot(update=update)
-        return qcodes_snapshot_dict
+    def snapshot(self, update: Optional[bool] = True) -> str:
+        """
+        Use qcodes snapshot method to save the state of the instrument.
+        the qcodes snapshot dictionary is then serialized using jsonpickle,
+        or using the str() function if dictionary can not be pickled.
+        """
+        if self._is_connected:
+            qcodes_snapshot_dict = self._instance.snapshot(update=update)
+            try:
+                serialized_snapshot = jsonpickle.dumps(qcodes_snapshot_dict)
+            except Exception:
+                serialized_snapshot = str(qcodes_snapshot_dict)
+            return serialized_snapshot
+        else:
+            raise EntropyError("can not save snapshot of disconnected instrument")
 
     def revert_to_snapshot(self, snapshot: str):
         raise NotImplementedError(

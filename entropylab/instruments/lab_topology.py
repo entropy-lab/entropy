@@ -223,13 +223,7 @@ class LabResources:
                 experiment_kwargs=experiment_kwargs,
             )
             self._resources[name] = loaded_resource
-            if (
-                isinstance(loaded_resource.resource, Resource)
-                and loaded_resource.resource.get_instance() is not None
-            ):
-                return loaded_resource.resource.get_instance()
-            else:
-                return loaded_resource.resource
+            return loaded_resource.resource
         else:
             return self._resources[name].resource
 
@@ -516,6 +510,12 @@ class LabResources:
         )
 
 
+@dataclass()
+class _ExperimentResource:
+    resource: Any
+    snapshot_name: Optional[str] = None
+
+
 class ExperimentResources:
     """
     A class for defining all resources needed for a specific experiment
@@ -536,8 +536,9 @@ class ExperimentResources:
         if isinstance(persistent_db, PersistentLabDB):
             self._persistent_lab_connector = LabResources(persistent_db)
         self._private_results_db = None
-        self._resources: Dict[str, Type] = {}
+        self._resources: Dict[str, _ExperimentResource] = {}
         self._local_resources: Dict[str, Any] = {}
+        self._started = False
 
     def _get_persistent_lab_connector(self) -> LabResources:
         if not self._persistent_lab_connector:
@@ -620,18 +621,11 @@ class ExperimentResources:
                 experiment_args=experiment_args,
                 experiment_kwargs=experiment_kwargs,
             )
-            self._resources[name] = resource
-            if snapshot_name:
-                if isinstance(resource, Resource):
-                    snap = self._get_persistent_lab_connector().get_snapshot(
-                        name, snapshot_name
-                    )
-                    resource = self.get_resource(name)
-                    resource.revert_to_snapshot(snap)
-                else:
-                    raise Exception(
-                        "Resource is not an entropy resource and can't be reverted"
-                    )
+            self._resources[name] = _ExperimentResource(resource, snapshot_name)
+            if snapshot_name and not isinstance(resource, Resource):
+                raise Exception(
+                    "Resource is not an entropy resource and can't be reverted"
+                )
         else:
             raise Exception("Resource is not a part of the lab")
 
@@ -656,16 +650,19 @@ class ExperimentResources:
         :param name: resource name
         :return: resource instance
         """
-        if name not in self._resources and name not in self._local_resources:
+        if name in self._resources:
+            lab_connector = self._get_persistent_lab_connector()
+            resource = lab_connector._get_resource_if_already_initialized(name)
+        elif name in self._local_resources:
+            resource = self._local_resources[name]
+        else:
             raise KeyError(
                 "cannot use a resource that wasn't added to experiment resources"
             )
-        if name in self._resources:
-            return self._get_persistent_lab_connector()._get_resource_if_already_initialized(
-                name
-            )
-        if name in self._local_resources:
-            return self._local_resources[name]
+
+        if isinstance(resource, Resource):
+            resource = resource.get_instance()
+        return resource
 
     def has_resource(self, name) -> bool:
         """
@@ -675,23 +672,44 @@ class ExperimentResources:
         """
         return name in self._resources or name in self._local_resources
 
-    def _lock_all_resources(self):
+    def start_experiment(self):
+        if self._started:
+            raise EntropyError("can not start experiment twice")
+        self._started = True
+
         if self._resources:
             self._get_persistent_lab_connector().lock_resources(
                 set([resource_name for resource_name in self._resources])
             )
 
-    def _release_all_resources(self):
-        if self._resources:
-            self._get_persistent_lab_connector().release_resources(
-                set([resource_name for resource_name in self._resources])
-            )
-        if self._local_resources:
-            for resource_name in self._local_resources:
-                resource = self._local_resources[resource_name]
-                if isinstance(resource, Resource):
-                    resource.teardown()
-                del resource
+        # connect to all resources
+        for resource_name in self._resources:
+            resource = self._resources[resource_name]
+            if isinstance(resource, Resource):
+                resource.connect()
+            snapshot_name = resource.snapshot_name
+            if snapshot_name is not None:
+                snap = self._get_persistent_lab_connector().get_snapshot(
+                    resource_name, snapshot_name
+                )
+                resource_name = self.get_resource(resource_name)
+                resource_name.revert_to_snapshot(snap)
+
+    def end_experiment(self):
+        if self._started:
+            if self._resources:
+                self._get_persistent_lab_connector().release_resources(
+                    set([resource_name for resource_name in self._resources])
+                )
+            if self._local_resources:
+                for resource_name in self._local_resources:
+                    resource = self._local_resources[resource_name]
+                    if isinstance(resource, Resource):
+                        resource.teardown()
+                    del resource
+            self._started = False
+        else:
+            raise EntropyError("can not end not-started or finished experiment")
 
     def _serialize_resources_snapshot(self) -> Dict[str, str]:
         snapshots = {}

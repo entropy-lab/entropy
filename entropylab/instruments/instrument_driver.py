@@ -48,6 +48,9 @@ class Resource(ABC):
     An abstract class with extra functionality.
     Entropy will be able to use the snapshot and revert_to_snapshot in experiments,
     making it easier to control the resource, and save metadata
+    The he resource might be  an actual instrument in the lab as well.
+    Entropy will call the "connect" when starting the driver,
+    and the "teardown" on close, so no connections will be left open
     """
 
     def __init__(self, **kwargs):
@@ -87,7 +90,6 @@ class Resource(ABC):
 
         :return:
         """
-        # TODO check if driver has connected
         return self
 
     @abstractmethod
@@ -171,14 +173,3 @@ class PickledResource(Resource):
         raise NotImplementedError(
             f"resource {self.__class__.__qualname__} has not implemented revert to snapshot"
         )
-
-
-# class Instrument(PickledResource):
-# """
-# A special type of resource, which describes an actual instrument in the lab.
-# Entropy will call the "setup_driver" when starting the driver,
-# and the "teardown_driver" on close, so no connections will be left open
-# """
-#
-# def __init__(self, **kwargs):
-#     super().__init__(**kwargs)

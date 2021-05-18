@@ -2,6 +2,7 @@
 [![discord](https://img.shields.io/discord/806244683403100171?label=QUA&logo=Discord&style=plastic)](https://discord.gg/7FfhhpswbP)
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![DOI](https://zenodo.org/badge/353662476.svg)](https://zenodo.org/badge/latestdoi/353662476)
 
 # Entropy
 

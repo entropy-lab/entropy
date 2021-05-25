@@ -3,6 +3,7 @@
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![DOI](https://zenodo.org/badge/353662476.svg)](https://zenodo.org/badge/latestdoi/353662476)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4785097.svg)](https://doi.org/10.5281/zenodo.4785097)
 
 # Entropy
 

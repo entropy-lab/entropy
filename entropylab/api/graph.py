@@ -33,6 +33,7 @@ class Node(ABC):
         input_vars: Dict[str, Output] = None,
         output_vars: Set[str] = None,
         must_run_after: Set[Node] = None,
+        save_results: bool = True,
     ):
         """
             An abstract class for Entropy graph node.
@@ -44,6 +45,7 @@ class Node(ABC):
                         return a dictionary, which it's keys are the same as output vars
         :param must_run_after: A set of nodes. If those nodes are in the same graph,
                             current node will run after they finish execution.
+        :param save_results: True to save the node outputs to results db.
         """
         self._label = label
         self._input_vars = input_vars
@@ -55,6 +57,7 @@ class Node(ABC):
         self._must_run_after: Set[Node] = must_run_after
         if self._must_run_after is None:
             self._must_run_after = {}
+        self._save_results = save_results
 
     @property
     def label(self) -> str:
@@ -151,6 +154,9 @@ class Node(ABC):
         for anc in parents:
             ancestors.update(anc.ancestors())
         return ancestors
+
+    def _should_save_results(self):
+        return self._save_results
 
 
 @dataclass(frozen=True, eq=True)

@@ -81,6 +81,7 @@ class PyNode(Node):
         input_vars: Dict[str, Output] = None,
         output_vars: Set[str] = None,
         must_run_after: Set[Node] = None,
+        save_results: bool = True,
     ):
         """
             Node that gets a python function or coroutine and wraps
@@ -107,7 +108,7 @@ class PyNode(Node):
         :param must_run_after: A set of nodes. If those nodes are in the same graph,
                             current node will run after they finish execution.
         """
-        super().__init__(label, input_vars, output_vars, must_run_after)
+        super().__init__(label, input_vars, output_vars, must_run_after, save_results)
         self._program = program
 
     async def _execute_async(
@@ -246,6 +247,7 @@ class SubGraphNode(Node):
         output_vars: Set[str] = None,
         must_run_after: Set[Node] = None,
         key_nodes: Optional[Set[Node]] = None,
+        save_results: bool = True,
     ):
         """
 
@@ -259,7 +261,7 @@ class SubGraphNode(Node):
         :param must_run_after: A set of nodes. If those nodes are in the same graph,
                             current node will run after they finish execution.
         """
-        super().__init__(label, input_vars, output_vars, must_run_after)
+        super().__init__(label, input_vars, output_vars, must_run_after, save_results)
         self._key_nodes = key_nodes
         if self._key_nodes is None:
             self._key_nodes = set()
@@ -353,10 +355,12 @@ class _NodeExecutor:
             return self._handle_result(context)
 
     def _handle_result(self, context):
-        # logger fetching results
-        for output_id in self.result:
-            output = self.result[output_id]
-            context.add_result(label=f"{output_id}", data=output)
+        if self._node._should_save_results():
+            # logger fetching results
+            for output_id in self.result:
+                output = self.result[output_id]
+                context.add_result(label=f"{output_id}", data=output)
+
         self._end_time = datetime.now()
         logger.debug(
             f"Done running node <{self._node.__class__.__name__}> {self._node.label}"

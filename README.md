@@ -56,10 +56,10 @@ import the library from `entropylab`
 from entropylab import *
 
 def my_func():
-    return {'res':1}
+    return {'res': 1}
 
-node1 = PyNode("first_node", my_func,output_vars={'res'})
-experiment = Graph(None, {node1}, "run_a") #No resources used here
+node1 = PyNode("first_node", my_func, output_vars={'res'})
+experiment = Graph(None, {node1}, "run_a")  # No resources used here
 handle = experiment.run()
 ```
 

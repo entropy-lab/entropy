@@ -126,7 +126,7 @@ class ResultDataType(enum.Enum):
 
 
 class ResultTable(Base):
-    __tablename__ = "Results"
+    __tablename__: str = "Results"
 
     id = Column(Integer, primary_key=True)
     experiment_id = Column(Integer, ForeignKey("Experiments.id", ondelete="CASCADE"))

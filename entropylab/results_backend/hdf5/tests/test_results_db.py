@@ -2,7 +2,6 @@ import os
 from random import randrange
 from typing import Any
 
-import h5py
 import numpy as np
 import pytest
 
@@ -12,13 +11,14 @@ from entropylab.results_backend.hdf5.results_db import ResultsDB
 
 @pytest.mark.parametrize(
     "data", [
-        42, True, 3.14159265359, -160000000000000, np.int64(42)
+        42, True, 3.14159265359, -160000000000000, np.int64(42), "foo",
+        [1, 2, 3], np.arange(12)
     ])
-def test_write_result_with_scalar_data(data: Any):
-    filename = ""
+def test_write_and_read_single_result(data: Any):
+    experiment_id = 0
+    target = ResultsDB()
     try:
         # arrange
-        target = ResultsDB()
         experiment_id = randrange(10000000)
         result = RawResultData(label="foo", data=data)
         result.stage = randrange(1000)
@@ -26,36 +26,24 @@ def test_write_result_with_scalar_data(data: Any):
 
         # act
         target.write_result(experiment_id, result)
-
-        # assert
-        filename = f"experiment_{experiment_id}.hdf5"
-        dset_name = f"stage_{result.stage}"
-        with h5py.File(filename, 'r') as file:
-            dset = file.get(dset_name)
-            assert dset[()] == data
-    finally:
-        # clean up
-        os.remove(filename)
-
-
-def test_read_result():
-    try:
-        # arrange
-        data = [1, 2, 3]
-        results_writer = ResultsDB()
-        experiment_id = randrange(10000000)
-        result = RawResultData(label="foo", data=data)
-        result.stage = randrange(1000)
-        result.story = "A long time ago in a galaxy far, far away..."
-        results_writer.write_result(experiment_id, result)
-        target = ResultsDB()
-
-        # act
         actual = target.read_result(experiment_id, result.stage)
 
         # assert
-        assert all([a == b for a, b in zip(actual, data)])
+        if isinstance(data, str):
+            assert actual.decode() == data
+        elif isinstance(data, list):
+            assert_lists_are_equal(actual, data)
+        elif isinstance(data, np.ndarray):
+            assert_lists_are_equal(actual, data)
+        else:
+            assert actual == data
+
     finally:
         # clean up
-        filename = f"experiment_{experiment_id}.hdf5"
+        filename = target._ResultsDB__get_filename(experiment_id)
         os.remove(filename)
+
+
+def assert_lists_are_equal(actual, expected):
+    assert len(actual) == len(expected)
+    assert all([a == b for a, b in zip(actual, expected)])

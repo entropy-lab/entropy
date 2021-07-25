@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from entropylab import RawResultData
-from entropylab.results_backend.hdf5.results_writer import ResultsWriter
+from entropylab.results_backend.hdf5.results_db import ResultsDB
 
 
 @pytest.mark.parametrize(
@@ -18,7 +18,7 @@ def test_write_result_with_scalar_data(data: Any):
     filename = ""
     try:
         # arrange
-        target = ResultsWriter()
+        target = ResultsDB()
         experiment_id = randrange(10000000)
         result = RawResultData(label="foo", data=data)
         result.stage = randrange(1000)
@@ -35,4 +35,27 @@ def test_write_result_with_scalar_data(data: Any):
             assert dset[()] == data
     finally:
         # clean up
+        os.remove(filename)
+
+
+def test_read_result():
+    try:
+        # arrange
+        data = [1, 2, 3]
+        results_writer = ResultsDB()
+        experiment_id = randrange(10000000)
+        result = RawResultData(label="foo", data=data)
+        result.stage = randrange(1000)
+        result.story = "A long time ago in a galaxy far, far away..."
+        results_writer.write_result(experiment_id, result)
+        target = ResultsDB()
+
+        # act
+        actual = target.read_result(experiment_id, result.stage)
+
+        # assert
+        assert all([a == b for a, b in zip(actual, data)])
+    finally:
+        # clean up
+        filename = f"experiment_{experiment_id}.hdf5"
         os.remove(filename)

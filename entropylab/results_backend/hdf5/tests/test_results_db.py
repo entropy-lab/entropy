@@ -44,6 +44,30 @@ def test_write_and_read_single_result(data: Any):
         os.remove(filename)
 
 
+def test_get_results_two_results():
+    experiment_id = 0
+    target = ResultsDB()
+    try:
+        # arrange
+        experiment_id = randrange(10000000)
+        result = RawResultData(label="foo", data=np.arange(12))
+        result.stage = 0
+        result.story = "A long time ago in a galaxy far, far away..."
+
+        # act
+        target.write_result(experiment_id, result)
+        result.stage = 1
+        target.write_result(experiment_id, result)
+        actual = target.get_results(experiment_id, result.stage)
+
+        # assert
+        assert len(actual) == 2
+    finally:
+        # clean up
+        filename = target._ResultsDB__get_filename(experiment_id)
+        os.remove(filename)
+
+
 def assert_lists_are_equal(actual, expected):
     assert len(actual) == len(expected)
     assert all([a == b for a, b in zip(actual, expected)])

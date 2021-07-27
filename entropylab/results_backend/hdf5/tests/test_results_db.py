@@ -78,15 +78,15 @@ def test_get_label_without_label(request):
         with h5py.File(filename, 'w') as file:
             file.create_dataset("foo", data=42)
             file.create_dataset("bar", data=-3.1412)
-            target = ResultsDB()
             # act
-            actual = target.get_labels(file)
+            actual = ResultsDB().get_labels(file)
             # assert
             assert len(actual) == 2
             names = list(map(lambda d: d.name, actual))
             assert "/foo" in names
             assert "/bar" in names
     finally:
+        # clean up
         os.remove(filename)
 
 
@@ -96,13 +96,13 @@ def test_get_label_with_label(request):
         # arrange
         with h5py.File(filename, 'w') as file:
             file.create_dataset("foo", data=42)
-            target = ResultsDB()
             # act
-            actual = target.get_labels(file)
+            actual = ResultsDB().get_labels(file, "foo")
             # assert
             assert len(actual) == 1
             assert actual[0].name == "/foo"
     finally:
+        # clean up
         os.remove(filename)
 
 
@@ -111,12 +111,27 @@ def test_get_label_with_missing_label(request):
     try:
         # arrange
         with h5py.File(filename, 'w') as file:
-            target = ResultsDB()
+            file.create_dataset("foo", data=42)
             # act
-            actual = target.get_labels(file)
+            actual = ResultsDB().get_labels(file, "foo")
             # assert
             assert len(actual) == 0
     finally:
+        # clean up
+        os.remove(filename)
+
+
+def test_get_label_from_empty_group(request):
+    filename = f"./{request.node.name}.hdf5"
+    try:
+        # arrange
+        with h5py.File(filename, 'w') as file:
+            # act
+            actual = ResultsDB().get_labels(file)
+            # assert
+            assert len(actual) == 0
+    finally:
+        # clean up
         os.remove(filename)
 
 

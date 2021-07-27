@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, Any
 
 import h5py
@@ -82,6 +83,7 @@ class ResultsDB:
             dset.attrs.create('stage', result.stage)
             dset.attrs.create('label', result.label or "")
             dset.attrs.create('story', result.story or "")
+            dset.attrs.create('time', datetime.now().astimezone().isoformat())
 
     def read_result(self, experiment_id: int, stage: int, label: str) -> RawResultData:
         with h5py.File(HDF_FILENAME, 'r') as file:

@@ -1,34 +1,44 @@
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional, Any, Iterable
 
 import h5py
+from pandas import DataFrame
 
 from entropylab import RawResultData
+from entropylab.api.data_reader import ResultRecord
 
 HDF_FILENAME = "./entropy.hdf5"
 
 
-def experiment_from(dset):
+def experiment_from(dset: h5py.Dataset) -> int:
     return dset.attrs['experiment']
 
 
-def stage_from(dset):
+def id_from(dset: h5py.Dataset) -> str:
+    return dset.name
+
+
+def stage_from(dset: h5py.Dataset) -> int:
     return dset.attrs['stage']
 
 
-def label_from(dset):
+def label_from(dset: h5py.Dataset) -> str:
     return dset.attrs['label']
 
 
-def story_from(dset):
+def story_from(dset: h5py.Dataset) -> str:
     return dset.attrs['story']
 
 
-def data_from(dset):
+def data_from(dset: h5py.Dataset) -> Any:
     if dset.dtype.metadata is not None and dset.dtype.metadata.get('vlen') == str:
         return dset.asstr()[()]
     else:
         return dset[()]
+
+
+def time_from(dset: h5py.Dataset) -> datetime:
+    return datetime.fromisoformat(dset.attrs['time'])
 
 
 def build_raw_result_data(dset: h5py.Dataset) -> RawResultData:
@@ -37,6 +47,18 @@ def build_raw_result_data(dset: h5py.Dataset) -> RawResultData:
         label=label_from(dset),
         data=data_from(dset),
         story=story_from(dset))
+
+
+def build_result_record(dset: h5py.Dataset) -> ResultRecord:
+    return ResultRecord(
+        experiment_id=experiment_from(dset),
+        # TODO: How to generate a numeric id? Or refactor id to str?
+        id=0,  # id_from(dset),
+        label=label_from(dset),
+        story=story_from(dset),
+        stage=stage_from(dset),
+        data=data_from(dset),
+        time=time_from(dset))
 
 
 def build_key(dset: h5py.Dataset) -> (int, int, str):
@@ -97,12 +119,11 @@ class ResultsDB:
             experiment_id: Optional[int] = None,
             stage: Optional[int] = None,
             label: Optional[str] = None,
-    ) -> dict[(str, str), Any]:
+    ) -> Iterable[ResultRecord]:
         """
-        Returns a dictionary of RawDataResults from HDF5 in the form of a dictionary where the key is a tuple of
-        experiment, stage and label and the value is the raw data.
+        Returns a list ResultRecords from HDF5.
         """
-        result = {}
+        result = []
         with h5py.File(HDF_FILENAME, 'r') as file:
             experiments = get_children_or_by_name(file, str(experiment_id))
             for experiment in experiments:
@@ -110,5 +131,9 @@ class ResultsDB:
                 for stage in stages:
                     dsets = get_children_or_by_name(stage, label)
                     for dset in dsets:
-                        result[build_key(dset)] = build_raw_result_data(dset)
+                        result.append(build_result_record(dset))
         return result
+
+    def get_all_results_with_label(self, exp_id, name) -> DataFrame:
+        results = self.get_results(exp_id, None, name)
+        # convert results to DataFrame

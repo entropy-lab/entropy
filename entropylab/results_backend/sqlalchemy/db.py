@@ -36,6 +36,7 @@ from entropylab.instruments.lab_topology import (
     DriverType,
     ResourceRecord,
 )
+from entropylab.results_backend.hdf5.results_db import ResultsDB
 from entropylab.results_backend.sqlalchemy.lab_model import (
     Resources,
     ResourcesSnapshots,
@@ -54,6 +55,8 @@ _SQL_ALCHEMY_MEMORY = ":memory:"
 T = TypeVar(
     "T",
 )
+
+_HDF5_RESULTS_DB = True
 
 
 class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
@@ -99,8 +102,11 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 sess.flush()
 
     def save_result(self, experiment_id: int, result: RawResultData):
-        transaction = ResultTable.from_model(experiment_id, result)
-        return self._execute_transaction(transaction)
+        if _HDF5_RESULTS_DB:
+            return ResultsDB().save_result(experiment_id, result)
+        else:
+            transaction = ResultTable.from_model(experiment_id, result)
+            return self._execute_transaction(transaction)
 
     def save_metadata(self, experiment_id: int, metadata: Metadata):
         transaction = MetadataTable.from_model(experiment_id, metadata)
@@ -160,15 +166,18 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         label: Optional[str] = None,
         stage: Optional[int] = None,
     ) -> Iterable[ResultRecord]:
-        with self._session_maker() as sess:
-            query = sess.query(ResultTable)
-            if experiment_id is not None:
-                query = query.filter(ResultTable.experiment_id == int(experiment_id))
-            if label is not None:
-                query = query.filter(ResultTable.label == str(label))
-            if stage is not None:
-                query = query.filter(ResultTable.stage == int(stage))
-            return [item.to_record() for item in query.all()]
+        if _HDF5_RESULTS_DB:
+            return ResultsDB().get_results(experiment_id, stage, label)
+        else:
+            with self._session_maker() as sess:
+                query = sess.query(ResultTable)
+                if experiment_id is not None:
+                    query = query.filter(ResultTable.experiment_id == int(experiment_id))
+                if label is not None:
+                    query = query.filter(ResultTable.label == str(label))
+                if stage is not None:
+                    query = query.filter(ResultTable.stage == int(stage))
+                return [item.to_record() for item in query.all()]
 
     def get_metadata_records(
         self,

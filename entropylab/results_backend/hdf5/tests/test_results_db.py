@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 from entropylab import RawResultData
-from entropylab.results_backend.hdf5.results_db import ResultsDB, HDF_FILENAME
+from entropylab.results_backend.hdf5.results_db import ResultsDB, HDF_FILENAME, get_children_or_by_name
 
 
 @pytest.mark.parametrize(
@@ -67,8 +67,9 @@ def test_get_results_two_results():
         assert_lists_are_equal(actual[0, 'bar'], range(9))
     finally:
         # clean up
-        filename = target._ResultsDB__get_filename(experiment_id)
-        os.remove(filename)
+        # filename = target._ResultsDB__get_filename(experiment_id)
+        # os.remove(filename)
+        os.remove(HDF_FILENAME)
 
 
 def test_get_label_without_label(request):
@@ -79,7 +80,7 @@ def test_get_label_without_label(request):
             file.create_dataset("foo", data=42)
             file.create_dataset("bar", data=-3.1412)
             # act
-            actual = ResultsDB().get_labels(file)
+            actual = get_children_or_by_name(file)
             # assert
             assert len(actual) == 2
             names = list(map(lambda d: d.name, actual))
@@ -97,7 +98,7 @@ def test_get_label_with_label(request):
         with h5py.File(filename, 'w') as file:
             file.create_dataset("foo", data=42)
             # act
-            actual = ResultsDB().get_labels(file, "foo")
+            actual = get_children_or_by_name(file, "foo")
             # assert
             assert len(actual) == 1
             assert actual[0].name == "/foo"
@@ -113,7 +114,7 @@ def test_get_label_with_missing_label(request):
         with h5py.File(filename, 'w') as file:
             file.create_dataset("foo", data=42)
             # act
-            actual = ResultsDB().get_labels(file, "foo")
+            actual = get_children_or_by_name(file, "foo")
             # assert
             assert len(actual) == 0
     finally:
@@ -127,7 +128,7 @@ def test_get_label_from_empty_group(request):
         # arrange
         with h5py.File(filename, 'w') as file:
             # act
-            actual = ResultsDB().get_labels(file)
+            actual = get_children_or_by_name(file)
             # assert
             assert len(actual) == 0
     finally:

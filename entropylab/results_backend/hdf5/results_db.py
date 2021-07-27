@@ -4,23 +4,68 @@ import h5py
 
 from entropylab import RawResultData
 
-# noinspection PyMethodMayBeStatic
 HDF_FILENAME = "./entropy.hdf5"
 
 
+def experiment_from(dset):
+    return dset.attrs['experiment']
+
+
+def stage_from(dset):
+    return dset.attrs['stage']
+
+
+def label_from(dset):
+    return dset.attrs['label']
+
+
+def story_from(dset):
+    return dset.attrs['story']
+
+
+def data_from(dset):
+    return dset[()]
+
+
+def build_raw_result_data(dset: h5py.Dataset) -> RawResultData:
+    return RawResultData(
+        stage=stage_from(dset),
+        label=label_from(dset),
+        data=data_from(dset),
+        story=story_from(dset))
+
+
+def build_key(dset: h5py.Dataset) -> (int, int, str):
+    return experiment_from(dset), stage_from(dset), label_from(dset)
+
+
+def get_children_or_by_name(group: h5py.Group, name: Optional[str] = None):
+    """
+    Returns all or one child from an h5py.Group
+
+    Parameters
+    ----------
+    group group to get child or children from. Can be h5py.File itself.
+    name name of child to get. If None, indicates all children should be retrieved.
+
+    Returns
+    -------
+    A list of group children (either h5py.Group or h5py.Datasets)
+    """
+    if name is None:
+        return list(group.values())
+    else:
+        if name in group:
+            return [group[name]]
+        else:
+            return []
+
+
+# noinspection PyMethodMayBeStatic
 class ResultsDB:
 
     def __init__(self):
         pass
-
-    def __get_filename(self, experiment_id: int) -> str:
-        return f"experiment_{experiment_id}.hdf5"
-
-    def __get_group_name(self, stage: int) -> str:
-        return f"stage_{stage}"
-
-    def __get_dset_name(self, label: str) -> str:
-        return f"label_{label}"
 
     def write_result(self, experiment_id: int, result: RawResultData):
         # TODO: limit characters in label to fit hdf5???
@@ -40,7 +85,7 @@ class ResultsDB:
             path = f"/{experiment_id}/{stage}/{label}"
             dset = file.get(path)
             # TODO: strings come back a byte arrays...?
-            return dset[()]
+            return data_from(dset)
 
     def get_results(
             self,
@@ -49,28 +94,16 @@ class ResultsDB:
             label: Optional[str] = None,
     ) -> dict[(str, str), Any]:
         """
-        Returns a set of results data from HDF5, in the form of a dictionary where the key is the stage and the value
-        is the raw data.
+        Returns a dictionary of RawDataResults from HDF5 in the form of a dictionary where the key is a tuple of
+        experiment, stage and label and the value is the raw data.
         """
-        filename = self.__get_filename(experiment_id)
-        with h5py.File(filename, 'r') as file:
-            data_dict = {}
-            file.visititems(self.add_item_to_dict(data_dict))
-            return data_dict
-
-    def get_labels(self, group: h5py.Group, label: Optional[str] = None):
-        if label is None:
-            return list(group.values())
-        else:
-            if label in group:
-                return [group[label]]
-            else:
-                return []
-
-    def add_item_to_dict(self, dsets: []):
-        def visitor(name, item):
-            if isinstance(item, h5py.Dataset):
-                dsets[(item.attrs['stage'], item.attrs['label'])] = item[()]
-            return None
-
-        return visitor
+        result = {}
+        with h5py.File(HDF_FILENAME, 'r') as file:
+            experiments = get_children_or_by_name(file, str(experiment_id))
+            for experiment in experiments:
+                stages = get_children_or_by_name(experiment, str(stage))
+                for stage in stages:
+                    dsets = get_children_or_by_name(stage, label)
+                    for dset in dsets:
+                        result[build_key(dset)] = build_raw_result_data(dset)
+        return result

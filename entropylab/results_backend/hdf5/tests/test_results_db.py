@@ -26,7 +26,7 @@ def test_write_and_read_single_result(data: Any):
         result.story = "A long time ago in a galaxy far, far away..."
 
         # act
-        target.write_result(experiment_id, result)
+        target.save_result(experiment_id, result)
         actual = target.read_result(experiment_id, result.stage, result.label)
 
         # assert
@@ -51,10 +51,10 @@ def test_get_results_two_results():
         experiment_id = randrange(10000000)
         result = RawResultData(stage=0, label="foo", data=np.arange(12))
         result.story = "A long time ago in a galaxy far, far away..."
-        target.write_result(experiment_id, result)
+        target.save_result(experiment_id, result)
         result2 = RawResultData(stage=0, label="bar", data=np.arange(9))
         result.story = "A long time ago in a galaxy far, far away..."
-        target.write_result(experiment_id, result2)
+        target.save_result(experiment_id, result2)
 
         # act
         actual = target.get_results(experiment_id, result.stage)

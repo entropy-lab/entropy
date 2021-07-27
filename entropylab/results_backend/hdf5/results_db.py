@@ -71,7 +71,7 @@ class ResultsDB:
     def __init__(self):
         pass
 
-    def write_result(self, experiment_id: int, result: RawResultData):
+    def save_result(self, experiment_id: int, result: RawResultData) -> str:
         # TODO: limit characters in label to fit hdf5???
         with h5py.File(HDF_FILENAME, 'a') as file:
             path = f"/{experiment_id}/{result.stage}"
@@ -84,6 +84,7 @@ class ResultsDB:
             dset.attrs.create('label', result.label or "")
             dset.attrs.create('story', result.story or "")
             dset.attrs.create('time', datetime.now().astimezone().isoformat())
+            return dset.name
 
     def read_result(self, experiment_id: int, stage: int, label: str) -> RawResultData:
         with h5py.File(HDF_FILENAME, 'r') as file:

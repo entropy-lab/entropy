@@ -2,11 +2,12 @@ import os
 from random import randrange
 from typing import Any
 
+import h5py
 import numpy as np
 import pytest
 
 from entropylab import RawResultData
-from entropylab.results_backend.hdf5.results_db import ResultsDB
+from entropylab.results_backend.hdf5.results_db import ResultsDB, HDF_FILENAME
 
 
 @pytest.mark.parametrize(
@@ -40,8 +41,8 @@ def test_write_and_read_single_result(data: Any):
 
     finally:
         # clean up
-        filename = target._ResultsDB__get_filename(experiment_id)
-        os.remove(filename)
+        # filename = target._ResultsDB__get_filename(experiment_id)
+        os.remove(HDF_FILENAME)
 
 
 def test_get_results_two_results():
@@ -67,6 +68,55 @@ def test_get_results_two_results():
     finally:
         # clean up
         filename = target._ResultsDB__get_filename(experiment_id)
+        os.remove(filename)
+
+
+def test_get_label_without_label(request):
+    filename = f"./{request.node.name}.hdf5"
+    try:
+        # arrange
+        with h5py.File(filename, 'w') as file:
+            file.create_dataset("foo", data=42)
+            file.create_dataset("bar", data=-3.1412)
+            target = ResultsDB()
+            # act
+            actual = target.get_labels(file)
+            # assert
+            assert len(actual) == 2
+            names = list(map(lambda d: d.name, actual))
+            assert "/foo" in names
+            assert "/bar" in names
+    finally:
+        os.remove(filename)
+
+
+def test_get_label_with_label(request):
+    filename = f"./{request.node.name}.hdf5"
+    try:
+        # arrange
+        with h5py.File(filename, 'w') as file:
+            file.create_dataset("foo", data=42)
+            target = ResultsDB()
+            # act
+            actual = target.get_labels(file)
+            # assert
+            assert len(actual) == 1
+            assert actual[0].name == "/foo"
+    finally:
+        os.remove(filename)
+
+
+def test_get_label_with_missing_label(request):
+    filename = f"./{request.node.name}.hdf5"
+    try:
+        # arrange
+        with h5py.File(filename, 'w') as file:
+            target = ResultsDB()
+            # act
+            actual = target.get_labels(file)
+            # assert
+            assert len(actual) == 0
+    finally:
         os.remove(filename)
 
 

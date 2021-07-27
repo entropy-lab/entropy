@@ -4,8 +4,10 @@ import h5py
 
 from entropylab import RawResultData
 
-
 # noinspection PyMethodMayBeStatic
+HDF_FILENAME = "./entropy.hdf5"
+
+
 class ResultsDB:
 
     def __init__(self):
@@ -21,20 +23,12 @@ class ResultsDB:
         return f"label_{label}"
 
     def write_result(self, experiment_id: int, result: RawResultData):
-        filename = self.__get_filename(experiment_id)
-        group_name = self.__get_group_name(result.stage)
-        dset_name = self.__get_dset_name(result.label)
         # TODO: limit characters in label to fit hdf5???
-        with h5py.File(filename, 'a') as file:
-            # file (experiment)
-            file.attrs.create('experiment', experiment_id)
-            # group (stage)
-            group = file.require_group(group_name)
-            group.attrs.create('experiment', experiment_id)
-            group.attrs.create('stage', result.stage)
-            # dataset (label)
+        with h5py.File(HDF_FILENAME, 'a') as file:
+            path = f"/{experiment_id}/{result.stage}"
+            group = file.require_group(path)
             dset = group.create_dataset(
-                name=dset_name,
+                name=result.label,
                 data=result.data)
             dset.attrs.create('experiment', experiment_id)
             dset.attrs.create('stage', result.stage)
@@ -42,21 +36,14 @@ class ResultsDB:
             dset.attrs.create('story', result.story or "")
 
     def read_result(self, experiment_id: int, stage: int, label: str):
-        filename = self.__get_filename(experiment_id)
-        group_name = self.__get_group_name(stage)
-        dset_name = self.__get_dset_name(label)
-        # TODO: What if file does not exist?
-        with h5py.File(filename, 'r') as file:
-            # TODO: What if dset does not exist?
-            group = file.get(group_name)
-            # TODO: What if group does not exist?
-            dset = group.get(dset_name)
+        with h5py.File(HDF_FILENAME, 'r') as file:
+            path = f"/{experiment_id}/{stage}/{label}"
+            dset = file.get(path)
             # TODO: strings come back a byte arrays...?
             return dset[()]
 
     def get_results(
             self,
-            # TODO: How to get results across experiments?
             experiment_id: Optional[int] = None,
             stage: Optional[int] = None,
             label: Optional[str] = None,
@@ -70,6 +57,15 @@ class ResultsDB:
             data_dict = {}
             file.visititems(self.add_item_to_dict(data_dict))
             return data_dict
+
+    def get_labels(self, group: h5py.Group, label: Optional[str] = None):
+        if label is None:
+            return list(group.values())
+        else:
+            if label in group:
+                return [group[label]]
+            else:
+                return []
 
     def add_item_to_dict(self, dsets: []):
         def visitor(name, item):

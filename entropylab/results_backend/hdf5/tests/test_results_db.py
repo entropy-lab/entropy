@@ -13,7 +13,7 @@ from entropylab.results_backend.hdf5.results_db import ResultsDB, HDF_FILENAME, 
 @pytest.mark.parametrize(
     "data", [
         42, True, 3.14159265359, -160000000000000, np.int64(42), "foo",
-        [1, 2, 3], np.arange(12)
+        [1, 2, 3], np.arange(12), ["foo", "bar", "baz"]
     ])
 def test_write_and_read_single_result(data: Any):
     experiment_id = 0
@@ -30,14 +30,12 @@ def test_write_and_read_single_result(data: Any):
         actual = target.read_result(experiment_id, result.stage, result.label)
 
         # assert
-        if isinstance(data, str):
-            assert actual.decode() == data
-        elif isinstance(data, list):
-            assert_lists_are_equal(actual, data)
+        if isinstance(data, list):
+            assert_lists_are_equal(actual.data, data)
         elif isinstance(data, np.ndarray):
-            assert_lists_are_equal(actual, data)
+            assert_lists_are_equal(actual.data, data)
         else:
-            assert actual == data
+            assert actual.data == data
 
     finally:
         # clean up

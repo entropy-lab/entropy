@@ -24,7 +24,10 @@ def story_from(dset):
 
 
 def data_from(dset):
-    return dset[()]
+    if dset.dtype.metadata is not None and dset.dtype.metadata.get('vlen') == str:
+        return dset.asstr()[()]
+    else:
+        return dset[()]
 
 
 def build_raw_result_data(dset: h5py.Dataset) -> RawResultData:
@@ -80,12 +83,11 @@ class ResultsDB:
             dset.attrs.create('label', result.label or "")
             dset.attrs.create('story', result.story or "")
 
-    def read_result(self, experiment_id: int, stage: int, label: str):
+    def read_result(self, experiment_id: int, stage: int, label: str) -> RawResultData:
         with h5py.File(HDF_FILENAME, 'r') as file:
             path = f"/{experiment_id}/{stage}/{label}"
             dset = file.get(path)
-            # TODO: strings come back a byte arrays...?
-            return data_from(dset)
+            return build_raw_result_data(dset)
 
     def get_results(
             self,

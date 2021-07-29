@@ -98,6 +98,7 @@ class ResultsDB:
         with h5py.File(HDF_FILENAME, 'a') as file:
             path = f"/{experiment_id}/{result.stage}"
             group = file.require_group(path)
+            # TODO: What if there is no Label? Is this possible? Enforce it!
             dset = group.create_dataset(
                 name=result.label,
                 data=result.data)
@@ -137,3 +138,13 @@ class ResultsDB:
     def get_all_results_with_label(self, exp_id, name) -> DataFrame:
         results = self.get_results(exp_id, None, name)
         # convert results to DataFrame
+
+    def get_last_result_of_experiment(
+        self, experiment_id: int
+    ) -> Optional[ResultRecord]:
+        results = self.get_results(experiment_id, None, None)
+        if results:
+            results.sort(key=lambda x: x.time, reverse=True)
+            return results[0]
+        else:
+            return None

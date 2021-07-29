@@ -44,7 +44,6 @@ def test_write_and_read_single_result(data: Any):
 
 
 def test_get_results_two_results():
-    experiment_id = 0
     target = ResultsDB()
     try:
         # arrange
@@ -68,6 +67,33 @@ def test_get_results_two_results():
         # filename = target._ResultsDB__get_filename(experiment_id)
         # os.remove(filename)
         os.remove(HDF_FILENAME)
+
+def test_get_last_result_of_experiment():
+    target = ResultsDB()
+    try:
+        # arrange
+        experiment_id = randrange(10000000)
+        result = RawResultData(stage=0, label="foo", data=np.arange(12))
+        target.save_result(experiment_id, result)
+        result2 = RawResultData(stage=1, label="bar", data=np.arange(9))
+        target.save_result(experiment_id, result2)
+        result3 = RawResultData(stage=0, label="bar", data=np.arange(6))
+        target.save_result(experiment_id, result3)
+
+        # act
+        actual = target.get_last_result_of_experiment(experiment_id)
+
+        # assert
+        assert len(actual) == 1
+
+        assert_lists_are_equal(actual[0, 'foo'], range(12))
+        assert_lists_are_equal(actual[0, 'bar'], range(9))
+    finally:
+        # clean up
+        # filename = target._ResultsDB__get_filename(experiment_id)
+        # os.remove(filename)
+        os.remove(HDF_FILENAME)
+
 
 
 def test_get_label_without_label(request):

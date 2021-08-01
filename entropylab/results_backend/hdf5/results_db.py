@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Optional, Any, Iterable
 
 import h5py
-from pandas import DataFrame
 
 from entropylab import RawResultData
 from entropylab.api.data_reader import ResultRecord
@@ -81,8 +80,8 @@ def get_children_or_by_name(group: h5py.Group, name: Optional[str] = None):
     if name is None:
         return list(group.values())
     else:
-        if name in group:
-            return [group[name]]
+        if str(name) in group:
+            return [group[str(name)]]
         else:
             return []
 
@@ -125,19 +124,20 @@ class ResultsDB:
         Returns a list ResultRecords from HDF5.
         """
         result = []
-        with h5py.File(HDF_FILENAME, 'r') as file:
-            experiments = get_children_or_by_name(file, str(experiment_id))
-            for experiment in experiments:
-                stages = get_children_or_by_name(experiment, str(stage))
-                for stage in stages:
-                    dsets = get_children_or_by_name(stage, label)
-                    for dset in dsets:
-                        result.append(build_result_record(dset))
+        try:
+            with h5py.File(HDF_FILENAME, 'r') as file:
+                if file is None:
+                    return
+                experiments = get_children_or_by_name(file, experiment_id)
+                for experiment in experiments:
+                    stages = get_children_or_by_name(experiment, stage)
+                    for stage in stages:
+                        dsets = get_children_or_by_name(stage, label)
+                        for dset in dsets:
+                            result.append(build_result_record(dset))
+        except FileNotFoundError:
+            return result
         return result
-
-    def get_all_results_with_label(self, exp_id, name) -> DataFrame:
-        results = self.get_results(exp_id, None, name)
-        # convert results to DataFrame
 
     def get_last_result_of_experiment(
         self, experiment_id: int

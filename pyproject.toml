@@ -34,6 +34,7 @@ graphviz = "^0.16"
 networkx = "^2.5.1"
 matplotlib = "^3.4.1"
 h5py = "^3.3.0"
+alembic = "^1.6.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"

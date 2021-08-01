@@ -136,6 +136,7 @@ class ResultTable(Base):
     time = Column(DATETIME, nullable=False)
     data = Column(BLOB)
     data_type = Column(Enum(ResultDataType))
+    saved_in_hdf5 = Column(Boolean, nullable=False, default=False)
 
     def __repr__(self):
         return f"<Result(id='{self.id}')>"

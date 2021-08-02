@@ -95,11 +95,7 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         alembic_cfg = Config(config_location)
         alembic_cfg.set_main_option('script_location', script_location)
         alembic_cfg.set_main_option('sqlalchemy.url', dsn)
-        try:
-            command.upgrade(alembic_cfg, 'head')
-        except:
-            print("Unexpected error:", sys.exc_info()[0])
-            raise
+        command.upgrade(alembic_cfg, 'head')
 
     def __abs_path_to(self, rel_path: str):
         source_path = Path(__file__).resolve()

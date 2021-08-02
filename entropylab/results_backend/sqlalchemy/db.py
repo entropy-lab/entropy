@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from datetime import datetime
@@ -63,6 +64,7 @@ T = TypeVar(
 _HDF5_RESULTS_DB = True
 
 
+# noinspection PyBroadException
 class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
     """
     Database implementation using SqlAlchemy package for results (DataWriter
@@ -119,11 +121,17 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 sess.flush()
 
     def save_result(self, experiment_id: int, result: RawResultData):
+        saved_in_hdf5 = False
         if _HDF5_RESULTS_DB:
-            return ResultsDB().save_result(experiment_id, result)
-        else:
-            transaction = ResultTable.from_model(experiment_id, result)
-            return self._execute_transaction(transaction)
+            try:
+                ResultsDB().save_result(experiment_id, result)
+                saved_in_hdf5 = True
+            except Exception as ex:
+                logging.exception("Error saving result to HDF5")
+                saved_in_hdf5 = False
+        transaction = ResultTable.from_model(experiment_id, result)
+        transaction.saved_in_hdf5 = saved_in_hdf5
+        return self._execute_transaction(transaction)
 
     def save_metadata(self, experiment_id: int, metadata: Metadata):
         transaction = MetadataTable.from_model(experiment_id, metadata)

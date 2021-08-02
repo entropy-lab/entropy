@@ -1,10 +1,14 @@
 import os
+import sys
 from datetime import datetime
+from pathlib import Path
 from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
 from typing import Set
 
 import jsonpickle
 import pandas as pd
+from alembic import command
+from alembic.config import Config
 from pandas import DataFrame
 from sqlalchemy import create_engine, desc
 from sqlalchemy.exc import DBAPIError
@@ -81,9 +85,26 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 if dirname and dirname != "":
                     os.makedirs(dirname, exist_ok=True)
         path = "sqlite:///" + path
+        self.__run_migrations(path)
         self._engine = create_engine(path, echo=echo)
-        Base.metadata.create_all(self._engine)
         self._Session = sessionmaker(bind=self._engine)
+
+    def __run_migrations(self, dsn: str) -> None:
+        config_location = self.__abs_path_to("alembic.ini")
+        script_location = self.__abs_path_to("alembic")
+        alembic_cfg = Config(config_location)
+        alembic_cfg.set_main_option('script_location', script_location)
+        alembic_cfg.set_main_option('sqlalchemy.url', dsn)
+        try:
+            command.upgrade(alembic_cfg, 'head')
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            raise
+
+    def __abs_path_to(self, rel_path: str):
+        source_path = Path(__file__).resolve()
+        source_dir = source_path.parent
+        return os.path.join(source_dir, rel_path)
 
     def save_experiment_initial_data(self, initial_data: ExperimentInitialData) -> int:
         transaction = ExperimentTable.from_initial_data(initial_data)

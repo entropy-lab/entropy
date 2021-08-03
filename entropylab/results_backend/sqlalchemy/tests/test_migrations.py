@@ -35,6 +35,10 @@ def test_migrations(db: str):
         # clean up
         os.remove(db_under_test)
 
+# Add a test for db with initial schema and values in tables.
+# put test dbs in tests_cache folder (so gitignored)
+# test revision matrix
+
 
 def get_test_file_name(filename):
     timestamp = f"{datetime.now():%Y-%m-%d-%H-%M-%S}"

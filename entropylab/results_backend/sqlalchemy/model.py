@@ -151,6 +151,7 @@ class ResultTable(Base):
             stage=self.stage,
             data=data,
             time=self.time,
+            saved_in_hdf5=self.saved_in_hdf5
         )
 
     @staticmethod

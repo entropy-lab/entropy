@@ -79,6 +79,7 @@ class ResultRecord:
     stage: int
     data: Any
     time: datetime
+    saved_in_hdf5: bool
 
 
 @dataclass

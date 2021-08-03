@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
@@ -47,7 +46,6 @@ from entropylab.results_backend.sqlalchemy.lab_model import (
     ResourcesSnapshots,
 )
 from entropylab.results_backend.sqlalchemy.model import (
-    Base,
     ExperimentTable,
     PlotTable,
     ResultTable,
@@ -121,12 +119,16 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 sess.flush()
 
     def save_result(self, experiment_id: int, result: RawResultData):
+        if result.label is None:
+            raise TypeError("result.label cannot be None")
+        if result.label == "":
+            raise ValueError("result.label cannot be empty")
         saved_in_hdf5 = False
         if _HDF5_RESULTS_DB:
             try:
                 ResultsDB().save_result(experiment_id, result)
                 saved_in_hdf5 = True
-            except Exception as ex:
+            except Exception:
                 logging.exception("Error saving result to HDF5")
                 saved_in_hdf5 = False
         transaction = ResultTable.from_model(experiment_id, result)
@@ -191,18 +193,40 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         label: Optional[str] = None,
         stage: Optional[int] = None,
     ) -> Iterable[ResultRecord]:
-        if _HDF5_RESULTS_DB:
-            return ResultsDB().get_results(experiment_id, stage, label)
+        if not _HDF5_RESULTS_DB:
+            return self.__get_results_from_sqlalchemy(experiment_id, label,stage)
         else:
-            with self._session_maker() as sess:
-                query = sess.query(ResultTable)
-                if experiment_id is not None:
-                    query = query.filter(ResultTable.experiment_id == int(experiment_id))
-                if label is not None:
-                    query = query.filter(ResultTable.label == str(label))
-                if stage is not None:
-                    query = query.filter(ResultTable.stage == int(stage))
-                return [item.to_record() for item in query.all()]
+            results_from_sql_alchemy = self.__get_results_from_sqlalchemy(experiment_id, label, stage, False)
+            sqlalchemy_ids = ResultsDB().migrate_result_records(results_from_sql_alchemy)
+            self.__mark_results_as_migrated(sqlalchemy_ids)
+            return ResultsDB().get_results(experiment_id, stage, label)
+        pass
+
+    def __get_results_from_sqlalchemy(
+        self,
+        experiment_id: Optional[int] = None,
+        label: Optional[str] = None,
+        stage: Optional[int] = None,
+        saved_in_hdf5: Optional[bool] = None
+    ) -> Iterable[ResultRecord]:
+        with self._session_maker() as sess:
+            query = sess.query(ResultTable)
+            if experiment_id is not None:
+                query = query.filter(ResultTable.experiment_id == int(experiment_id))
+            if label is not None:
+                query = query.filter(ResultTable.label == str(label))
+            if stage is not None:
+                query = query.filter(ResultTable.stage == int(stage))
+            if _HDF5_RESULTS_DB and saved_in_hdf5 is not None:
+                query = query.filter(ResultTable.saved_in_hdf5 == bool(saved_in_hdf5))
+            return [item.to_record() for item in query.all()]
+
+    def __mark_results_as_migrated(self, result_record_ids: list[int]):
+        with self._session_maker() as sess:
+            sess.query(ResultTable)\
+                .filter(ResultTable.id.in_(result_record_ids))\
+                .update({'saved_in_hdf5': True})
+            sess.commit()
 
     def get_metadata_records(
         self,

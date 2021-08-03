@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from typing import Optional, Any, Iterable
 
@@ -10,7 +11,7 @@ HDF_FILENAME = "./entropy.hdf5"
 
 
 def experiment_from(dset: h5py.Dataset) -> int:
-    return dset.attrs['experiment']
+    return dset.attrs['experiment_id']
 
 
 def id_from(dset: h5py.Dataset) -> str:
@@ -48,7 +49,7 @@ def build_raw_result_data(dset: h5py.Dataset) -> RawResultData:
         story=story_from(dset))
 
 
-def build_result_record(dset: h5py.Dataset) -> ResultRecord:
+def _build_result_record(dset: h5py.Dataset) -> ResultRecord:
     return ResultRecord(
         experiment_id=experiment_from(dset),
         # TODO: How to generate a numeric id? Or refactor id to str?
@@ -57,7 +58,9 @@ def build_result_record(dset: h5py.Dataset) -> ResultRecord:
         story=story_from(dset),
         stage=stage_from(dset),
         data=data_from(dset),
-        time=time_from(dset))
+        time=time_from(dset),
+        saved_in_hdf5=True  # assumes this method is only called after result is read from HDF5
+    )
 
 
 def build_key(dset: h5py.Dataset) -> (int, int, str):
@@ -86,27 +89,54 @@ def get_children_or_by_name(group: h5py.Group, name: Optional[str] = None):
             return []
 
 
-# noinspection PyMethodMayBeStatic
+# noinspection PyMethodMayBeStatic,PyBroadException
 class ResultsDB:
 
     def __init__(self):
         pass
 
     def save_result(self, experiment_id: int, result: RawResultData) -> str:
-        # TODO: limit characters in label to fit hdf5???
         with h5py.File(HDF_FILENAME, 'a') as file:
             path = f"/{experiment_id}/{result.stage}"
             group = file.require_group(path)
-            # TODO: What if there is no Label? Is this possible? Enforce it!
             dset = group.create_dataset(
                 name=result.label,
                 data=result.data)
-            dset.attrs.create('experiment', experiment_id)
+            dset.attrs.create('experiment_id', experiment_id)
             dset.attrs.create('stage', result.stage)
             dset.attrs.create('label', result.label or "")
             dset.attrs.create('story', result.story or "")
             dset.attrs.create('time', datetime.now().astimezone().isoformat())
             return dset.name
+
+    def migrate_result_records(self, result_records: Iterable[ResultRecord]) -> list[int]:
+        if result_records is None:
+            return []
+        with h5py.File(HDF_FILENAME, 'a') as file:
+            sqlalchemy_ids = []
+            for result_record in result_records:
+                if not result_record.saved_in_hdf5:
+                    try:
+                        hdf5_id = self.__migrate_result_record(file, result_record)
+                        sqlalchemy_ids.append(result_record.id)
+                        logging.debug(f"Migrated result with id [{result_record.id}] to HDF5 with id [{hdf5_id}]")
+                    except Exception:
+                        logging.exception(f"Failed to migrate result with id [{result_record.id}] to HDF5")
+            return sqlalchemy_ids
+
+    def __migrate_result_record(self, file: h5py.File, result_record: ResultRecord) -> str:
+        path = f"/{result_record.experiment_id}/{result_record.stage}"
+        group = file.require_group(path)
+        dset = group.create_dataset(
+            name=result_record.label,
+            data=result_record.data)
+        dset.attrs.create('experiment_id', result_record.experiment_id)
+        dset.attrs.create('stage', result_record.stage)
+        dset.attrs.create('label', result_record.label or "")
+        dset.attrs.create('story', result_record.story or "")
+        dset.attrs.create('time', result_record.time.astimezone().isoformat())
+        dset.attrs.create('migrated_id', result_record.id or "")
+        return dset.name
 
     def read_result(self, experiment_id: int, stage: int, label: str) -> RawResultData:
         with h5py.File(HDF_FILENAME, 'r') as file:
@@ -127,14 +157,14 @@ class ResultsDB:
         try:
             with h5py.File(HDF_FILENAME, 'r') as file:
                 if file is None:
-                    return
+                    return result
                 experiments = get_children_or_by_name(file, experiment_id)
                 for experiment in experiments:
                     stages = get_children_or_by_name(experiment, stage)
                     for stage in stages:
                         dsets = get_children_or_by_name(stage, label)
                         for dset in dsets:
-                            result.append(build_result_record(dset))
+                            result.append(_build_result_record(dset))
         except FileNotFoundError:
             return result
         return result

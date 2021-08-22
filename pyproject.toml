@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "entropylab"
-version = "v0.0.0"
+version = "0.1.2"
 description = ""
 license = "BSD-3-Clause"
 authors = [
@@ -41,8 +41,26 @@ flake8 = "^3.9.0"
 flake8-bugbear = "^21.3.2"
 pytest-repeat = "^0.9.1"
 pytest-cov = "^2.11.1"
+poethepoet = "^0.10.0"
 
 [tool.pytest.ini_options]
+
+
+[tool.poe.tasks.format]
+cmd = "black entropylab"
+help = "Format source files according to the style rules"
+
+[tool.poe.tasks.check-format]
+cmd = "black entropylab --check"
+help = "Check that all files are formatted according to the style rules"
+
+[tool.poe.tasks.lint]
+cmd = "flake8 entropylab"
+help = "Check for lint errors"
+
+[tool.poe.tasks.test]
+cmd = "pytest"
+help = "Run all unit tests"
 
 [tool.black]
 target-version = ["py37"]

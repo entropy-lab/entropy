@@ -1,0 +1,130 @@
+name: Main
+
+on:
+  pull_request_target:
+    branches: [ main ]
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release Version'
+        required: false
+        default: ''
+
+env:
+  # make sure the poetry creates the venv inside the workspace under .venv
+  POETRY_VIRTUALENVS_IN_PROJECT: true
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.project-version.outputs.version }}
+    env:
+      JUNIT_REPORT_PATH: pytest-junit-report
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+
+      - name: Setup pip Cache
+        id: cache-pip
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: pip
+
+      - name: Bootstrap poetry
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade virtualenv
+          pip install poetry
+          [ -d pytest-cov-report ] || mkdir -p pytest-cov-report
+          [ -d ${JUNIT_REPORT_PATH} ] || mkdir -p ${JUNIT_REPORT_PATH}
+          
+      - name: Setup venv Cache
+        id: cache-python
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key:  poetry-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            poetry-
+
+      - name: Set up the project
+        run: poetry install
+        
+      - name: Check formatting
+        run: poetry run poe check-format
+
+      - name: Check linting
+        run: poetry run poe lint
+
+      - name: Test
+        run: poetry run poe test --junitxml=${JUNIT_REPORT_PATH}/report.xml --cov=pytest-cov-report --cov-report=xml
+
+      - name: Build
+        run: poetry build
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: |
+            dist/*.tar.gz
+            dist/*.whl
+          retention-days: 3
+      
+      - name: Get version from project
+        id: project-version
+        run: echo ::set-output name=version::$(poetry version -s)
+
+      - name: Collect PyTest report
+        id: collect-pytest-reports
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: pytest-report
+          path: ${{ env.JUNIT_REPORT_PATH }}
+
+      - name: Collect PyTest coverage report
+        id: collect-pytest-cov-reports
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: pytest-cov-report
+          path: pytest-cov-report
+
+      - name: Display JUnit results
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        with:
+          files: ${{env.JUNIT_REPORT_PATH}}/*.xml
+
+
+  Release:
+    needs: [Build]
+    environment: PyPI Deployment
+    runs-on: ubuntu-latest
+    if: github.event.inputs.version != '' && github.event.inputs.version == needs.Build.outputs.version
+    steps:
+
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+
+      - name: Extract version changelog
+        id: extracted-changelog
+        uses: talshani/keep-a-changelog-extract@v0.0.1
+        with:
+          version: ${{ github.event.inputs.version }}
+
+      - name: Create release
+        run: |
+          gh release create v${RELEASE_VERSION} --notes "${RELEASE_NOTES}" \
+            dist/qm-${RELEASE_VERSION}.tar.gz \
+            dist/qm-${RELEASE_VERSION}-py3-none-any.whl
+        env:
+          RELEASE_NOTES: ${{ steps.extracted-changelog.outputs.body }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.Build.outputs.version }}        

@@ -2,6 +2,5 @@ image:
   file: .gitpod.Dockerfile
   
 tasks:
-  - init: poetry install
-    command: echo 'start script'
+  - init: export PIP_USER=false && poetry install
 

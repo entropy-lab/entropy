@@ -58,7 +58,7 @@ def _encode_serialized_data(data):
         try:
             serialized_data = pickle.dumps(data)
             data_type = ResultDataType.Pickled
-        except Exception:
+        except RuntimeError:
             serialized_data = data.__repr__().encode(encoding="UTF-8")
             data_type = ResultDataType.String
     return data_type, serialized_data
@@ -120,13 +120,15 @@ class ExperimentTable(Base):
 
 
 class ResultDataType(enum.Enum):
+    """ Numeric values """
+
     Pickled = 1
     String = 2
     Npy = 3
 
 
 class ResultTable(Base):
-    __tablename__ = "Results"
+    __tablename__: str = "Results"
 
     id = Column(Integer, primary_key=True)
     experiment_id = Column(Integer, ForeignKey("Experiments.id", ondelete="CASCADE"))
@@ -136,6 +138,7 @@ class ResultTable(Base):
     time = Column(DATETIME, nullable=False)
     data = Column(BLOB)
     data_type = Column(Enum(ResultDataType))
+    saved_in_hdf5 = Column(Boolean, nullable=False, default=False)
 
     def __repr__(self):
         return f"<Result(id='{self.id}')>"
@@ -176,6 +179,7 @@ class MetadataTable(Base):
     time = Column(DATETIME, nullable=False)
     data = Column(BLOB)
     data_type = Column(Enum(ResultDataType))
+    saved_in_hdf5 = Column(Boolean, nullable=False, default=False)
 
     def __repr__(self):
         return f"<Metadata(id='{self.id}')>"

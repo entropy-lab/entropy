@@ -43,6 +43,9 @@ class RawResultData:
     stage: int = -1
     story: str = None
 
+    def __repr__(self):
+        return f"<RawResultData(stage='{self.stage}', label='{self.label}')>"
+
 
 @dataclass
 class Metadata:

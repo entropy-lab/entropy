@@ -1,4 +1,4 @@
-import os
+import logging
 from datetime import datetime
 from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
 from typing import Set
@@ -6,12 +6,13 @@ from typing import Set
 import jsonpickle
 import pandas as pd
 from pandas import DataFrame
-from sqlalchemy import create_engine, desc
+from sqlalchemy import desc
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.sql import Selectable
 from sqlalchemy.util.compat import contextmanager
 
+from config import settings
 from entropylab.api.data_reader import (
     DataReader,
     ExperimentRecord,
@@ -36,12 +37,13 @@ from entropylab.instruments.lab_topology import (
     DriverType,
     ResourceRecord,
 )
+from entropylab.results_backend.sqlalchemy.storage import HDF5Storage
+from entropylab.results_backend.sqlalchemy.db_initializer import _DbInitializer
 from entropylab.results_backend.sqlalchemy.lab_model import (
     Resources,
     ResourcesSnapshots,
 )
 from entropylab.results_backend.sqlalchemy.model import (
-    Base,
     ExperimentTable,
     PlotTable,
     ResultTable,
@@ -50,7 +52,6 @@ from entropylab.results_backend.sqlalchemy.model import (
     NodeTable,
 )
 
-_SQL_ALCHEMY_MEMORY = ":memory:"
 T = TypeVar(
     "T",
 )
@@ -70,17 +71,9 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         :param echo: if True, the database engine will log all statements
         """
         super(SqlAlchemyDB, self).__init__()
-        if path is None:
-            path = _SQL_ALCHEMY_MEMORY
-        else:
-            if path != _SQL_ALCHEMY_MEMORY:
-                dirname = os.path.dirname(path)
-                if dirname and dirname != "":
-                    os.makedirs(dirname, exist_ok=True)
-        path = "sqlite:///" + path
-        self._engine = create_engine(path, echo=echo)
-        Base.metadata.create_all(self._engine)
+        self._engine = _DbInitializer(path, echo=echo).init_db()
         self._Session = sessionmaker(bind=self._engine)
+        self._storage = HDF5Storage("./entropy.hdf5")
 
     def save_experiment_initial_data(self, initial_data: ExperimentInitialData) -> int:
         transaction = ExperimentTable.from_initial_data(initial_data)
@@ -99,11 +92,47 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 sess.flush()
 
     def save_result(self, experiment_id: int, result: RawResultData):
+        if result.label is None:
+            raise TypeError("result.label cannot be None")
+        if result.label == "":
+            raise ValueError("result.label cannot be empty")
+        saved_in_hdf5 = False
+        if self.__hdf5_storage_enabled():
+            try:
+                self._storage.save_result(experiment_id, result)
+                saved_in_hdf5 = True
+            except ValueError as ex:
+                raise ValueError(
+                    f"Result already exists (experiment_id='{experiment_id}', "
+                    f"stage='{result.stage}', label='{result.label}'"
+                ) from ex
+            except RuntimeError:
+                logging.exception("Error saving result to HDF5")
+                saved_in_hdf5 = False
         transaction = ResultTable.from_model(experiment_id, result)
+        transaction.saved_in_hdf5 = saved_in_hdf5
         return self._execute_transaction(transaction)
 
     def save_metadata(self, experiment_id: int, metadata: Metadata):
+        if metadata.label is None:
+            raise TypeError("metadata.label cannot be None")
+        if metadata.label == "":
+            raise ValueError("metadata.label cannot be empty")
+        saved_in_hdf5 = False
+        if self.__hdf5_storage_enabled():
+            try:
+                self._storage.save_metadata(experiment_id, metadata)
+                saved_in_hdf5 = True
+            except ValueError as ex:
+                raise ValueError(
+                    f"Metadata already exists (experiment_id='{experiment_id}', "
+                    f"stage='{metadata.stage}', label='{metadata.label}'"
+                ) from ex
+            except RuntimeError:
+                logging.exception("Error saving metadata to HDF5.")
+                saved_in_hdf5 = False
         transaction = MetadataTable.from_model(experiment_id, metadata)
+        transaction.saved_in_hdf5 = saved_in_hdf5
         return self._execute_transaction(transaction)
 
     def save_debug(self, experiment_id: int, debug: Debug):
@@ -160,6 +189,20 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         label: Optional[str] = None,
         stage: Optional[int] = None,
     ) -> Iterable[ResultRecord]:
+        if self.__hdf5_storage_enabled():
+            return self._storage.get_result_records(experiment_id, stage, label)
+        else:
+            return self.__get_results_from_sqlalchemy(experiment_id, label, stage)
+
+        pass
+
+    def __get_results_from_sqlalchemy(
+        self,
+        experiment_id: Optional[int] = None,
+        label: Optional[str] = None,
+        stage: Optional[int] = None,
+        saved_in_hdf5: Optional[bool] = None,
+    ) -> Iterable[ResultRecord]:
         with self._session_maker() as sess:
             query = sess.query(ResultTable)
             if experiment_id is not None:
@@ -168,6 +211,8 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 query = query.filter(ResultTable.label == str(label))
             if stage is not None:
                 query = query.filter(ResultTable.stage == int(stage))
+            if self.__hdf5_storage_enabled() and saved_in_hdf5 is not None:
+                query = query.filter(ResultTable.saved_in_hdf5 == bool(saved_in_hdf5))
             return [item.to_record() for item in query.all()]
 
     def get_metadata_records(
@@ -414,3 +459,8 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 return {item.name for item in query}
             else:
                 return set()
+
+    @staticmethod
+    def __hdf5_storage_enabled() -> bool:
+        """ Feature toggle for 'hdf5 storage' feature """
+        return settings.get("toggles.hdf5_storage", True)

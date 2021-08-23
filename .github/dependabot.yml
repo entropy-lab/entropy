@@ -9,3 +9,7 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    commit-message:
+      prefix: "Poetry(prod):"
+      prefix-development: "Poetry(dev):"
+      include: "scope"

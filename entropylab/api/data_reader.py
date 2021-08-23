@@ -45,7 +45,7 @@ class MetadataRecord:
     """
 
     experiment_id: int
-    id: int
+    id: str
     label: str
     stage: int
     data: Any
@@ -73,7 +73,7 @@ class ResultRecord:
     """
 
     experiment_id: int
-    id: int
+    id: str
     label: str
     story: str
     stage: int

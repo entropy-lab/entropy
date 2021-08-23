@@ -48,6 +48,9 @@ Thumbs.db
 *.mov
 *.wmv
 
+# Ignore dynaconf secret files
+.secrets.*
+
 tests_cache/
 docs_cache/
 docs/.ipynb_checkpoints/

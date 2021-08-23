@@ -1,0 +1,4 @@
+# TODO: Do we want to include the settings.toml in the release?
+
+# [toggles]
+# hdf5_storage = true

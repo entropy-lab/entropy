@@ -404,14 +404,15 @@ tests = ["flake8", "parameterized", "pytest", "scipy", "nbsmoke (>=0.2.0)", "pyt
 
 [[package]]
 name = "param"
-version = "1.10.1"
+version = "1.11.1"
 description = "Make your Python code clearer and more reliable by declaring Parameters."
 category = "main"
 optional = false
 python-versions = ">=2.7"
 
 [package.extras]
-all = ["flake8", "nose"]
+all = ["flake8", "graphviz", "myst-parser", "myst-nb (==0.12.2)", "nbconvert (<6.0)", "nbsite (>=0.6.1)", "nose", "pydata-sphinx-theme", "pygraphviz"]
+doc = ["pygraphviz", "nbsite (>=0.6.1)", "pydata-sphinx-theme", "myst-parser", "nbconvert (<6.0)", "graphviz", "myst-nb (==0.12.2)"]
 tests = ["nose", "flake8"]
 
 [[package]]
@@ -1107,8 +1108,8 @@ panel = [
     {file = "panel-0.11.1.tar.gz", hash = "sha256:ce531e5c0c8a8ae74d523762aeb1666650caebbe1867aba16129d29791e921f9"},
 ]
 param = [
-    {file = "param-1.10.1-py2.py3-none-any.whl", hash = "sha256:fdfdb9544e7bdc0a1e5df7ced1c4840aa106625192b8efe0b6e2479f1519dc37"},
-    {file = "param-1.10.1.tar.gz", hash = "sha256:1f0f1133fbadcd2c5138e579b9934e29fd00f803af01d9bf6f9e6b80ecf1999b"},
+    {file = "param-1.11.1-py2.py3-none-any.whl", hash = "sha256:62fd2f679ed4f0dd2c146cf4b399ddc23e50df462e1c3080a3401747be56e195"},
+    {file = "param-1.11.1.tar.gz", hash = "sha256:b9857df01495bd55ddafb214fd1ed017d20699ce42ec2a0fd190d99caa03099f"},
 ]
 pastel = [
     {file = "pastel-0.2.1-py2.py3-none-any.whl", hash = "sha256:4349225fcdf6c2bb34d483e523475de5bb04a5c10ef711263452cb37d7dd4364"},

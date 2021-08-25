@@ -17,13 +17,16 @@ def change_test_dir(request):
 
 @pytest.mark.parametrize("path", [None, ":memory:"])
 def test_ctor_creates_up_to_date_schema_when_in_memory(path: str):
-    # act
-    target = SqlAlchemyDB(path=path, echo=True)
-    # assert
-    cur = target._engine.execute("SELECT sql FROM sqlite_master WHERE name = 'Results'")
-    res = cur.fetchone()
-    cur.close()
-    assert "saved_in_hdf5" in res[0]
+    try:
+        # act
+        target = SqlAlchemyDB(path=path, echo=True)
+        # assert
+        cur = target._engine.execute("SELECT sql FROM sqlite_master WHERE name = 'Results'")
+        res = cur.fetchone()
+        cur.close()
+        assert "saved_in_hdf5" in res[0]
+    finally:
+        _delete_if_exists("./entropy.hdf5")
 
 
 @pytest.mark.parametrize(
@@ -44,6 +47,7 @@ def test_ctor_ensures_latest_migration(
         _copy_db(db_template, db_under_test, request)
     else:
         db_under_test = _get_test_file_name("tests_cache/new.db")
+    hdf5_under_test = Path(db_under_test).with_suffix(".hdf5")
     try:
         if expected_to_raise:
             with pytest.raises(Exception):
@@ -54,6 +58,7 @@ def test_ctor_ensures_latest_migration(
     finally:
         # clean up
         _delete_if_exists(db_under_test)
+        _delete_if_exists(hdf5_under_test)
 
 
 def _get_test_file_name(filename):

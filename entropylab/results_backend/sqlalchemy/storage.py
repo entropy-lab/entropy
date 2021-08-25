@@ -122,16 +122,17 @@ class HDF5Reader:
         dsets = []
         try:
             with h5py.File(self._path, "r") as file:
-                top_group = file["experiments"]
-                exp_groups = _get_all_or_single(top_group, experiment_id)
-                for exp_group in exp_groups:
-                    stage_groups = _get_all_or_single(exp_group, stage)
-                    for stage_group in stage_groups:
-                        label_groups = _get_all_or_single(stage_group, label)
-                        for label_group in label_groups:
-                            dset_name = entity_type.name.lower()
-                            dset = label_group[dset_name]
-                            dsets.append(convert_from_dset(dset))
+                if "experiments" in file:
+                    top_group = file["experiments"]
+                    exp_groups = _get_all_or_single(top_group, experiment_id)
+                    for exp_group in exp_groups:
+                        stage_groups = _get_all_or_single(exp_group, stage)
+                        for stage_group in stage_groups:
+                            label_groups = _get_all_or_single(stage_group, label)
+                            for label_group in label_groups:
+                                dset_name = entity_type.name.lower()
+                                dset = label_group[dset_name]
+                                dsets.append(convert_from_dset(dset))
             return dsets
         except FileNotFoundError:
             logger.exception("FileNotFoundError in get_experiment_entities()")
@@ -249,12 +250,12 @@ class HDF5Writer:
 
 class HDF5Migrator(HDF5Writer):
     def migrate_result_rows(self, rows: Iterable[ResultTable]) -> None:
-        self._migrate_rows(EntityType.RESULT, rows)
+        self.migrate_rows(EntityType.RESULT, rows)
 
     def migrate_metadata_rows(self, rows: Iterable[Metadata]) -> None:
-        self._migrate_rows(EntityType.METADATA, rows)
+        self.migrate_rows(EntityType.METADATA, rows)
 
-    def _migrate_rows(self, entity_type: EntityType, rows: Iterable[T]) -> None:
+    def migrate_rows(self, entity_type: EntityType, rows: Iterable[T]) -> None:
         if rows is not None and len(list(rows)) > 0:
             with h5py.File(self._path, "a") as file:
                 for row in rows:

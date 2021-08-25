@@ -8,7 +8,7 @@ from entropylab.api.data_writer import Metadata
 from entropylab.results_backend.sqlalchemy.storage import HDF5Storage
 from entropylab.results_backend.sqlalchemy.db_initializer import _DbInitializer
 
-HDF_FILENAME = "./entropy.hdf5"
+HDF_FILENAME = "./tests_cache/entropy.hdf5"
 
 
 def test_upgrade_db_when_initial_db_is_empty(request):

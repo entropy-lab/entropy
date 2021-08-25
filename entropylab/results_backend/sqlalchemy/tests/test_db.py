@@ -6,7 +6,7 @@ from config import settings
 from entropylab import SqlAlchemyDB, RawResultData
 
 
-HDF_FILENAME = "./entropy.hdf5"
+HDF_FILENAME = "./tests_cache/entropy.hdf5"
 
 
 def test_save_result_raises_when_same_result_saved_twice(request):

@@ -15,7 +15,7 @@ from entropylab.results_backend.sqlalchemy.storage import (
 from entropylab.results_backend.sqlalchemy.model import ResultDataType
 
 
-HDF_FILENAME = "./entropy.hdf5"
+HDF_FILENAME = "./tests_cache/entropy.hdf5"
 
 
 class Picklable(object):

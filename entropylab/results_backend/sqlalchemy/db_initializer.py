@@ -41,7 +41,8 @@ class _DbInitializer:
                 raise RuntimeError(
                     f"The database at {path} is not up-to-date. Update the database "
                     f"using the function entropylab.results_backend.sqlalchemy"
-                    ".update_db()."
+                    ".upgrade_db(). * Be sure to back up your database to a safe place "
+                    "before upgrading it *."
                 )
         return self._engine, self._storage
 

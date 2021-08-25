@@ -25,7 +25,7 @@ class _DbInitializer:
         if path == _SQL_ALCHEMY_MEMORY:
             self._storage = HDF5Storage()
         else:
-            self.__create_parent_dirs(path)
+            self._create_parent_dirs(path)
             hdf5_path = Path(path).with_suffix(".hdf5")
             self._storage = HDF5Storage(hdf5_path)
         dsn = "sqlite:///" + path
@@ -52,7 +52,7 @@ class _DbInitializer:
         self._migrate_metadata_to_hdf5()
 
     @staticmethod
-    def __create_parent_dirs(path) -> None:
+    def _create_parent_dirs(path) -> None:
         dirname = os.path.dirname(path)
         if dirname and dirname != "" and dirname != ".":
             os.makedirs(dirname, exist_ok=True)

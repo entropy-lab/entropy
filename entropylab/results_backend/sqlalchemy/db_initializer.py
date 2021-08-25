@@ -26,7 +26,7 @@ class _DbInitializer:
             self.__create_parent_dirs(path)
             hdf5_path = Path(path).with_suffix(".hdf5")
         else:
-            hdf5_path = "./entropy.hdf5" # TODO: Use in-memory?
+            hdf5_path = "./entropy.hdf5"  # TODO: Use in-memory?
         dsn = "sqlite:///" + path
         self._engine = create_engine(dsn, echo=echo)
         self._storage = HDF5Storage(hdf5_path)

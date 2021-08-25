@@ -241,7 +241,7 @@ class HDF5Writer:
         try:
             pickled = pickle.dumps(data)
             data_type = ResultDataType.Pickled
-        except RuntimeError as ex:
+        except Exception as ex:
             logger.debug("Could not pickle data, defaulting to __repr__()", ex)
             pickled = data.__repr__().encode(encoding="utf-8")
             data_type = ResultDataType.String

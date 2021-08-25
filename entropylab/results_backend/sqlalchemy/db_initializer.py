@@ -22,14 +22,14 @@ class _DbInitializer:
     def __init__(self, path: str, echo=False):
         if path is None:
             path = _SQL_ALCHEMY_MEMORY
-        if path != _SQL_ALCHEMY_MEMORY:
+        if path == _SQL_ALCHEMY_MEMORY:
+            self._storage = HDF5Storage()
+        else:
             self.__create_parent_dirs(path)
             hdf5_path = Path(path).with_suffix(".hdf5")
-        else:
-            hdf5_path = "./entropy.hdf5"  # TODO: Use in-memory?
+            self._storage = HDF5Storage(hdf5_path)
         dsn = "sqlite:///" + path
         self._engine = create_engine(dsn, echo=echo)
-        self._storage = HDF5Storage(hdf5_path)
 
     def init_db(self) -> sqlalchemy.engine.Engine:
         if self._db_is_empty():
@@ -37,9 +37,11 @@ class _DbInitializer:
             self._alembic_stamp_head()
         else:
             if not self._db_is_up_to_date():
-                raise Exception(
-                    "Database is not up-to-date. Upgrade the database using "
-                    "DbInitializer's update_db() method."
+                path = str(self._engine.url)
+                raise RuntimeError(
+                    f"The database at {path} is not up-to-date. Update the database "
+                    f"using the function entropylab.results_backend.sqlalchemy"
+                    ".update_db()."
                 )
         return self._engine, self._storage
 

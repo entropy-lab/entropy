@@ -52,7 +52,7 @@ def test_ctor_ensures_latest_migration(
     hdf5_under_test = Path(db_under_test).with_suffix(".hdf5")
     try:
         if expected_to_raise:
-            with pytest.raises(Exception):
+            with pytest.raises(RuntimeError):
                 # act & assert
                 SqlAlchemyDB(path=db_under_test, echo=True)
         else:

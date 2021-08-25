@@ -32,6 +32,10 @@ class UnPicklable(object):
         return isinstance(obj, Picklable) and obj.foo == self.foo
 
 
+def test_ctor_in_memory():
+    target = HDF5Storage()
+
+
 @pytest.mark.parametrize(
     "data",
     [

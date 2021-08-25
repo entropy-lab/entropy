@@ -16,7 +16,6 @@ from entropylab.results_backend.sqlalchemy.model import (
     Base,
 )
 
-
 T = TypeVar("T", bound=Base)
 R = TypeVar("R", ResultRecord, MetadataRecord)
 
@@ -50,7 +49,7 @@ def _data_from(dset: h5py.Dataset) -> Any:
     elif dset.attrs.get("data_type") == ResultDataType.Pickled.value:
         return pickle.loads(data)
     elif dset.attrs.get("data_type") == ResultDataType.String.value:
-        # unpicklable data is stored as HDF5 Opaque so turn to bytes then to string:
+        # un-picklable data is stored as HDF5 Opaque so turn to bytes then to string:
         return data.tobytes().decode(encoding="utf-8")
     else:
         return data
@@ -121,7 +120,7 @@ class HDF5Reader:
     ) -> Iterable[T]:
         dsets = []
         try:
-            with h5py.File(self._path, "r") as file:
+            with self._open_hdf5("r") as file:
                 if "experiments" in file:
                     top_group = file["experiments"]
                     exp_groups = _get_all_or_single(top_group, experiment_id)
@@ -159,7 +158,6 @@ class HDF5Reader:
             EntityType.METADATA, _build_metadata_record, experiment_id, stage, label
         )
         return entities
-        pass
 
     def get_last_result_of_experiment(
         self, experiment_id: int
@@ -174,7 +172,7 @@ class HDF5Reader:
 
 class HDF5Writer:
     def save_result(self, experiment_id: int, result: RawResultData) -> str:
-        with h5py.File(self._path, "a") as file:
+        with self._open_hdf5("a") as file:
             return self._save_entity_to_file(
                 file,
                 EntityType.RESULT,
@@ -187,7 +185,7 @@ class HDF5Writer:
             )
 
     def save_metadata(self, experiment_id: int, metadata: Metadata):
-        with h5py.File(self._path, "a") as file:
+        with self._open_hdf5("a") as file:
             return self._save_entity_to_file(
                 file,
                 EntityType.METADATA,
@@ -257,7 +255,7 @@ class HDF5Migrator(HDF5Writer):
 
     def migrate_rows(self, entity_type: EntityType, rows: Iterable[T]) -> None:
         if rows is not None and len(list(rows)) > 0:
-            with h5py.File(self._path, "a") as file:
+            with self._open_hdf5("a") as file:
                 for row in rows:
                     if not row.saved_in_hdf5:
                         record = row.to_record()
@@ -300,16 +298,29 @@ class HDF5Migrator(HDF5Writer):
 
 class HDF5Storage(HDF5Reader, HDF5Migrator, HDF5Writer):
     def __init__(self, path=None):
+        """Initializes a new or existing HDF5 file for storing experiment results
+                 and metadata.
+
+        :param path: filesystem path to the HDF5 file. If no path is given or the
+                 path is empty, an in-memory-only HDF5 file is used.
+        """
         if path is None or path == "":
-            self._path = self._get_temporary_filename()
+            self._path = "./entropy.temp.hdf5"
+            self._open_hdf5 = self._open_in_memory
         else:
             self._path = path
+            self._open_hdf5 = self._open_in_fs
         self._check_file_permissions()
 
     def _check_file_permissions(self):
-        file = h5py.File(self._path, "a")
+        file = self._open_hdf5("a")
         file.close()
 
-    @staticmethod
-    def _get_temporary_filename():
-        return f"./entropy_{datetime.now():%Y-%m-%d-%H-%M-%S}.hdf5"
+    def _open_in_memory(self, mode: str) -> h5py.File:
+        """Note that because backing_store=False, self._path is ignored & no file is
+        saved on disk. See https://docs.h5py.org/en/stable/high/file.html#file-drivers
+        """
+        return h5py.File(self._path, mode, driver="core", backing_store=False)
+
+    def _open_in_fs(self, mode: str) -> h5py.File:
+        return h5py.File(self._path, mode)

@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from pathlib import Path
 from shutil import copyfile
 
 from config import settings
@@ -8,13 +9,12 @@ from entropylab.api.data_writer import Metadata
 from entropylab.results_backend.sqlalchemy.storage import HDF5Storage
 from entropylab.results_backend.sqlalchemy.db_initializer import _DbInitializer
 
-HDF_FILENAME = "./tests_cache/entropy.hdf5"
-
 
 def test_upgrade_db_when_initial_db_is_empty(request):
     # arrange
     db_template = f"./db_templates/initial.db"
     db_under_test = _get_test_file_name(db_template)
+    hdf5_under_test = Path(db_under_test).with_suffix(".hdf5")
     try:
         _copy_db(db_template, db_under_test, request)
 
@@ -30,7 +30,7 @@ def test_upgrade_db_when_initial_db_is_empty(request):
         assert "saved_in_hdf5" in res[0]
     finally:
         # clean up
-        _delete_if_exists(HDF_FILENAME)
+        _delete_if_exists(hdf5_under_test)
         _delete_if_exists(db_under_test)
 
 
@@ -49,13 +49,14 @@ def test_upgrade_db_when_db_is_in_memory():
         assert "saved_in_hdf5" in res[0]
     finally:
         # clean up
-        _delete_if_exists(HDF_FILENAME)
+        _delete_if_exists("./entropy.hdf5")
 
 
 def test__migrate_results_to_hdf5(request):
     # arrange
     settings.toggles = {"hdf5_storage": False}
     path = f"./tests_cache/{request.node.name}.db"
+    hdf5_path = Path(path).with_suffix(".hdf5")
     try:
         db = SqlAlchemyDB(path, echo=True)
         db.save_result(1, RawResultData(stage=1, label="foo", data="bar"))
@@ -67,7 +68,7 @@ def test__migrate_results_to_hdf5(request):
         # act
         target._migrate_results_to_hdf5()
         # assert
-        results_db = HDF5Storage(HDF_FILENAME)
+        results_db = HDF5Storage(hdf5_path)
         hdf5_results = results_db.get_result_records()
         assert len(list(hdf5_results)) == 5
         cur = target._engine.execute("SELECT * FROM Results WHERE saved_in_hdf5 = 1")
@@ -75,7 +76,7 @@ def test__migrate_results_to_hdf5(request):
         assert len(res) == 5
     finally:
         # clean up
-        _delete_if_exists(HDF_FILENAME)
+        _delete_if_exists(hdf5_path)
         _delete_if_exists(path)
 
 
@@ -83,6 +84,7 @@ def test__migrate_metadata_to_hdf5(request):
     # arrange
     settings.toggles = {"hdf5_storage": False}
     path = f"./tests_cache/{request.node.name}.db"
+    hdf5_path = Path(path).with_suffix(".hdf5")
     try:
         db = SqlAlchemyDB(path, echo=True)
         db.save_metadata(1, Metadata(stage=1, label="foo", data="bar"))
@@ -94,8 +96,8 @@ def test__migrate_metadata_to_hdf5(request):
         # act
         target._migrate_metadata_to_hdf5()
         # assert
-        results_db = HDF5Storage(HDF_FILENAME)
-        hdf5_metadata = results_db.get_metadata_records()
+        storage = HDF5Storage(hdf5_path)
+        hdf5_metadata = storage.get_metadata_records()
         assert len(list(hdf5_metadata)) == 5
         cur = target._engine.execute(
             "SELECT * FROM ExperimentMetadata WHERE saved_in_hdf5 = 1"
@@ -104,7 +106,7 @@ def test__migrate_metadata_to_hdf5(request):
         assert len(res) == 5
     finally:
         # clean up
-        _delete_if_exists(HDF_FILENAME)
+        _delete_if_exists(hdf5_path)
         _delete_if_exists(path)
 
 

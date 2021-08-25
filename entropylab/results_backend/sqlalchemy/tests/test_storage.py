@@ -15,9 +15,6 @@ from entropylab.results_backend.sqlalchemy.storage import (
 from entropylab.results_backend.sqlalchemy.model import ResultDataType
 
 
-HDF_FILENAME = "./tests_cache/entropy.hdf5"
-
-
 class Picklable(object):
     def __init__(self, foo):
         self.foo = foo
@@ -57,8 +54,9 @@ class UnPicklable(object):
         np.array("2.0±0.1".encode("utf-8"), dtype=h5py.string_dtype("utf-8", 30)),
     ],
 )
-def test_write_and_read_single_result(data: Any):
-    target = HDF5Storage(HDF_FILENAME)
+def test_write_and_read_single_result(data: Any, request):
+    path = f"./tests_cache/{request.node.name}.hdf5"
+    target = HDF5Storage(path)
     try:
         # arrange
         experiment_id = randrange(10000000)
@@ -86,7 +84,7 @@ def test_write_and_read_single_result(data: Any):
 
     finally:
         # clean up
-        os.remove(HDF_FILENAME)
+        os.remove(path)
 
 
 @pytest.mark.parametrize(
@@ -111,8 +109,9 @@ def test_write_and_read_single_result(data: Any):
         np.array("2.0±0.1".encode("utf-8"), dtype=h5py.string_dtype("utf-8", 30)),
     ],
 )
-def test_write_and_read_single_metadata(data: Any):
-    target = HDF5Storage(HDF_FILENAME)
+def test_write_and_read_single_metadata(data: Any, request):
+    path = f"./tests_cache/{request.node.name}.hdf5"
+    target = HDF5Storage(path)
     try:
         # arrange
         experiment_id = randrange(10000000)
@@ -139,11 +138,12 @@ def test_write_and_read_single_metadata(data: Any):
 
     finally:
         # clean up
-        os.remove(HDF_FILENAME)
+        os.remove(path)
 
 
-def test_get_results_two_items():
-    target = HDF5Storage(HDF_FILENAME)
+def test_get_results_two_items(request):
+    path = f"./tests_cache/{request.node.name}.hdf5"
+    target = HDF5Storage(path)
     try:
         # arrange
         experiment_id = randrange(10000000)
@@ -164,11 +164,12 @@ def test_get_results_two_items():
 
     finally:
         # clean up
-        os.remove(HDF_FILENAME)
+        os.remove(path)
 
 
-def test_get_metadata_two_items():
-    target = HDF5Storage(HDF_FILENAME)
+def test_get_metadata_two_items(request):
+    path = f"./tests_cache/{request.node.name}.hdf5"
+    target = HDF5Storage(path)
     try:
         # arrange
         experiment_id = randrange(10000000)
@@ -187,11 +188,12 @@ def test_get_metadata_two_items():
 
     finally:
         # clean up
-        os.remove(HDF_FILENAME)
+        os.remove(path)
 
 
-def test_get_last_result_of_experiment():
-    target = HDF5Storage(HDF_FILENAME)
+def test_get_last_result_of_experiment(request):
+    path = f"./tests_cache/{request.node.name}.hdf5"
+    target = HDF5Storage(path)
     try:
         # arrange
         experiment_id = randrange(10000000)
@@ -213,25 +215,31 @@ def test_get_last_result_of_experiment():
         assert actual.label == "bar"
     finally:
         # clean up
-        os.remove(HDF_FILENAME)
+        os.remove(path)
 
 
-def test_get_last_result_of_experiment_when_no_file():
-    target = HDF5Storage(HDF_FILENAME)
-    # arrange
-    experiment_id = randrange(10000000)
-    result = RawResultData(stage=0, label="foo", data=np.arange(12))
-    target.save_result(42, result)
+def test_get_last_result_of_experiment_when_not_in_file(request):
+    path = f"./tests_cache/{request.node.name}.hdf5"
+    target = HDF5Storage(path)
+    try:
+        # arrange
+        experiment_id = randrange(10000000)
+        result = RawResultData(stage=0, label="foo", data=np.arange(12))
+        target.save_result(42, result)
 
-    # act
-    actual = target.get_last_result_of_experiment(experiment_id)
+        # act
+        actual = target.get_last_result_of_experiment(experiment_id)
 
-    # assert
-    assert actual is None
+        # assert
+        assert actual is None
+    finally:
+        # clean up
+        os.remove(path)
 
 
-def test_get_last_result_of_experiment_when_no_experiment():
-    target = HDF5Storage(HDF_FILENAME)
+def test_get_last_result_of_experiment_when_no_experiment(request):
+    path = f"./tests_cache/{request.node.name}.hdf5"
+    target = HDF5Storage(path)
     try:
         # arrange
         experiment_id = randrange(10000000)
@@ -241,7 +249,7 @@ def test_get_last_result_of_experiment_when_no_experiment():
         assert actual is None
     finally:
         # clean up
-        os.remove(HDF_FILENAME)
+        os.remove(path)
 
 
 def test_get_all_or_single_when_label_is_not_specified(request):

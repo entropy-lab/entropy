@@ -1,5 +1,7 @@
 import logging
+import os
 from datetime import datetime
+from pathlib import Path
 from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
 from typing import Set
 
@@ -71,9 +73,8 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         :param echo: if True, the database engine will log all statements
         """
         super(SqlAlchemyDB, self).__init__()
-        self._engine = _DbInitializer(path, echo=echo).init_db()
+        self._engine, self._storage = _DbInitializer(path, echo=echo).init_db()
         self._Session = sessionmaker(bind=self._engine)
-        self._storage = HDF5Storage("./entropy.hdf5")
 
     def save_experiment_initial_data(self, initial_data: ExperimentInitialData) -> int:
         transaction = ExperimentTable.from_initial_data(initial_data)

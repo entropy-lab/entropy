@@ -17,8 +17,6 @@ _SQL_ALCHEMY_MEMORY = ":memory:"
 
 T = TypeVar("T", bound=Base)
 
-HDF_FILENAME = "./entropy.hdf5"
-
 
 class _DbInitializer:
     def __init__(self, path: str, echo=False):
@@ -26,8 +24,12 @@ class _DbInitializer:
             path = _SQL_ALCHEMY_MEMORY
         if path != _SQL_ALCHEMY_MEMORY:
             self.__create_parent_dirs(path)
+            hdf5_path = Path(path).with_suffix(".hdf5")
+        else:
+            hdf5_path = "./entropy.hdf5" # TODO: Use in-memory?
         dsn = "sqlite:///" + path
         self._engine = create_engine(dsn, echo=echo)
+        self._storage = HDF5Storage(hdf5_path)
 
     def init_db(self) -> sqlalchemy.engine.Engine:
         if self._db_is_empty():
@@ -39,7 +41,7 @@ class _DbInitializer:
                     "Database is not up-to-date. Upgrade the database using "
                     "DbInitializer's update_db() method."
                 )
-        return self._engine
+        return self._engine, self._storage
 
     def upgrade_db(self) -> None:
         self._alembic_upgrade()
@@ -105,7 +107,6 @@ class _DbInitializer:
 
     def _migrate_rows_to_hdf5(self, entity_type: EntityType, table: Type[T]):
         logger.debug(f"Migrating {entity_type.name} rows from sqlite to hdf5")
-        results_db = HDF5Storage(HDF_FILENAME)
         session_maker = sessionmaker(bind=self._engine)
         with session_maker() as session:
             rows = session.query(table).filter(table.saved_in_hdf5.is_(False)).all()
@@ -113,7 +114,7 @@ class _DbInitializer:
                 logger.debug(f"No {entity_type.name} rows need migrating. Done")
             else:
                 logger.debug(f"Found {len(rows)} {entity_type.name} rows to migrate")
-                results_db._migrate_rows(entity_type, rows)
+                self._storage.migrate_rows(entity_type, rows)
                 logger.debug(f"Migrated {len(rows)} {entity_type.name} to hdf5")
                 for row in rows:
                     row.saved_in_hdf5 = True

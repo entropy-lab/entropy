@@ -1,7 +1,5 @@
 import logging
-import os
 from datetime import datetime
-from pathlib import Path
 from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
 from typing import Set
 
@@ -39,7 +37,6 @@ from entropylab.instruments.lab_topology import (
     DriverType,
     ResourceRecord,
 )
-from entropylab.results_backend.sqlalchemy.storage import HDF5Storage
 from entropylab.results_backend.sqlalchemy.db_initializer import _DbInitializer
 from entropylab.results_backend.sqlalchemy.lab_model import (
     Resources,

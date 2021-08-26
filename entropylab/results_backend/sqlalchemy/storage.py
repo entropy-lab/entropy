@@ -109,7 +109,7 @@ class EntityType(Enum):
     METADATA = 2
 
 
-class HDF5Reader:
+class _HDF5Reader:
     def _get_experiment_entities(
         self,
         entity_type: EntityType,
@@ -170,7 +170,7 @@ class HDF5Reader:
             return None
 
 
-class HDF5Writer:
+class _HDF5Writer:
     def save_result(self, experiment_id: int, result: RawResultData) -> str:
         with self._open_hdf5("a") as file:
             return self._save_entity_to_file(
@@ -246,7 +246,7 @@ class HDF5Writer:
         return data_type, pickled
 
 
-class HDF5Migrator(HDF5Writer):
+class _HDF5Migrator(_HDF5Writer):
     def migrate_result_rows(self, rows: Iterable[ResultTable]) -> None:
         self.migrate_rows(EntityType.RESULT, rows)
 
@@ -296,7 +296,7 @@ class HDF5Migrator(HDF5Writer):
         )
 
 
-class HDF5Storage(HDF5Reader, HDF5Migrator, HDF5Writer):
+class HDF5Storage(_HDF5Reader, _HDF5Migrator, _HDF5Writer):
     def __init__(self, path=None):
         """Initializes a new or existing HDF5 file for storing experiment results
                  and metadata.

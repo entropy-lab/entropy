@@ -10,7 +10,7 @@ def init(args: argparse.Namespace):
 
 
 def serve(args: argparse.Namespace):
-    serve_results(args.directory)
+    serve_results(args.directory, port=args.port)
 
 
 def update(args: argparse.Namespace):
@@ -45,6 +45,7 @@ def build_parser():
         help="launch results server in a new browser window",
     )
     serve_parser.add_argument("directory", **directory_arg)
+    serve_parser.add_argument("--port", type=int, default=0)
     serve_parser.set_defaults(func=serve)
 
     return parser

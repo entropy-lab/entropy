@@ -64,9 +64,8 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
 
     def __init__(self, path=None, echo=False, **kwargs):
         """
-            Database implementation using SqlAlchemy package for results (DataWriter
-            and DataReader) and lab resources (PersistentLabDB)
-        :param path: database file path (absolute or relative)
+            Initializes database and HDF5 files for an Entropy project
+        :param path: path to directory containing an Entropy project
         :param echo: if True, the database engine will log all statements
         """
         super(SqlAlchemyDB, self).__init__()

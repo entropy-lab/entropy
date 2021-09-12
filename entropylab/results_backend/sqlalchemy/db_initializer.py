@@ -11,31 +11,71 @@ from sqlalchemy.orm import sessionmaker
 
 from entropylab.logger import logger
 from entropylab.results_backend.sqlalchemy.model import Base, ResultTable, MetadataTable
+from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 from entropylab.results_backend.sqlalchemy.storage import HDF5Storage, EntityType
 
 _SQL_ALCHEMY_MEMORY = ":memory:"
 
 T = TypeVar("T", bound=Base)
 
+_ENTROPY_DIRNAME = ".entropy"
+_DB_FILENAME = "entropy.db"
+_HDF5_FILENAME = "entropy.hdf5"
+
 
 class _DbInitializer:
     def __init__(self, path: str, echo=False):
         """
-        :param path: database file path (absolute or relative)
+        :param path: path to directory containing Entropy project
         :param echo: if True, the database engine will log all statements
         """
-        if path is None:
-            path = _SQL_ALCHEMY_MEMORY
-        if path == ".":
-            path = "./entropy.db"
-        if path == _SQL_ALCHEMY_MEMORY:
+        if path is not None and Path(path).suffix == ".db":
+            logger.error(
+                f"_DbInitializer provided with path to a sqlite database. This is deprecated."
+            )
+            raise RuntimeError(
+                f"Providing the SqlAlchemyDB() constructor with a path to a sqlite database is deprecated. "
+                f"You should instead provide the path to a directory containing an Entropy project. "
+                f"To upgrade your existing sqlite database file to an Entropy project please use the "
+                "entropylab.results_backend.sqlalchemy.upgrade_db() function. * Before upgrading be sure "
+                "to back up your database to a safe place *."
+            )
+        if path is not None and os.path.isfile(path):
+            logger.error(
+                f"_DbInitializer provided with path to a file, not a directory."
+            )
+            raise RuntimeError(
+                f"SqlAlchemyDB() constructor provided with a path to a file but "
+                f"expects the path to an Entropy project folder"
+            )
+        in_memory_mode = path is None or path == _SQL_ALCHEMY_MEMORY
+        if in_memory_mode:
+            logger.debug(f"_DbInitializer is in in-memory mode")
             self._storage = HDF5Storage()
+            self._engine = create_engine("sqlite:///" + _SQL_ALCHEMY_MEMORY, echo=echo)
         else:
-            self._create_parent_dirs(path)
-            hdf5_path = Path(path).with_suffix(".hdf5")
-            self._storage = HDF5Storage(hdf5_path)
-        dsn = "sqlite:///" + path
-        self._engine = create_engine(dsn, echo=echo)
+            logger.debug(f"_DbInitializer is in project directory mode")
+            creating_new = os.path.isdir(path)
+            entropy_dir_path = os.path.join(path, _ENTROPY_DIRNAME)
+            os.makedirs(entropy_dir_path, exist_ok=True)
+            logger.debug(f"Entropy directory is at: {entropy_dir_path}")
+
+            db_file_path = os.path.join(entropy_dir_path, _DB_FILENAME)
+            logger.debug(f"DB file is at: {db_file_path}")
+
+            hdf5_file_path = os.path.join(entropy_dir_path, _HDF5_FILENAME)
+            logger.debug(f"hdf5 file is at: {hdf5_file_path}")
+
+            self._engine = create_engine("sqlite:///" + db_file_path, echo=echo)
+            self._storage = HDF5Storage(hdf5_file_path)
+            if creating_new:
+                self.print_project_created(path)
+
+    @staticmethod
+    def print_project_created(path):
+        print(
+            f"New Entropy project '{project_name(path)}' created at '{project_path(path)}'"
+        )
 
     def init_db(self) -> tuple[sqlalchemy.engine.Engine, HDF5Storage]:
         if self._db_is_empty():
@@ -46,9 +86,8 @@ class _DbInitializer:
                 path = str(self._engine.url)
                 raise RuntimeError(
                     f"The database at {path} is not up-to-date. Update the database "
-                    f"using the function entropylab.results_backend.sqlalchemy"
-                    ".upgrade_db(). * Be sure to back up your database to a safe place "
-                    "before upgrading it *."
+                    f"using the entropylab.results_backend.sqlalchemy.upgrade_db() function. "
+                    f"* Before upgrading be sure to back up your database to a safe place *."
                 )
         return self._engine, self._storage
 

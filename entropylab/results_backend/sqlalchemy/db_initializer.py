@@ -20,8 +20,14 @@ T = TypeVar("T", bound=Base)
 
 class _DbInitializer:
     def __init__(self, path: str, echo=False):
+        """
+        :param path: database file path (absolute or relative)
+        :param echo: if True, the database engine will log all statements
+        """
         if path is None:
             path = _SQL_ALCHEMY_MEMORY
+        if path == ".":
+            path = "./entropy.db"
         if path == _SQL_ALCHEMY_MEMORY:
             self._storage = HDF5Storage()
         else:
@@ -31,7 +37,7 @@ class _DbInitializer:
         dsn = "sqlite:///" + path
         self._engine = create_engine(dsn, echo=echo)
 
-    def init_db(self) -> sqlalchemy.engine.Engine:
+    def init_db(self) -> tuple[sqlalchemy.engine.Engine, HDF5Storage]:
         if self._db_is_empty():
             Base.metadata.create_all(self._engine)
             self._alembic_stamp_head()

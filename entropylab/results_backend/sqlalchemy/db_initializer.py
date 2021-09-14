@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import TypeVar, Type
+from typing import TypeVar, Type, Tuple
 
 from alembic import script, command
 from alembic.config import Config
@@ -31,30 +31,31 @@ class _DbInitializer:
         """
         if path is not None and Path(path).suffix == ".db":
             logger.error(
-                f"_DbInitializer provided with path to a sqlite database. This is deprecated."
+                "_DbInitializer provided with path to a sqlite database. This is deprecated."
             )
             raise RuntimeError(
-                f"Providing the SqlAlchemyDB() constructor with a path to a sqlite database is deprecated. "
-                f"You should instead provide the path to a directory containing an Entropy project. "
-                f"To upgrade your existing sqlite database file to an Entropy project please use the "
-                "entropylab.results_backend.sqlalchemy.upgrade_db() function. * Before upgrading be sure "
-                "to back up your database to a safe place *."
+                "Providing the SqlAlchemyDB() constructor with a path to a sqlite "
+                "database is deprecated. You should instead provide the path to a "
+                "directory containing an Entropy project.\n"
+                "To upgrade your existing sqlite database file to an Entropy project "
+                "please use the entropylab.results_backend.sqlalchemy.upgrade_db() "
+                "function.\n"
+                "* Before upgrading be sure to back up your database to a safe place *."
             )
         if path is not None and os.path.isfile(path):
             logger.error(
-                f"_DbInitializer provided with path to a file, not a directory."
+                "_DbInitializer provided with path to a file, not a directory."
             )
             raise RuntimeError(
-                f"SqlAlchemyDB() constructor provided with a path to a file but "
-                f"expects the path to an Entropy project folder"
+                "SqlAlchemyDB() constructor provided with a path to a file but "
+                "expects the path to an Entropy project folder"
             )
-        in_memory_mode = path is None or path == _SQL_ALCHEMY_MEMORY
-        if in_memory_mode:
-            logger.debug(f"_DbInitializer is in in-memory mode")
+        if path is None or path == _SQL_ALCHEMY_MEMORY:
+            logger.debug("_DbInitializer is in in-memory mode")
             self._storage = HDF5Storage()
             self._engine = create_engine("sqlite:///" + _SQL_ALCHEMY_MEMORY, echo=echo)
         else:
-            logger.debug(f"_DbInitializer is in project directory mode")
+            logger.debug("_DbInitializer is in project directory mode")
             creating_new = os.path.isdir(path)
             entropy_dir_path = os.path.join(path, _ENTROPY_DIRNAME)
             os.makedirs(entropy_dir_path, exist_ok=True)
@@ -77,7 +78,7 @@ class _DbInitializer:
             f"New Entropy project '{project_name(path)}' created at '{project_path(path)}'"
         )
 
-    def init_db(self) -> tuple[sqlalchemy.engine.Engine, HDF5Storage]:
+    def init_db(self) -> Tuple[sqlalchemy.engine.Engine, HDF5Storage]:
         if self._db_is_empty():
             Base.metadata.create_all(self._engine)
             self._alembic_stamp_head()

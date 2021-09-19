@@ -3,7 +3,6 @@ from datetime import datetime
 from pathlib import Path
 from shutil import copyfile
 
-from config import settings
 from entropylab import SqlAlchemyDB, RawResultData
 from entropylab.api.data_writer import Metadata
 from entropylab.results_backend.sqlalchemy.storage import HDF5Storage
@@ -14,7 +13,7 @@ def test_upgrade_db_when_initial_db_is_empty(request):
     # arrange
     db_template = f"./db_templates/initial.db"
     db_under_test = _get_test_file_name(db_template)
-    hdf5_under_test = Path(db_under_test).with_suffix(".hdf5")
+    hdf5_under_test = str(Path(db_under_test).with_suffix(".hdf5"))
     try:
         _copy_db(db_template, db_under_test, request)
 
@@ -54,11 +53,11 @@ def test_upgrade_db_when_db_is_in_memory():
 
 def test__migrate_results_to_hdf5(request):
     # arrange
-    settings.toggles = {"hdf5_storage": False}
     path = f"./tests_cache/{request.node.name}.db"
-    hdf5_path = Path(path).with_suffix(".hdf5")
+    hdf5_path = str(Path(path).with_suffix(".hdf5"))
     try:
-        db = SqlAlchemyDB(path, echo=True)
+        # save to DB but not to storage:
+        db = SqlAlchemyDB(path, echo=True, enable_hdf5_storage=False)
         db.save_result(1, RawResultData(stage=1, label="foo", data="bar"))
         db.save_result(1, RawResultData(stage=1, label="baz", data="buz"))
         db.save_result(1, RawResultData(stage=2, label="biz", data="bez"))
@@ -82,11 +81,11 @@ def test__migrate_results_to_hdf5(request):
 
 def test__migrate_metadata_to_hdf5(request):
     # arrange
-    settings.toggles = {"hdf5_storage": False}
     path = f"./tests_cache/{request.node.name}.db"
-    hdf5_path = Path(path).with_suffix(".hdf5")
+    hdf5_path = str(Path(path).with_suffix(".hdf5"))
     try:
-        db = SqlAlchemyDB(path, echo=True)
+        # save to DB but not to storage:
+        db = SqlAlchemyDB(path, echo=True, enable_hdf5_storage=False)
         db.save_metadata(1, Metadata(stage=1, label="foo", data="bar"))
         db.save_metadata(1, Metadata(stage=1, label="baz", data="buz"))
         db.save_metadata(1, Metadata(stage=2, label="biz", data="bez"))

@@ -62,6 +62,7 @@ def test_async_graph_single_data_reader():
     finally:
         print("deleting db")
         os.remove("test_running_db_graph.db")
+        os.remove("test_running_db_graph.hdf5")
         pass
 
 
@@ -90,4 +91,5 @@ def test_async_graph_multi_data_reader():
     finally:
         print("deleting db")
         os.remove("test_running_db_graph1.db")
+        os.remove("test_running_db_graph1.hdf5")
         pass

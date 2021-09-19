@@ -30,10 +30,10 @@ def an_experiment(context: EntropyContext):
     a1 = do_something()
     scope.get_trig()
     for i in range(30):
-        context.add_result("a_result", a1 + i + datetime.now().microsecond)
+        context.add_result("a_result" + str(i), a1 + i + datetime.now().microsecond)
 
         b1 = do_something2()
-        context.add_result("b_result", b1 + i + datetime.now().microsecond)
+        context.add_result("b_result" + str(i), b1 + i + datetime.now().microsecond)
 
     micro = datetime.now().microsecond
     context.add_result(
@@ -59,10 +59,10 @@ def an_experiment_with_plot(experiment: EntropyContext):
     a1 = do_something()
     scope.get_trig()
     for i in range(30):
-        experiment.add_result("a_result", a1 + i + datetime.now().microsecond)
+        experiment.add_result("a_result" + str(i), a1 + i + datetime.now().microsecond)
 
         b1 = do_something2()
-        experiment.add_result("b_result", b1 + i + datetime.now().microsecond)
+        experiment.add_result("b_result" + str(i), b1 + i + datetime.now().microsecond)
 
     micro = datetime.now().microsecond
     experiment.add_plot(
@@ -116,10 +116,11 @@ def test_running_no_db():
 
 @pytest.mark.repeat(3)
 def test_running_db():
+    db_name = f"tests_cache/test_running_db_{datetime.now():%Y-%m-%d-%H-%M-%S}.db"
     try:
         resources = ExperimentResources()
         resources.add_temp_resource("scope_1", MockScope("1.1.1.1", ""))
-        db = SqlAlchemyDB("my_db.db")
+        db = SqlAlchemyDB(db_name)
 
         definition = Script(resources, an_experiment, "with_db")
 
@@ -128,17 +129,22 @@ def test_running_db():
         print(reader.get_experiment_info())
         print(reader.get_experiment_info().script.print_all())
 
-        db = SqlAlchemyDB("my_db.db")
+        db = SqlAlchemyDB(db_name)
         definition = Script(resources, an_experiment_with_plot, "with_db")
         definition.run(db)
     finally:
-        os.remove("my_db.db")
+        os.remove(db_name)
+        os.remove(db_name.replace(".db", ".hdf5"))
 
 
 def test_running_db_and_topology():
+    db_name = (
+        f"tests_cache/test_running_db_and_topology_"
+        f"{datetime.now():%Y-%m-%d-%H-%M-%S}.db"
+    )
     try:
         # setup lab environment one time
-        db = SqlAlchemyDB("db_and_topo.db")
+        db = SqlAlchemyDB(db_name)
         lab = LabResources(db)
         lab.register_resource(
             "scope_1",
@@ -202,14 +208,18 @@ def test_running_db_and_topology():
         print(reader.get_experiment_info().script.print_all())
 
     finally:
-        os.remove("db_and_topo.db")
-        pass
+        os.remove(db_name)
+        os.remove(db_name.replace(".db", ".hdf5"))
 
 
 def test_running_db_and_topology_with_kwargs():
+    db_name = (
+        f"tests_cache/test_running_db_and_topology_with_kwargs_"
+        f"{datetime.now():%Y-%m-%d-%H-%M-%S}.db"
+    )
     try:
         # setup lab environment one time
-        db = SqlAlchemyDB("db_and_topo.db")
+        db = SqlAlchemyDB(db_name)
         lab = LabResources(db)
         lab.register_resource(
             "scope_1",
@@ -244,8 +254,8 @@ def test_running_db_and_topology_with_kwargs():
         print(reader.get_experiment_info())
         print(reader.get_experiment_info().script.print_all())
     finally:
-        os.remove("db_and_topo.db")
-        pass
+        os.remove(db_name)
+        os.remove(db_name.replace(".db", ".hdf5"))
 
 
 def test_executor_decorator():

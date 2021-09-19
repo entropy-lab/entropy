@@ -62,7 +62,7 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
      and DataReader) and lab resources (PersistentLabDB)
     """
 
-    def __init__(self, path=None, echo=False):
+    def __init__(self, path=None, echo=False, **kwargs):
         """
             Database implementation using SqlAlchemy package for results (DataWriter
             and DataReader) and lab resources (PersistentLabDB)
@@ -70,6 +70,7 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         :param echo: if True, the database engine will log all statements
         """
         super(SqlAlchemyDB, self).__init__()
+        self._enable_hdf5_storage = kwargs.get("enable_hdf5_storage")
         self._engine, self._storage = _DbInitializer(path, echo=echo).init_db()
         self._Session = sessionmaker(bind=self._engine)
 
@@ -458,7 +459,12 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
             else:
                 return set()
 
-    @staticmethod
-    def __hdf5_storage_enabled() -> bool:
-        """ Feature toggle for 'hdf5 storage' feature """
-        return settings.get("toggles.hdf5_storage", True)
+    def __hdf5_storage_enabled(self) -> bool:
+        """Feature toggle for 'hdf5 storage' feature
+
+        Class member set in __init__() overrides config setting"""
+        if self._enable_hdf5_storage is None:
+            enabled = settings.get("toggles.hdf5_storage", True)
+        else:
+            enabled = self._enable_hdf5_storage
+        return enabled

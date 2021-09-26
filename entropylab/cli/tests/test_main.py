@@ -1,14 +1,31 @@
 import argparse
+import os
+import shutil
 
 import pytest
 
 from entropylab.cli.main import init, command
 
 
-def test_init():
+def test_init_with_no_args():
+    # arrange
+    args = argparse.Namespace
+    args.directory = ""
+    # act
+    init(args)
+
+
+def test_init_with_current_dir():
+    # arrange
     args = argparse.Namespace
     args.directory = "."
+    # act
     init(args)
+    # assert
+    assert os.path.exists(".entropy/entropy.db")
+    assert os.path.exists(".entropy/entropy.hdf5")
+    # clean up
+    shutil.rmtree(".entropy")
 
 
 # def test_serve():

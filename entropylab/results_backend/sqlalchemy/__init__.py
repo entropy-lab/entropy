@@ -1,7 +1,10 @@
 from . import db
 from .db import SqlAlchemyDB
 
-from entropylab.results_backend.sqlalchemy.db_initializer import _DbInitializer
+from entropylab.results_backend.sqlalchemy.db_initializer import (
+    _DbInitializer,
+    _DbUpgrader,
+)
 
 
 def init_db(path: str):
@@ -15,4 +18,4 @@ def upgrade_db(path: str):
 
     :param path: The path to the SQLite database to be upgraded
     """
-    _DbInitializer(path).upgrade_db()
+    _DbUpgrader(path).upgrade_db()

@@ -69,13 +69,13 @@ def _build_parser():
     update_parser.set_defaults(func=update)
 
     # serve
-    serve_parser = subparsers.add_parser(
-        "serve",
-        help="launch results server in a new browser window",
-    )
-    serve_parser.add_argument("directory", **directory_arg)
-    serve_parser.add_argument("--port", type=int, default=0)
-    serve_parser.set_defaults(func=serve)
+    # serve_parser = subparsers.add_parser(
+    #     "serve",
+    #     help="launch results server in a new browser window",
+    # )
+    # serve_parser.add_argument("directory", **directory_arg)
+    # serve_parser.add_argument("--port", type=int, default=0)
+    # serve_parser.set_defaults(func=serve)
 
     return parser
 

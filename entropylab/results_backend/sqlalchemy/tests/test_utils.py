@@ -19,7 +19,7 @@ def create_test_project(request, db_template=None):
     entropy_dir = os.path.join(project_dir, _ENTROPY_DIRNAME)
     os.makedirs(entropy_dir)
     db_file = os.path.join(entropy_dir, _DB_FILENAME)
-    _copy_db(db_template, db_file, request)
+    copy_db_template(db_template, db_file, request)
     return project_dir
 
 
@@ -28,7 +28,7 @@ def delete_if_exists(directory: str):
         shutil.rmtree(directory)
 
 
-def _copy_db(src, dst, request):
+def copy_db_template(src, dst, request):
     """ Copy the source DB (path relative to test file) to the destination dir """
     if src is not None and src != "":
         shutil.copyfile(os.path.join(request.fspath.dirname, src), dst)

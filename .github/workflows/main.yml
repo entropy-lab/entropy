@@ -116,21 +116,36 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
 
+      - name: Version release logic
+        id: version-logic
+        env:
+          RELEASE_VERSION: ${{ needs.Build.outputs.version }}
+        run: |
+          if [[ "$RELEASE_VERSION" == *"-"* ]]
+          then
+            echo '::set-output name=GITHUB_EXTRA_FLAG::-p'
+            echo '::set-output name=CHANGLOG_VERSION::Unreleased'
+          else
+            echo '::set-output name=GITHUB_EXTRA_FLAG::'
+            echo "::set-output name=CHANGLOG_VERSION::${RELEASE_VERSION}"
+          fi
+
       - name: Extract version changelog
         id: extracted-changelog
         uses: talshani/keep-a-changelog-extract@v0.0.1
         with:
-          version: ${{ github.event.inputs.version }}
+          version: ${{ steps.version-logic.outputs.CHANGLOG_VERSION }}
 
-      - name: Create release
+      - name: Create GitHub release
         run: |
-          gh release create v${RELEASE_VERSION} --notes "${RELEASE_NOTES}" \
+          gh release create v${RELEASE_VERSION} ${EXTRA_FLAG} --notes "${RELEASE_NOTES}" \
             dist/*.tar.gz \
             dist/*.whl
         env:
           RELEASE_NOTES: ${{ steps.extracted-changelog.outputs.body }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ needs.Build.outputs.version }}
+          EXTRA_FLAG: ${{ steps.version-logic.outputs.GITHUB_EXTRA_FLAG }}
 
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@v1.4.2

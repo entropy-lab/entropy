@@ -125,9 +125,14 @@ jobs:
       - name: Create release
         run: |
           gh release create v${RELEASE_VERSION} --notes "${RELEASE_NOTES}" \
-            dist/qm-${RELEASE_VERSION}.tar.gz \
-            dist/qm-${RELEASE_VERSION}-py3-none-any.whl
+            dist/*.tar.gz \
+            dist/*.whl
         env:
           RELEASE_NOTES: ${{ steps.extracted-changelog.outputs.body }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_VERSION: ${{ needs.Build.outputs.version }}        
+          RELEASE_VERSION: ${{ needs.Build.outputs.version }}
+
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}

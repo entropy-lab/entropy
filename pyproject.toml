@@ -13,6 +13,8 @@ packages = [
     { include = "entropylab" }
 ]
 include = [
+    "CHANGELOG.md",
+    "LICENSE",
 ]
 exclude = [
     "**/tests/**",

@@ -5,10 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-### Added
-* New HDF5 support
 
-## [0.1.2]
+## [0.2.0] - 2021-09-30
+### Added
+* New HDF5 support for data persistence
+
+## [0.1.2] - 2021-06-07
 ### Added
 * Pass "save results" as parameter for node, enabling to toggle data saving 
 
@@ -30,7 +32,8 @@ Entropy persistence backend.
 * QPU-DB - This is an extension to entropy which is built to save and manage the pieced of information describing 
 a Quantum Processing Unit. If multiple nodes are set up to calibrate the QPU, measuring decoherence times and resonant frequencies for example, then that data can be saved to a centralized store and subsequently used in the target application. Warning: this module will be replaced in future releases but a migration path will be provided. 
 
-[Unreleased]: https://github.com/entropy-lab/entropy/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/entropy-lab/entropy/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/entropy-lab/entropy/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/entropy-lab/entropy/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/entropy-lab/entropy/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/entropy-lab/entropy/releases/tag/v0.1.0

@@ -65,10 +65,10 @@ class _DbInitializer:
         else:
             if not self._alembic_util.db_is_up_to_date():
                 path = str(self._engine.url)
-                raise RuntimeError(
+                raise EntropyError(
                     f"The database at {path} is not up-to-date. Update the database "
-                    f"using the entropylab.results_backend.sqlalchemy.upgrade_db() function. "
-                    f"* Before upgrading be sure to back up your database to a safe place *."
+                    "using the Entropy CLI command `entropy upgrade`. "
+                    "* Before upgrading be sure to back up your database to a safe place *."
                 )
         return self._engine, self._storage
 
@@ -86,13 +86,12 @@ class _DbInitializer:
             logger.error(
                 "_DbInitializer provided with path to a sqlite database. This is deprecated."
             )
-            raise RuntimeError(
+            raise EntropyError(
                 "Providing the SqlAlchemyDB() constructor with a path to a sqlite "
                 "database is deprecated. You should instead provide the path to a "
                 "directory containing an Entropy project.\n"
                 "To upgrade your existing sqlite database file to an Entropy project "
-                "please use the entropylab.results_backend.sqlalchemy.upgrade_db() "
-                "function.\n"
+                "please use the Entropy CLI command: `entropy upgrade`.\n"
                 "* Before upgrading be sure to back up your database to a safe place *."
             )
         if path is not None and os.path.isfile(path):
@@ -101,7 +100,7 @@ class _DbInitializer:
             )
             raise RuntimeError(
                 "SqlAlchemyDB() constructor provided with a path to a file but "
-                "expects the path to an Entropy project folder"
+                "expects the path to an Entropy project directory"
             )
 
     def _db_is_empty(self) -> bool:

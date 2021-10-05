@@ -3,7 +3,6 @@ import functools
 import sys
 
 from entropylab.logger import logger
-from entropylab.results import serve_results
 from entropylab.results_backend.sqlalchemy import init_db, upgrade_db
 
 
@@ -41,13 +40,10 @@ def update(args: argparse.Namespace):
     upgrade_db(args.directory)
 
 
-@command
-def serve(args: argparse.Namespace):
-    serve_results(args.directory, port=args.port)
-
-
 def _build_parser():
     parser = argparse.ArgumentParser()
+    # in case no arguments were supplied:
+    parser.set_defaults(func=lambda args: parser.print_help())
     subparsers = parser.add_subparsers()
 
     directory_arg = {
@@ -67,15 +63,6 @@ def _build_parser():
     )
     update_parser.add_argument("directory", **directory_arg)
     update_parser.set_defaults(func=update)
-
-    # serve
-    # serve_parser = subparsers.add_parser(
-    #     "serve",
-    #     help="launch results server in a new browser window",
-    # )
-    # serve_parser.add_argument("directory", **directory_arg)
-    # serve_parser.add_argument("--port", type=int, default=0)
-    # serve_parser.set_defaults(func=serve)
 
     return parser
 

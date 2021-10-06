@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.sql import Selectable
 from sqlalchemy.util.compat import contextmanager
 
-from config import settings
+from entropylab.config import settings
 from entropylab.api.data_reader import (
     DataReader,
     ExperimentRecord,

@@ -3,7 +3,7 @@ import os
 import pytest
 from sqlalchemy import create_engine
 
-from config import settings
+from entropylab.config import settings
 from entropylab import SqlAlchemyDB, RawResultData
 from entropylab.api.data_writer import Metadata
 from entropylab.api.errors import EntropyError

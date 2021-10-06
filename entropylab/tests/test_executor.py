@@ -1,4 +1,5 @@
 import os
+import shutil
 from datetime import datetime
 
 import pytest
@@ -8,6 +9,9 @@ from entropylab.api.execution import EntropyContext
 from entropylab.api.plot import CirclePlotGenerator, LinePlotGenerator
 from entropylab.instruments.lab_topology import LabResources, ExperimentResources
 from entropylab.results_backend.sqlalchemy.db import SqlAlchemyDB
+from entropylab.results_backend.sqlalchemy.tests.test_utils import (
+    build_project_dir_path_for_test,
+)
 from entropylab.script_experiment import Script, script_experiment
 from entropylab.tests.mock_instruments import MockScope
 
@@ -115,12 +119,12 @@ def test_running_no_db():
 
 
 @pytest.mark.repeat(3)
-def test_running_db():
-    db_name = f"tests_cache/test_running_db_{datetime.now():%Y-%m-%d-%H-%M-%S}.db"
+def test_running_db(request):
+    project_dir = build_project_dir_path_for_test(request)
     try:
         resources = ExperimentResources()
         resources.add_temp_resource("scope_1", MockScope("1.1.1.1", ""))
-        db = SqlAlchemyDB(db_name)
+        db = SqlAlchemyDB(project_dir)
 
         definition = Script(resources, an_experiment, "with_db")
 
@@ -129,22 +133,18 @@ def test_running_db():
         print(reader.get_experiment_info())
         print(reader.get_experiment_info().script.print_all())
 
-        db = SqlAlchemyDB(db_name)
+        db = SqlAlchemyDB(project_dir)
         definition = Script(resources, an_experiment_with_plot, "with_db")
         definition.run(db)
     finally:
-        os.remove(db_name)
-        os.remove(db_name.replace(".db", ".hdf5"))
+        shutil.rmtree(project_dir)
 
 
-def test_running_db_and_topology():
-    db_name = (
-        f"tests_cache/test_running_db_and_topology_"
-        f"{datetime.now():%Y-%m-%d-%H-%M-%S}.db"
-    )
+def test_running_db_and_topology(request):
+    project_dir = build_project_dir_path_for_test(request)
     try:
         # setup lab environment one time
-        db = SqlAlchemyDB(db_name)
+        db = SqlAlchemyDB(project_dir)
         lab = LabResources(db)
         lab.register_resource(
             "scope_1",
@@ -208,18 +208,14 @@ def test_running_db_and_topology():
         print(reader.get_experiment_info().script.print_all())
 
     finally:
-        os.remove(db_name)
-        os.remove(db_name.replace(".db", ".hdf5"))
+        shutil.rmtree(project_dir)
 
 
-def test_running_db_and_topology_with_kwargs():
-    db_name = (
-        f"tests_cache/test_running_db_and_topology_with_kwargs_"
-        f"{datetime.now():%Y-%m-%d-%H-%M-%S}.db"
-    )
+def test_running_db_and_topology_with_kwargs(request):
+    project_dir = build_project_dir_path_for_test(request)
     try:
         # setup lab environment one time
-        db = SqlAlchemyDB(db_name)
+        db = SqlAlchemyDB(project_dir)
         lab = LabResources(db)
         lab.register_resource(
             "scope_1",
@@ -254,8 +250,7 @@ def test_running_db_and_topology_with_kwargs():
         print(reader.get_experiment_info())
         print(reader.get_experiment_info().script.print_all())
     finally:
-        os.remove(db_name)
-        os.remove(db_name.replace(".db", ".hdf5"))
+        shutil.rmtree(project_dir)
 
 
 def test_executor_decorator():

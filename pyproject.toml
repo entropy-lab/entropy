@@ -22,6 +22,10 @@ exclude = [
 readme = "README.md"
 homepage = "https://github.com/entropy-lab/entropy"
 
+[tool.poetry.scripts]
+entropy = 'entropylab.cli.main:main'
+n3p = 'entropylab.cli.main:main'
+
 [tool.poetry.dependencies]
 python = "^3.7.1"
 sqlalchemy = "^1.4.0"

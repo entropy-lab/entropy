@@ -1,10 +1,14 @@
 import os
+import shutil
 from datetime import datetime
 
 from entropylab import Script
 from entropylab.api.execution import EntropyContext
 from entropylab.instruments.lab_topology import LabResources, ExperimentResources
 from entropylab.results_backend.sqlalchemy.db import SqlAlchemyDB
+from entropylab.results_backend.sqlalchemy.tests.test_utils import (
+    build_project_dir_path_for_test,
+)
 from entropylab.tests.mock_instruments import MockScope
 
 repeats = 30
@@ -37,13 +41,10 @@ def an_experiment(experiment: EntropyContext):
     )
 
 
-def test_running_db_and_topology():
-    db_name = (
-        f"tests_cache/test_running_db_and_topology_"
-        f"{datetime.now():%Y-%m-%d-%H-%M-%S}.db"
-    )
+def test_running_db_and_topology(request):
+    project_dir = build_project_dir_path_for_test(request)
     try:
-        db = SqlAlchemyDB(db_name)
+        db = SqlAlchemyDB(project_dir)
         topology = LabResources(db)
         topology.register_resource_if_not_exist(
             "scope_1", MockScope, args=["1.1.1.1", ""]
@@ -78,6 +79,4 @@ def test_running_db_and_topology():
         custom_result = db.custom_query("select * from Results")
         assert len(custom_result) == total_results_in_experiments * 2
     finally:
-        os.remove(db_name)
-        os.remove(db_name.replace(".db", ".hdf5"))
-        pass
+        shutil.rmtree(project_dir)

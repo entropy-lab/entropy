@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import numpy
 
@@ -8,6 +9,9 @@ from entropylab.graph_experiment import (
     PyNode,
 )
 from entropylab.results_backend.sqlalchemy.db import SqlAlchemyDB
+from entropylab.results_backend.sqlalchemy.tests.test_utils import (
+    build_project_dir_path_for_test,
+)
 
 
 def a():
@@ -22,9 +26,10 @@ def c():
     return {"z": 1.5}
 
 
-def test_async_graph_single_data_reader():
+def test_async_graph_single_data_reader(request):
+    project_dir = build_project_dir_path_for_test(request)
     try:
-        db = SqlAlchemyDB("test_running_db_graph.db")
+        db = SqlAlchemyDB(project_dir)
         a1 = PyNode("a", a, output_vars={"x"})
 
         b1 = PyNode("b", b, output_vars={"y"})
@@ -60,15 +65,13 @@ def test_async_graph_single_data_reader():
             assert numpy.array_equal(results[0].data, numpy.array([1, 2, 3]))
 
     finally:
-        print("deleting db")
-        os.remove("test_running_db_graph.db")
-        os.remove("test_running_db_graph.hdf5")
-        pass
+        shutil.rmtree(project_dir)
 
 
-def test_async_graph_multi_data_reader():
+def test_async_graph_multi_data_reader(request):
+    project_dir = build_project_dir_path_for_test(request)
     try:
-        db = SqlAlchemyDB("test_running_db_graph1.db")
+        db = SqlAlchemyDB(project_dir)
         a1 = PyNode("a", a, output_vars={"x"})
 
         b1 = PyNode("b", b, output_vars={"y"})
@@ -89,7 +92,4 @@ def test_async_graph_multi_data_reader():
             assert results[0].label == "z"
             assert results[0].data == 1.5
     finally:
-        print("deleting db")
-        os.remove("test_running_db_graph1.db")
-        os.remove("test_running_db_graph1.hdf5")
-        pass
+        shutil.rmtree(project_dir)

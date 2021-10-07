@@ -1,14 +1,9 @@
-import os
-import shutil
 from datetime import datetime
 
 from entropylab import Script
 from entropylab.api.execution import EntropyContext
 from entropylab.instruments.lab_topology import LabResources, ExperimentResources
 from entropylab.results_backend.sqlalchemy.db import SqlAlchemyDB
-from entropylab.results_backend.sqlalchemy.tests.test_utils import (
-    build_project_dir_path_for_test,
-)
 from entropylab.tests.mock_instruments import MockScope
 
 repeats = 30
@@ -41,42 +36,36 @@ def an_experiment(experiment: EntropyContext):
     )
 
 
-def test_running_db_and_topology(request):
-    project_dir = build_project_dir_path_for_test(request)
-    try:
-        db = SqlAlchemyDB(project_dir)
-        topology = LabResources(db)
-        topology.register_resource_if_not_exist(
-            "scope_1", MockScope, args=["1.1.1.1", ""]
-        )
-        # topology.register_private_results_db(db)
-        # topology.pause_save_to_results_db()
-        # topology.resume_save_to_results_db()
+def test_running_db_and_topology(project_dir_path):
+    db = SqlAlchemyDB(project_dir_path)
+    topology = LabResources(db)
+    topology.register_resource_if_not_exist("scope_1", MockScope, args=["1.1.1.1", ""])
+    # topology.register_private_results_db(db)
+    # topology.pause_save_to_results_db()
+    # topology.resume_save_to_results_db()
 
-        resources = ExperimentResources(db)
-        resources.import_lab_resource("scope_1")
+    resources = ExperimentResources(db)
+    resources.import_lab_resource("scope_1")
 
-        definition = Script(resources, an_experiment, "with_db")
-        # run twice
-        definition.run()
-        reader = definition.run().results
-        print(reader.get_experiment_info())
-        print(reader.get_experiment_info().script.print_all())
-        total_results_in_experiments = repeats * 2 + 1
-        assert len(list(reader.get_results())) == total_results_in_experiments
-        for i in range(repeats):
-            assert len(list(reader.get_results("a_result" + str(i)))) == 1
-            assert len(list(db.get_results(label="a_result" + str(i)))) == 2
+    definition = Script(resources, an_experiment, "with_db")
+    # run twice
+    definition.run()
+    reader = definition.run().results
+    print(reader.get_experiment_info())
+    print(reader.get_experiment_info().script.print_all())
+    total_results_in_experiments = repeats * 2 + 1
+    assert len(list(reader.get_results())) == total_results_in_experiments
+    for i in range(repeats):
+        assert len(list(reader.get_results("a_result" + str(i)))) == 1
+        assert len(list(db.get_results(label="a_result" + str(i)))) == 2
 
-        all_experiments = db.get_experiments()
-        with_db_experiments = db.get_experiments(label="with_db")
-        assert len(list(all_experiments)) == 2
-        assert len(list(with_db_experiments)) == 2
-        assert (
-            len(list(db.get_experiments(start_after=list(all_experiments)[0].end_time)))
-            == 1
-        )
-        custom_result = db.custom_query("select * from Results")
-        assert len(custom_result) == total_results_in_experiments * 2
-    finally:
-        shutil.rmtree(project_dir)
+    all_experiments = db.get_experiments()
+    with_db_experiments = db.get_experiments(label="with_db")
+    assert len(list(all_experiments)) == 2
+    assert len(list(with_db_experiments)) == 2
+    assert (
+        len(list(db.get_experiments(start_after=list(all_experiments)[0].end_time)))
+        == 1
+    )
+    custom_result = db.custom_query("select * from Results")
+    assert len(custom_result) == total_results_in_experiments * 2

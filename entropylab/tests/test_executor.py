@@ -1,5 +1,3 @@
-import os
-import shutil
 from datetime import datetime
 
 import pytest
@@ -9,9 +7,6 @@ from entropylab.api.execution import EntropyContext
 from entropylab.api.plot import CirclePlotGenerator, LinePlotGenerator
 from entropylab.instruments.lab_topology import LabResources, ExperimentResources
 from entropylab.results_backend.sqlalchemy.db import SqlAlchemyDB
-from entropylab.results_backend.sqlalchemy.tests.test_utils import (
-    build_project_dir_path_for_test,
-)
 from entropylab.script_experiment import Script, script_experiment
 from entropylab.tests.mock_instruments import MockScope
 
@@ -119,138 +114,125 @@ def test_running_no_db():
 
 
 @pytest.mark.repeat(3)
-def test_running_db(request):
-    project_dir = build_project_dir_path_for_test(request)
-    try:
-        resources = ExperimentResources()
-        resources.add_temp_resource("scope_1", MockScope("1.1.1.1", ""))
-        db = SqlAlchemyDB(project_dir)
+def test_running_db(project_dir_path):
+    resources = ExperimentResources()
+    resources.add_temp_resource("scope_1", MockScope("1.1.1.1", ""))
+    db = SqlAlchemyDB(project_dir_path)
 
-        definition = Script(resources, an_experiment, "with_db")
+    definition = Script(resources, an_experiment, "with_db")
 
-        handle = definition.run(db)
-        reader = handle.results
-        print(reader.get_experiment_info())
-        print(reader.get_experiment_info().script.print_all())
+    handle = definition.run(db)
+    reader = handle.results
+    print(reader.get_experiment_info())
+    print(reader.get_experiment_info().script.print_all())
 
-        db = SqlAlchemyDB(project_dir)
-        definition = Script(resources, an_experiment_with_plot, "with_db")
-        definition.run(db)
-    finally:
-        shutil.rmtree(project_dir)
+    db = SqlAlchemyDB(project_dir_path)
+    definition = Script(resources, an_experiment_with_plot, "with_db")
+    definition.run(db)
 
 
-def test_running_db_and_topology(request):
-    project_dir = build_project_dir_path_for_test(request)
-    try:
-        # setup lab environment one time
-        db = SqlAlchemyDB(project_dir)
-        lab = LabResources(db)
-        lab.register_resource(
-            "scope_1",
-            MockScope,
-            args=["1.1.1.1"],
-            experiment_args=["blah"],
-        )
-        lab.register_resource_if_not_exist(
-            "scope_1", MockScope, args=["1.1.1.1"], experiment_args=["blah"]
-        )
-        # lab.update_resource("scope_1", "scope_1", "1.1.1.1", experiment_args=["blah"])
-        # lab.remove_resource("scope_1")
-        lab.all_resources()
-        print(lab.get_resource_info("scope_1"))
+def test_running_db_and_topology(project_dir_path):
+    # setup lab environment one time
+    db = SqlAlchemyDB(project_dir_path)
+    lab = LabResources(db)
+    lab.register_resource(
+        "scope_1",
+        MockScope,
+        args=["1.1.1.1"],
+        experiment_args=["blah"],
+    )
+    lab.register_resource_if_not_exist(
+        "scope_1", MockScope, args=["1.1.1.1"], experiment_args=["blah"]
+    )
+    # lab.update_resource("scope_1", "scope_1", "1.1.1.1", experiment_args=["blah"])
+    # lab.remove_resource("scope_1")
+    lab.all_resources()
+    print(lab.get_resource_info("scope_1"))
 
-        # setup experiment
-        resources = ExperimentResources(db)
-        resources.import_lab_resource(
-            "scope_1",
-            experiment_args=["blah1"],
-        )
-        resources.add_temp_resource("temp_scope", MockScope("2.2.2.2", "blah"))
+    # setup experiment
+    resources = ExperimentResources(db)
+    resources.import_lab_resource(
+        "scope_1",
+        experiment_args=["blah1"],
+    )
+    resources.add_temp_resource("temp_scope", MockScope("2.2.2.2", "blah"))
 
-        # revert resource to snapshot if needed
-        lab.get_resource("scope_1", experiment_args=["blah1"])
-        lab.save_snapshot("scope_1", "snapshot_name")
-        snap = lab.get_snapshot("scope_1", "snapshot_name")
-        scope = resources.get_resource("scope_1")
-        scope.revert_to_snapshot(snap)  # if implemented
+    # revert resource to snapshot if needed
+    lab.get_resource("scope_1", experiment_args=["blah1"])
+    lab.save_snapshot("scope_1", "snapshot_name")
+    snap = lab.get_snapshot("scope_1", "snapshot_name")
+    scope = resources.get_resource("scope_1")
+    scope.revert_to_snapshot(snap)  # if implemented
 
-        # add resource in a specific snapshot
-        # resources.import_lab_resource(
-        #     "scope_1", snapshot_name="snapshot_name", experiment_args=["blah2"]
-        # )
+    # add resource in a specific snapshot
+    # resources.import_lab_resource(
+    #     "scope_1", snapshot_name="snapshot_name", experiment_args=["blah2"]
+    # )
 
-        # define experiment
-        definition = Script(resources, an_experiment, "with_db")
-        handle = definition.run(db)
-        reader = handle.results
-        print(reader.get_experiment_info())
-        print(reader.get_experiment_info().script.print_all())
+    # define experiment
+    definition = Script(resources, an_experiment, "with_db")
+    handle = definition.run(db)
+    reader = handle.results
+    print(reader.get_experiment_info())
+    print(reader.get_experiment_info().script.print_all())
 
-        # setup experiment
-        resources = ExperimentResources(db)
-        resources.import_lab_resource("scope_1", experiment_args=["blah2"])
-        # define experiment
-        definition = Script(resources, an_experiment, "with_db")
-        handle = definition.run(db)
-        reader = handle.results
-        print(reader.get_experiment_info())
-        print(reader.get_experiment_info().script.print_all())
+    # setup experiment
+    resources = ExperimentResources(db)
+    resources.import_lab_resource("scope_1", experiment_args=["blah2"])
+    # define experiment
+    definition = Script(resources, an_experiment, "with_db")
+    handle = definition.run(db)
+    reader = handle.results
+    print(reader.get_experiment_info())
+    print(reader.get_experiment_info().script.print_all())
 
-        # setup experiment
-        resources = ExperimentResources(db)
-        resources.import_lab_resource("scope_1", experiment_args=["blah3"])
-        # define experiment
-        definition = Script(resources, an_experiment, "with_db")
-        handle = definition.run(db)
-        reader = handle.results
-        print(reader.get_experiment_info())
-        print(reader.get_experiment_info().script.print_all())
-
-    finally:
-        shutil.rmtree(project_dir)
+    # setup experiment
+    resources = ExperimentResources(db)
+    resources.import_lab_resource("scope_1", experiment_args=["blah3"])
+    # define experiment
+    definition = Script(resources, an_experiment, "with_db")
+    handle = definition.run(db)
+    reader = handle.results
+    print(reader.get_experiment_info())
+    print(reader.get_experiment_info().script.print_all())
 
 
-def test_running_db_and_topology_with_kwargs(request):
-    project_dir = build_project_dir_path_for_test(request)
-    try:
-        # setup lab environment one time
-        db = SqlAlchemyDB(project_dir)
-        lab = LabResources(db)
-        lab.register_resource(
-            "scope_1",
-            MockScope,
-            kwargs={"address": "1.1.1.1"},
-            experiment_kwargs={"extra": "blah"},
-        )
+def test_running_db_and_topology_with_kwargs(project_dir_path):
+    # setup lab environment one time
+    db = SqlAlchemyDB(project_dir_path)
+    lab = LabResources(db)
+    lab.register_resource(
+        "scope_1",
+        MockScope,
+        kwargs={"address": "1.1.1.1"},
+        experiment_kwargs={"extra": "blah"},
+    )
 
-        resources = ExperimentResources(db)
-        resources.import_lab_resource(
-            "scope_1",
-            experiment_kwargs={"extra": "blah1"},
-        )
+    resources = ExperimentResources(db)
+    resources.import_lab_resource(
+        "scope_1",
+        experiment_kwargs={"extra": "blah1"},
+    )
 
-        # define experiment
-        definition = Script(resources, an_experiment, "with_db")
-        handle = definition.run(db)
-        reader = handle.results
-        print(reader.get_experiment_info())
-        print(reader.get_experiment_info().script.print_all())
+    # define experiment
+    definition = Script(resources, an_experiment, "with_db")
+    handle = definition.run(db)
+    reader = handle.results
+    print(reader.get_experiment_info())
+    print(reader.get_experiment_info().script.print_all())
 
-        # setup experiment
-        resources = ExperimentResources(db)
-        resources.import_lab_resource(
-            "scope_1",
-            experiment_kwargs={"extra": "blah2"},
-        )
-        # define experiment
-        definition = Script(resources, an_experiment, "with_db")
-        handle = definition.run(db)
-        reader = handle.results
-        print(reader.get_experiment_info())
-        print(reader.get_experiment_info().script.print_all())
-    finally:
-        shutil.rmtree(project_dir)
+    # setup experiment
+    resources = ExperimentResources(db)
+    resources.import_lab_resource(
+        "scope_1",
+        experiment_kwargs={"extra": "blah2"},
+    )
+    # define experiment
+    definition = Script(resources, an_experiment, "with_db")
+    handle = definition.run(db)
+    reader = handle.results
+    print(reader.get_experiment_info())
+    print(reader.get_experiment_info().script.print_all())
 
 
 def test_executor_decorator():

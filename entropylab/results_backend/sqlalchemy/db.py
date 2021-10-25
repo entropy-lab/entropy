@@ -147,8 +147,17 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
 
     def get_experiments_range(self, starting_from_index: int, count: int) -> DataFrame:
         with self._session_maker() as sess:
-            query = sess.query(ExperimentTable).slice(
-                starting_from_index, starting_from_index + count
+            query = (
+                sess.query(ExperimentTable)
+                .with_entities(
+                    ExperimentTable.id,
+                    ExperimentTable.label,
+                    ExperimentTable.start_time,
+                    ExperimentTable.end_time,
+                    ExperimentTable.user,
+                    ExperimentTable.success,
+                )
+                .slice(starting_from_index, starting_from_index + count)
             )
             return self._query_pandas(query)
 

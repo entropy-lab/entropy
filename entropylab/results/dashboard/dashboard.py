@@ -10,6 +10,7 @@ from entropylab.results_backend.sqlalchemy.project import project_name, project_
 
 
 MAX_EXPERIMENTS_NUM = 10000
+EXPERIMENTS_PAGE_SIZE = 6
 
 
 class Dashboard:
@@ -24,16 +25,64 @@ class Dashboard:
         )
 
         self.app = dash.Dash(self.project_name, title=self.title)
-
+        # df[date_col] = df[date_col].dt.date
+        self._experiments["success"] = self._experiments["success"].apply(
+            lambda x: "✔️" if x else "❌"
+        )
+        records = self._experiments.to_dict("records")
         self.app.layout = html.Div(
             children=[
                 html.H1(self.title),
                 dash_table.DataTable(
                     id="table",
-                    columns=[{"name": i, "id": i} for i in self._experiments.columns],
-                    data=self._experiments.to_dict("records"),
+                    columns=[
+                        dict(name="id", id="id", type="numeric"),
+                        dict(name="label", id="label", type="text"),
+                        dict(name="start_time", id="start_time", type="datetime"),
+                        dict(name="end_time", id="end_time", type="datetime"),
+                        dict(name="user", id="user", type="text"),
+                        dict(name="success", id="success"),
+                    ],
+                    # {"name": i, "id": i} for i in self._experiments.columns],
+                    data=records,
+                    row_selectable="multi",
+                    cell_selectable=False,
+                    sort_action="native",
+                    filter_action="native",
+                    page_action="native",
+                    page_size=EXPERIMENTS_PAGE_SIZE,
+                    style_cell={
+                        "textAlign": "left",
+                        "textOverflow": "ellipsis",
+                        "maxWidth": 0,
+                    },
+                    style_cell_conditional=[
+                        {"if": {"column_id": "id"}, "width": "5%"},
+                        {"if": {"column_id": "label"}, "width": "30%"},
+                        {"if": {"column_id": "start_time"}, "width": "20%"},
+                        {"if": {"column_id": "end_time"}, "width": "20%"},
+                        {"if": {"column_id": "user"}, "width": "20%"},
+                        {"if": {"column_id": "success"}, "width": "5%"},
+                    ],
+                    style_data_conditional=[
+                        {
+                            "if": {
+                                "column_id": "success",
+                            },
+                            "textAlign": "center",
+                        }
+                    ],
+                    tooltip_data=[
+                        {
+                            column: {"value": str(value), "type": "markdown"}
+                            for column, value in row.items()
+                        }
+                        for row in records
+                    ],
                 ),
             ],
+            className="main",
+            style=dict(width="1280px", margin="auto"),
         )
 
     def serve(self):

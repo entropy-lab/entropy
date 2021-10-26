@@ -24,7 +24,7 @@ class Dashboard:
             self._dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
         )
 
-        self.app = dash.Dash(self.project_name, title=self.title)
+        self.app = dash.Dash(__name__, title=self.title)
         # df[date_col] = df[date_col].dt.date
         self._experiments["success"] = self._experiments["success"].apply(
             lambda x: "✔️" if x else "❌"
@@ -57,12 +57,15 @@ class Dashboard:
                         "maxWidth": 0,
                     },
                     style_cell_conditional=[
-                        {"if": {"column_id": "id"}, "width": "5%"},
-                        {"if": {"column_id": "label"}, "width": "30%"},
-                        {"if": {"column_id": "start_time"}, "width": "20%"},
+                        {"if": {"column_id": "id"}, "width": "7%"},
+                        {"if": {"column_id": "label"}, "width": "25%"},
+                        {
+                            "if": {"column_id": "start_time"},
+                            "width": "20%",
+                        },
                         {"if": {"column_id": "end_time"}, "width": "20%"},
                         {"if": {"column_id": "user"}, "width": "20%"},
-                        {"if": {"column_id": "success"}, "width": "5%"},
+                        {"if": {"column_id": "success"}, "width": "8%"},
                     ],
                     style_data_conditional=[
                         {
@@ -82,7 +85,6 @@ class Dashboard:
                 ),
             ],
             className="main",
-            style=dict(width="1280px", margin="auto"),
         )
 
     def serve(self):

@@ -1,7 +1,9 @@
 from typing import List
 
+import plotly
 from bokeh.models import Renderer
 from bokeh.plotting import Figure
+import plotly.graph_objects as go
 from matplotlib.figure import Figure as matplotlibFigure
 from matplotlib.axes import Axes as Axes
 
@@ -28,6 +30,23 @@ class LinePlotGenerator(PlotGenerator):
         else:
             raise TypeError("data type is not supported")
 
+    def plot_plotly(self, figure: plotly.graph_objects.Figure, data, **kwargs):
+        if isinstance(data, List) and len(data) == 2 and len(data[0]) == len(data[1]):
+            x = data[0]
+            y = data[1]
+            color = kwargs.get("color", "blue")
+            figure.add_trace(
+                go.Scatter(
+                    mode="lines",
+                    x=x,
+                    y=y,
+                    line_color=color,
+                )
+            )
+            return figure
+        else:
+            raise TypeError("data type is not supported")
+
 
 class CirclePlotGenerator(PlotGenerator):
     def __init__(self) -> None:
@@ -40,13 +59,31 @@ class CirclePlotGenerator(PlotGenerator):
         if isinstance(data, List) and len(data) == 2 and len(data[0]) == len(data[1]):
             x = data[0]
             y = data[1]
+            color = (kwargs.get("color", "blue"),)
             return figure.circle(
                 x,
                 y,
                 size=10,
-                color=kwargs.get("color", "blue"),
+                color=color,
                 legend_label=kwargs.get("label", ""),
                 alpha=0.5,
             )
+        else:
+            raise TypeError("data type is not supported")
+
+    def plot_plotly(self, figure: plotly.graph_objects.Figure, data, **kwargs):
+        if isinstance(data, List) and len(data) == 2 and len(data[0]) == len(data[1]):
+            x = data[0]
+            y = data[1]
+            color = kwargs.get("color", "blue")
+            figure.add_trace(
+                go.Scatter(
+                    mode="markers",
+                    x=x,
+                    y=y,
+                    marker_color=color,
+                )
+            )
+            return figure
         else:
             raise TypeError("data type is not supported")

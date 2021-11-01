@@ -2,6 +2,7 @@ import dash
 import pandas as pd
 from dash import html, dcc
 from dash.dependencies import Input, Output
+from plotly import graph_objects as go
 
 from entropylab import SqlAlchemyDB
 from entropylab.results.dashboard.dashboard_data import SqlalchemyDashboardDataReader
@@ -27,6 +28,7 @@ def init(path):
 
     # Fetching data from DB
 
+    # TODO: How to filter this column when its values are emoji?
     _experiments["success"] = _experiments["success"].apply(
         lambda x: "✔️" if x else "❌"
     )
@@ -54,31 +56,49 @@ def init(path):
         if selected_row_ids:
             for exp_id in selected_row_ids:
                 plots = _dashboard_data_reader.get_plot_data(exp_id)
-                if plots:
-                    for plot in plots:
-                        result.append(
-                            dcc.Tab(
-                                label=f"Tab {plot.id}",
-                                children=[
-                                    html.H3(f"Plot {plot.id}"),
-                                    dcc.Graph(
-                                        id=f"graph-{plot.id}-tabs",
-                                        figure={
-                                            "data": [
-                                                {
-                                                    "x": [1, 2, 3],
-                                                    "y": [3, 1, 2],
-                                                    "type": "bar",
-                                                    "marker": {
-                                                        "color": colors[plot.id]
-                                                    },
-                                                }
-                                            ]
-                                        },
-                                    ),
-                                ],
-                            )
+                # if plots:
+                for plot in plots:
+                    # if plot.generator:
+                    figure = go.Figure()
+                    plot.generator.plot_plotly(
+                        figure,
+                        plot.plot_data,
+                        color="blue",
+                        # label=f"{plot.experiment_id}",
+                    )
+                    result.append(
+                        dcc.Tab(
+                            label=f"Tab {plot.id}",
+                            children=[
+                                html.H3(f"Plot {plot.id}"),
+                                dcc.Graph(id=f"graph-{plot.id}-tabs", figure=figure),
+                            ],
                         )
+                    )
+
+                    # result.append(
+                    #     dcc.Tab(
+                    #         label=f"Tab {plot.id}",
+                    #         children=[
+                    #             html.H3(f"Plot {plot.id}"),
+                    #             dcc.Graph(
+                    #                 id=f"graph-{plot.id}-tabs",
+                    #                 figure={
+                    #                     "data": [
+                    #                         {
+                    #                             "x": [1, 2, 3],
+                    #                             "y": [3, 1, 2],
+                    #                             "type": "bar",
+                    #                             "marker": {
+                    #                                 "color": colors[plot.id]
+                    #                             },
+                    #                         }
+                    #                     ]
+                    #                 },
+                    #             ),
+                    #         ],
+                    #     )
+                    # )
         return result
 
     # App layout

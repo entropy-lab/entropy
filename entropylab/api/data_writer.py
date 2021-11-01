@@ -6,6 +6,7 @@ from typing import Any, Optional, Type
 from bokeh.models import Renderer
 from bokeh.plotting import Figure
 from matplotlib.figure import Figure as matplotlibFigure
+from plotly import graph_objects as go
 
 
 @dataclass
@@ -96,6 +97,16 @@ class PlotGenerator(ABC):
         """
             plot the given data within the matplotlib Figure
         :param figure: matplotlib figure
+        :param data: plot data
+        :param kwargs: extra parameters for plotting
+        """
+        pass
+
+    @abstractmethod
+    def plot_plotly(self, figure: go.Figure, data, **kwargs) -> None:
+        """
+            plot the given data within the plot.ly Figure
+        :param figure: plot.ly figure
         :param data: plot data
         :param kwargs: extra parameters for plotting
         """

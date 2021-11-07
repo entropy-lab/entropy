@@ -1,7 +1,7 @@
 import dash
 import pandas as pd
 from dash import html, dcc
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, ALL
 import dash_bootstrap_components as dbc
 from plotly import graph_objects as go
 
@@ -41,12 +41,6 @@ def init(app, path):
 
     _table = table(app, _records)
 
-    _tabs = dbc.Tabs(
-        id="plot-tabs",
-        # value="",
-        children=[],
-    )
-
     # Callbacks
 
     @app.callback(
@@ -69,14 +63,33 @@ def init(app, path):
                         )
                         result.append(
                             dbc.Tab(
+                                dbc.Row(
+                                    [
+                                        dbc.Col(
+                                            dcc.Graph(
+                                                id=f"graph-{plot.id}-tabs",
+                                                figure=figure,
+                                                config=dict(
+                                                    modeBarButtonsToAdd=["drawcircle"]
+                                                ),
+                                                className="graph1",
+                                            ),
+                                            width="10",
+                                        ),
+                                        dbc.Col(
+                                            dbc.Button(
+                                                "Add",
+                                                id=dict(
+                                                    type="add-button", index=plot.id
+                                                ),
+                                                value=plot.id,
+                                                className="add-button",
+                                            ),
+                                            width="1",
+                                        ),
+                                    ]
+                                ),
                                 label=f"Plot {plot.id}",
-                                children=[
-                                    dcc.Graph(
-                                        id=f"graph-{plot.id}-tabs",
-                                        figure=figure,
-                                        className="graph1",
-                                    ),
-                                ],
                             )
                         )
         if not result:
@@ -87,6 +100,18 @@ def init(app, path):
             ]
             pass
         return result
+
+    @app.callback(
+        Output("overlay", "children"),
+        Input({"type": "add-button", "index": ALL}, "n_clicks"),
+    )
+    def add_plot_to_combined_plot(values):
+        return html.Div(
+            [
+                html.Div("Dropdown {} = {}".format(i + 1, value))
+                for (i, value) in enumerate(values)
+            ]
+        )
 
     # App layout
 
@@ -117,10 +142,21 @@ def init(app, path):
             dbc.Row(dbc.Col([html.H5("Experiments"), _table], class_name="bg")),
             dbc.Row(
                 [
-                    dbc.Col([html.H5("Plots"), _tabs], class_name="bg", width="6"),
                     dbc.Col(
-                        [html.H5("Overlay"), html.Div(id="overlay")],
-                        class_name="bg",
+                        dbc.Tabs(
+                            id="plot-tabs",
+                            # value="",
+                            children=[],
+                        ),
+                        width="6",
+                    ),
+                    dbc.Col(
+                        dbc.Tabs(
+                            id="aggregate-tabs",
+                            children=[
+                                dbc.Tab(html.Div(id="overlay"), label="Aggregate")
+                            ],
+                        ),
                         width="6",
                     ),
                 ],

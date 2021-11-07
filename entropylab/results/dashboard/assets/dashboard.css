@@ -48,8 +48,14 @@ input.current-page::placeholder {
   color:var(--bs-body-color) !important;
 }
 
-
-
+/*
+.add-button {
+  position:relative;
+  top: 100px;
+  left: 150px;
+  z-index: 1000;
+}
+*/
 #overlay {
   background-color: darkgrey;
   width: 80%;

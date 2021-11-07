@@ -1,7 +1,26 @@
 .main {
-  width: 1280px;
+  width: 1260px;
   margin: auto;
+  padding: 16px;
 }
+
+#top-bar {
+  background: #039;
+}
+
+#entropy_logo {
+  width: 150px;
+}
+
+#project-path {
+  font-family: monospace;
+  font-size: 1.25rem;
+  color:#aaa;
+  line-height:38.4px;
+}
+
+/* Dash DataTable - Dark theme */
+
 .dash-cell {
   padding-left: 12px !important;
   padding-right: 12px !important;
@@ -10,14 +29,29 @@
   padding-left: 12px !important;
   padding-right: 8px !important;
 }
-/*
-.dash-filter input {
-  text-align: left !important;
-}*/
 .dash-filter--case {
   margin-left: 12px !important;
 }
-/*
-.column-header-name {
-  padding-left: 12px !important;
-}*/
+.first-page,
+.previous-page,
+.next-page,
+.last-page
+{
+  color: var(--bs-body-color) !important;
+  background-color:var(--bs-secondary);
+}
+.current-page {
+  color: var(--bs-body-color) !important;
+  background-color: var(--bs-secondary);
+}
+input.current-page::placeholder {
+  color:var(--bs-body-color) !important;
+}
+
+
+
+#overlay {
+  background-color: darkgrey;
+  width: 80%;
+  height:500px;
+}

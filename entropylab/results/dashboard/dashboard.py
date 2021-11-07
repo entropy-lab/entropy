@@ -2,6 +2,7 @@ import dash
 import pandas as pd
 from dash import html, dcc
 from dash.dependencies import Input, Output
+import dash_bootstrap_components as dbc
 from plotly import graph_objects as go
 
 from entropylab import SqlAlchemyDB
@@ -40,9 +41,9 @@ def init(app, path):
 
     _table = table(app, _records)
 
-    _tabs = dcc.Tabs(
+    _tabs = dbc.Tabs(
         id="plot-tabs",
-        value="",
+        # value="",
         children=[],
     )
 
@@ -67,32 +68,69 @@ def init(app, path):
                             color=colors[len(result) % len(colors)],
                         )
                         result.append(
-                            dcc.Tab(
-                                label=f"Tab {plot.id}",
+                            dbc.Tab(
+                                label=f"Plot {plot.id}",
                                 children=[
-                                    html.H3(f"Plot {plot.id}"),
                                     dcc.Graph(
-                                        id=f"graph-{plot.id}-tabs", figure=figure
+                                        id=f"graph-{plot.id}-tabs",
+                                        figure=figure,
+                                        className="graph1",
                                     ),
                                 ],
                             )
                         )
+        if not result:
+            result = [
+                dcc.Tab(
+                    label=f"Select experiment(s) above to display their plots here.",
+                )
+            ]
+            pass
         return result
 
     # App layout
 
     app.layout = html.Div(
-        children=[
-            html.H1(_title),
-            _table,
-            html.Div(children=[_tabs, html.Div(id="overlay")]),
-        ],
         className="main",
+        children=[
+            dbc.Nav(
+                children=[
+                    html.A(
+                        html.Img(
+                            id="entropy_logo",
+                            src="/assets/images/entropy_logo_dark.svg",
+                        ),
+                        className="navbar-nav me-auto",
+                        href="#",
+                    ),
+                    html.H3(
+                        f"{project_name(path)} ",
+                        className="navbar-nav me-auto",
+                    ),
+                    html.Small(
+                        f"[{project_path(path)}]",
+                        className="navbar-nav me-auto",
+                    ),
+                ],
+                className="navbar navbar-expand-lg navbar-dark bg-primary",
+            ),
+            dbc.Row(dbc.Col([html.H5("Experiments"), _table], class_name="bg")),
+            dbc.Row(
+                [
+                    dbc.Col([html.H5("Plots"), _tabs], class_name="bg", width="6"),
+                    dbc.Col(
+                        [html.H5("Overlay"), html.Div(id="overlay")],
+                        class_name="bg",
+                        width="6",
+                    ),
+                ],
+            ),
+        ],
     )
 
 
 if __name__ == "__main__":
     """ This is the dash app that hosts our results dashboard """
-    _app = dash.Dash(__name__)
+    _app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
     init(_app, "tests")
     _app.run_server(debug=True)

@@ -183,6 +183,20 @@ dev = ["dash-flow-example (==0.0.5)", "dash-dangerously-set-inner-html", "mock (
 testing = ["pytest (>=6.0.2)", "pytest-sugar (>=0.9.4)", "pytest-mock (>=3.2.0)", "lxml (>=4.6.2)", "selenium (>=3.141.0)", "percy (>=2.0.2)", "requests[security] (>=2.21.0)", "beautifulsoup4 (>=4.8.2)", "waitress (>=1.4.4)", "diskcache (>=5.2.1)", "multiprocess (>=0.70.12)", "redis (>=3.5.3)", "psutil (>=5.8.0)", "celery[redis] (>=5.1.2)", "flaky (>=3.7.0)", "cryptography (<3.4)"]
 
 [[package]]
+name = "dash-bootstrap-components"
+version = "1.0.0"
+description = "Bootstrap themed components for use in Plotly Dash"
+category = "main"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, <4"
+
+[package.dependencies]
+dash = ">=2.0.0"
+
+[package.extras]
+pandas = ["numpy", "pandas"]
+
+[[package]]
 name = "dash-core-components"
 version = "2.0.0"
 description = "Core component suite for Dash"
@@ -960,7 +974,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7.1"
-content-hash = "d11259ef7c5ac8e32a727df0af3efa4f01ed72db3cd67e1dbd06a53187dca269"
+content-hash = "f4e91d79729b908baf903020b148c7b413529f7883a1794d987bccafba0f3d1d"
 
 [metadata.files]
 alembic = [
@@ -1115,6 +1129,10 @@ cycler = [
 dash = [
     {file = "dash-2.0.0-py3-none-any.whl", hash = "sha256:23f331533663641a5c70a15c46da26d29ef5335f9aeb8bc03d09de865fc7cd62"},
     {file = "dash-2.0.0.tar.gz", hash = "sha256:29277c24e2f795b069cb102ce1ab0cd3ad5cf9d3b4fd16c03da9671a5eea28a4"},
+]
+dash-bootstrap-components = [
+    {file = "dash-bootstrap-components-1.0.0.tar.gz", hash = "sha256:498164307c3a05b295fcf92cc4e39a91f6eed5be6d960b03081feb8f791adf94"},
+    {file = "dash_bootstrap_components-1.0.0-py3-none-any.whl", hash = "sha256:786deaa433850076adb5266b7ba5bbb0f4bbbbc02698c3ddac5d900d505fb3b4"},
 ]
 dash-core-components = [
     {file = "dash_core_components-2.0.0.tar.gz", hash = "sha256:c6733874af975e552f95a1398a16c2ee7df14ce43fa60bb3718a3c6e0b63ffee"},

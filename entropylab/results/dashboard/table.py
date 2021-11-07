@@ -22,6 +22,9 @@ def table(app, records):
         filter_action="native",
         page_action="native",
         page_size=EXPERIMENTS_PAGE_SIZE,
+        style_header={"backgroundColor": "rgb(30, 30, 30)", "color": "white"},
+        style_filter={"backgroundColor": "rgb(40, 40, 40)", "color": "white"},
+        style_data={"backgroundColor": "rgb(50, 50, 50)", "color": "white"},
         style_cell={
             "textAlign": "left",
             "textOverflow": "ellipsis",
@@ -29,14 +32,14 @@ def table(app, records):
         },
         style_cell_conditional=[
             {"if": {"column_id": "id"}, "width": "7%"},
-            {"if": {"column_id": "label"}, "width": "25%"},
+            {"if": {"column_id": "label"}, "width": "20%"},
             {
                 "if": {"column_id": "start_time"},
-                "width": "20%",
+                "width": "23%",
             },
-            {"if": {"column_id": "end_time"}, "width": "20%"},
-            {"if": {"column_id": "user"}, "width": "20%"},
-            {"if": {"column_id": "success"}, "width": "8%"},
+            {"if": {"column_id": "end_time"}, "width": "23%"},
+            {"if": {"column_id": "user"}, "width": "17%"},
+            {"if": {"column_id": "success"}, "width": "10%"},
         ],
         style_data_conditional=[
             {

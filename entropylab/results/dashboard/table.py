@@ -1,9 +1,9 @@
-from dash import dash_table, Output, Input, html
+from dash import dash_table
 
 EXPERIMENTS_PAGE_SIZE = 6
 
 
-def table(app, records):
+def table(records):
     tbl = dash_table.DataTable(
         id="experiments-table",
         columns=[
@@ -49,13 +49,13 @@ def table(app, records):
                 "textAlign": "center",
             }
         ],
-        tooltip_data=[
-            {
-                column: {"value": str(value), "type": "markdown"}
-                for column, value in row.items()
-            }
-            for row in records
-        ],
+        # tooltip_data=[
+        #     {
+        #         column: {"value": str(value), "type": "markdown"}
+        #         for column, value in row.items()
+        #     }
+        #     for row in records
+        # ],
     )
 
     return tbl

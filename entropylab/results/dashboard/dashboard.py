@@ -1,9 +1,11 @@
 import dash
 import pandas as pd
 from dash import html, dcc
-from dash.dependencies import Input, Output, ALL
+from dash.dependencies import Input, Output, State, ALL
 import dash_bootstrap_components as dbc
 from plotly import graph_objects as go
+from plotly.subplots import make_subplots
+
 
 from entropylab import SqlAlchemyDB
 from entropylab.results.dashboard.dashboard_data import SqlalchemyDashboardDataReader
@@ -12,6 +14,9 @@ from entropylab.results_backend.sqlalchemy.project import project_name, project_
 
 MAX_EXPERIMENTS_NUM = 10000
 EXPERIMENTS_PAGE_SIZE = 6
+
+_plot_figures = {}
+_plot_ids_to_combine = []
 
 
 def init(app, path):
@@ -27,19 +32,13 @@ def init(app, path):
 
     # Fetching data from DB
 
-    _dashboard_data_reader = SqlalchemyDashboardDataReader(SqlAlchemyDB(path))
-    _experiments = pd.DataFrame(
-        _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
+    dashboard_data_reader = SqlalchemyDashboardDataReader(SqlAlchemyDB(path))
+    experiments = pd.DataFrame(
+        dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
     )
     # TODO: How to filter this column when its values are emoji?
-    _experiments["success"] = _experiments["success"].apply(
-        lambda x: "✔️" if x else "❌"
-    )
-    _records = _experiments.to_dict("records")
-
-    # Components
-
-    _table = table(app, _records)
+    experiments["success"] = experiments["success"].apply(lambda x: "✔️" if x else "❌")
+    records = experiments.to_dict("records")
 
     # Callbacks
 
@@ -52,47 +51,28 @@ def init(app, path):
         result = []
         if selected_row_ids:
             for exp_id in selected_row_ids:
-                plots = _dashboard_data_reader.get_plot_data(exp_id)
+                plots = dashboard_data_reader.get_plot_data(exp_id)
+                # TODO: If plots is None, auto render results from last graph node
                 for plot in plots:
                     if plot.generator:
-                        figure = go.Figure()
+                        plot_figure = go.Figure()
                         plot.generator.plot_plotly(
-                            figure,
+                            plot_figure,
                             plot.plot_data,
                             color=colors[len(result) % len(colors)],
                         )
+                        _plot_figures[plot.id] = plot_figure
                         result.append(
                             dbc.Tab(
-                                dbc.Row(
-                                    [
-                                        dbc.Col(
-                                            dcc.Graph(
-                                                id=f"graph-{plot.id}-tabs",
-                                                figure=figure,
-                                                config=dict(
-                                                    modeBarButtonsToAdd=["drawcircle"]
-                                                ),
-                                                className="graph1",
-                                            ),
-                                            width="10",
-                                        ),
-                                        dbc.Col(
-                                            dbc.Button(
-                                                "Add",
-                                                id=dict(
-                                                    type="add-button", index=plot.id
-                                                ),
-                                                value=plot.id,
-                                                className="add-button",
-                                            ),
-                                            width="1",
-                                        ),
-                                    ]
+                                dcc.Graph(
+                                    figure=plot_figure,
                                 ),
                                 label=f"Plot {plot.id}",
+                                id=f"plot-tab-{plot.id}",
+                                tab_id=f"plot-tab-{plot.id}",
                             )
                         )
-        if not result:
+        else:
             result = [
                 dcc.Tab(
                     label=f"Select experiment(s) above to display their plots here.",
@@ -102,62 +82,85 @@ def init(app, path):
         return result
 
     @app.callback(
-        Output("overlay", "children"),
-        Input({"type": "add-button", "index": ALL}, "n_clicks"),
+        Output("aggregate-tab", "children"),
+        Input("add-button", "n_clicks"),
+        State("plot-tabs", "active_tab"),
     )
-    def add_plot_to_combined_plot(values):
-        return html.Div(
-            [
-                html.Div("Dropdown {} = {}".format(i + 1, value))
-                for (i, value) in enumerate(values)
-            ]
-        )
+    def add_plot_to_combined_plot(n_clicks, active_tab):
+        if active_tab:
+            plot_id = int(active_tab.replace("plot-tab-", ""))
+            if plot_id not in _plot_ids_to_combine:
+                _plot_ids_to_combine.append(plot_id)
+            combined_figure = make_subplots(specs=[[{"secondary_y": True}]])
+            for _id in _plot_ids_to_combine:
+                figure = _plot_figures[_id]
+                combined_figure.add_trace(figure.data[0])
+            return dcc.Graph(figure=combined_figure)
+        else:
+            return [html.Div()]
 
     # App layout
 
     app.layout = html.Div(
         className="main",
         children=[
-            dbc.Nav(
-                children=[
-                    html.A(
-                        html.Img(
-                            id="entropy_logo",
-                            src="/assets/images/entropy_logo_dark.svg",
-                        ),
-                        className="navbar-nav me-auto",
-                        href="#",
+            dbc.Row(
+                dbc.Col(
+                    dbc.Nav(
+                        children=[
+                            html.A(
+                                html.Img(
+                                    id="entropy_logo",
+                                    src="/assets/images/entropy_logo_dark.svg",
+                                ),
+                                className="navbar-nav me-auto",
+                                href="#",
+                            ),
+                            html.H3(
+                                f"{project_name(path)} ",
+                                className="navbar-nav me-auto",
+                            ),
+                            html.Small(
+                                f"[{project_path(path)}]",
+                                className="navbar-nav me-auto",
+                            ),
+                        ],
+                        className="navbar navbar-expand-lg navbar-dark bg-primary",
                     ),
-                    html.H3(
-                        f"{project_name(path)} ",
-                        className="navbar-nav me-auto",
-                    ),
-                    html.Small(
-                        f"[{project_path(path)}]",
-                        className="navbar-nav me-auto",
-                    ),
-                ],
-                className="navbar navbar-expand-lg navbar-dark bg-primary",
+                    width="8",
+                ),
+                className="bg-primary",
             ),
-            dbc.Row(dbc.Col([html.H5("Experiments"), _table], class_name="bg")),
+            dbc.Row(dbc.Col([html.H5("Experiments"), (table(records))], width="12")),
             dbc.Row(
                 [
                     dbc.Col(
-                        dbc.Tabs(
-                            id="plot-tabs",
-                            # value="",
-                            children=[],
+                        (
+                            dbc.Tabs(
+                                id="plot-tabs",
+                            ),
                         ),
-                        width="6",
+                        width="5",
+                    ),
+                    dbc.Col(
+                        dbc.Button(
+                            "Add >>",
+                            id="add-button",
+                        ),
+                        width="2",
                     ),
                     dbc.Col(
                         dbc.Tabs(
                             id="aggregate-tabs",
                             children=[
-                                dbc.Tab(html.Div(id="overlay"), label="Aggregate")
+                                dbc.Tab(
+                                    dcc.Graph(),
+                                    id="aggregate-tab",
+                                    label="Aggregate",
+                                ),
                             ],
                         ),
-                        width="6",
+                        width="5",
                     ),
                 ],
             ),

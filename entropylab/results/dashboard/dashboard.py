@@ -1,7 +1,7 @@
 import dash
 import pandas as pd
 from dash import html, dcc
-from dash.dependencies import Input, Output, State, ALL
+from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
@@ -40,8 +40,6 @@ def init(app, path):
     experiments["success"] = experiments["success"].apply(lambda x: "✔️" if x else "❌")
     records = experiments.to_dict("records")
 
-    # Callbacks
-
     @app.callback(
         Output("plot-tabs", "children"),
         Input("experiments-table", "selected_row_ids"),
@@ -74,8 +72,10 @@ def init(app, path):
                         )
         else:
             result = [
-                dcc.Tab(
-                    label=f"Select experiment(s) above to display their plots here.",
+                dbc.Tab(
+                    html.Div("Select an experiment above to display its plots here"),
+                    label=f"Plots",
+                    tab_id="placeholder",
                 )
             ]
             pass
@@ -98,6 +98,16 @@ def init(app, path):
             return dcc.Graph(figure=combined_figure)
         else:
             return [html.Div()]
+
+    @app.callback(
+        Output("plot-tabs", "active_tab"),
+        Input("plot-tabs", "children"),
+    )
+    def activate_last_plot_tab_when_tabs_are_changed(children):
+        if len(children) > 0:
+            last_tab = len(children) - 1
+            return children[last_tab]["props"]["tab_id"]
+        return 0
 
     # App layout
 

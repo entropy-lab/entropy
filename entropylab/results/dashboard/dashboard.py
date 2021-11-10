@@ -73,7 +73,13 @@ def init(app, path):
         else:
             result = [
                 dbc.Tab(
-                    html.Div("Select an experiment above to display its plots here"),
+                    html.Div(
+                        html.Div(
+                            "Select an experiment above to display its plots here",
+                            className="plot-tab-placeholder-text",
+                        ),
+                        className="plot-tab-placeholder",
+                    ),
                     label=f"Plots",
                     tab_id="placeholder",
                 )
@@ -153,11 +159,16 @@ def init(app, path):
                         width="5",
                     ),
                     dbc.Col(
-                        dbc.Button(
-                            "Add >>",
-                            id="add-button",
+                        html.Div(
+                            dbc.Button(
+                                "Add >>",
+                                id="add-button",
+                                className="add-button",
+                            ),
+                            className="add-button-col-container",
                         ),
-                        width="2",
+                        width="1",
+                        className="add-button-col",
                     ),
                     dbc.Col(
                         dbc.Tabs(

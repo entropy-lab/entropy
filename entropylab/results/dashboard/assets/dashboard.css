@@ -1,3 +1,7 @@
+html,body {
+  height:100%;
+}
+
 .main {
   width: 1260px;
   margin: auto;
@@ -48,16 +52,37 @@ input.current-page::placeholder {
   color:var(--bs-body-color) !important;
 }
 
-/*
-.add-button {
-  position:relative;
-  top: 100px;
-  left: 150px;
-  z-index: 1000;
+.tab-content {
+  width:100%;
+  min-height:400px !important;
+  background-color: #333333;
 }
-*/
-#overlay {
-  background-color: darkgrey;
-  width: 80%;
-  height:500px;
+
+.plot-tab-placeholder {
+  width:100%;
+  min-height:400px !important;
+  display: table;
+  overflow: hidden;
+}
+
+.plot-tab-placeholder-text {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: center;
+  color: #999999;
+}
+
+.add-button-col {
+  display: table;
+  overflow: hidden;
+
+}
+
+.add-button-col-container{
+  display: table-cell;
+  vertical-align: middle;
+}
+
+.add-button {
+  margin-top: 45px;
 }

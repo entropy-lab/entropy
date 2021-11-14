@@ -57,7 +57,9 @@ def init(app, path):
                         plot.generator.plot_plotly(
                             plot_figure,
                             plot.plot_data,
+                            name=f"Plot {plot.id}",
                             color=colors[len(result) % len(colors)],
+                            showlegend=True,
                         )
                         _plot_figures[plot.id] = plot_figure
                         result.append(

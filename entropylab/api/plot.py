@@ -34,13 +34,14 @@ class LinePlotGenerator(PlotGenerator):
         if isinstance(data, List) and len(data) == 2 and len(data[0]) == len(data[1]):
             x = data[0]
             y = data[1]
-            color = kwargs.get("color", "blue")
+            color = kwargs.pop("color", "blue")
             figure.add_trace(
                 go.Scatter(
                     mode="lines",
                     x=x,
                     y=y,
                     line_color=color,
+                    **kwargs,
                 )
             )
             return figure
@@ -75,13 +76,14 @@ class CirclePlotGenerator(PlotGenerator):
         if isinstance(data, List) and len(data) == 2 and len(data[0]) == len(data[1]):
             x = data[0]
             y = data[1]
-            color = kwargs.get("color", "blue")
+            color = kwargs.pop("color", "blue")
             figure.add_trace(
                 go.Scatter(
                     mode="markers",
                     x=x,
                     y=y,
                     marker_color=color,
+                    **kwargs,
                 )
             )
             return figure

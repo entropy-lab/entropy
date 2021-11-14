@@ -75,7 +75,6 @@ input.current-page::placeholder {
 .add-button-col {
   display: table;
   overflow: hidden;
-
 }
 
 .add-button-col-container{
@@ -85,4 +84,16 @@ input.current-page::placeholder {
 
 .add-button {
   margin-top: 45px;
+}
+
+#remove-buttons {
+  padding-top: 40px;
+}
+
+
+.remove-button {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  border-color: #666666;
+  font-size:12px;
 }

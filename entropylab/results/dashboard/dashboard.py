@@ -12,6 +12,7 @@ from plotly.subplots import make_subplots
 from entropylab import SqlAlchemyDB
 from entropylab.results.dashboard.dashboard_data import SqlalchemyDashboardDataReader
 from entropylab.results.dashboard.table import table
+from entropylab.results.dashboard.theme import colors, theme_stylesheet
 from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 
 MAX_EXPERIMENTS_NUM = 10000
@@ -47,7 +48,6 @@ def init(app, path):
         Input("experiments-table", "selected_row_ids"),
     )
     def render_plot_tabs_from_selected_experiments_table_rows(selected_row_ids):
-        colors = ["red", "green", "blue", "hotpink", "purple", "maroon", "brown"]
         result = []
         if selected_row_ids:
             for exp_id in selected_row_ids:
@@ -99,7 +99,7 @@ def init(app, path):
         Input("add-button", "n_clicks"),
         State("plot-tabs", "active_tab"),
     )
-    def add_or_remove_plot_in_combined_plot(id, n_clicks, active_tab):
+    def add_or_remove_plot_in_combined_plot(n_clicks1, n_clicks2, active_tab):
         prop_id = dash.callback_context.triggered[0]["prop_id"]
         # trigger was a click on the "Add >>" button
         if prop_id == "add-button.n_clicks" and active_tab:
@@ -235,6 +235,6 @@ def init(app, path):
 
 if __name__ == "__main__":
     """ This is the dash app that hosts our results dashboard """
-    _app = dash.Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+    _app = dash.Dash(__name__, external_stylesheets=[theme_stylesheet])
     init(_app, "tests")
     _app.run_server(debug=True)

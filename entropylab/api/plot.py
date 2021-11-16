@@ -77,12 +77,14 @@ class CirclePlotGenerator(PlotGenerator):
             x = data[0]
             y = data[1]
             color = kwargs.pop("color", "blue")
+            # noinspection PyTypeChecker
             figure.add_trace(
                 go.Scatter(
                     mode="markers",
                     x=x,
                     y=y,
                     marker_color=color,
+                    marker_size=10,
                     **kwargs,
                 )
             )

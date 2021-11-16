@@ -12,7 +12,14 @@ from plotly.subplots import make_subplots
 from entropylab import SqlAlchemyDB
 from entropylab.results.dashboard.dashboard_data import SqlalchemyDashboardDataReader
 from entropylab.results.dashboard.table import table
-from entropylab.results.dashboard.theme import colors, theme_stylesheet
+from entropylab.results.dashboard.theme import (
+    colors,
+    theme_stylesheet,
+    plot_legend_font_color,
+    plot_paper_bgcolor,
+    plot_plot_bgcolor,
+    plot_font_color,
+)
 from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 
 MAX_EXPERIMENTS_NUM = 10000
@@ -62,7 +69,14 @@ def init(app, path):
                             plot.plot_data,
                             name=f"Plot {plot.id}",
                             color=color,
-                            showlegend=True,
+                            showlegend=False,
+                        )
+                        plot_figure.update_layout(
+                            width=500,
+                            font_color=plot_font_color,
+                            legend_font_color=plot_legend_font_color,
+                            paper_bgcolor=plot_paper_bgcolor,
+                            plot_bgcolor=plot_plot_bgcolor,
                         )
                         _plot_figures[plot.id] = dict(figure=plot_figure, color=color)
                         result.append(
@@ -81,12 +95,12 @@ def init(app, path):
                     html.Div(
                         html.Div(
                             "Select an experiment above to display its plots here",
-                            className="plot-tab-placeholder-text",
+                            className="tab-placeholder-text",
                         ),
-                        className="plot-tab-placeholder",
+                        className="tab-placeholder-container",
                     ),
                     label=f"Plots",
-                    tab_id="placeholder",
+                    tab_id="plot-tab-placeholder",
                 )
             ]
             pass
@@ -116,10 +130,18 @@ def init(app, path):
             return build_aggregate_graph_and_remove_buttons()
         # default case
         else:
-            return [html.Div()], [html.Div()]
+            return [build_aggregate_tab_placeholder()], [html.Div()]
 
     def build_aggregate_graph_and_remove_buttons():
         combined_figure = make_subplots(specs=[[{"secondary_y": True}]])
+        combined_figure.update_layout(
+            width=500,
+            font_color=plot_font_color,
+            legend_font_color=plot_legend_font_color,
+            paper_bgcolor=plot_paper_bgcolor,
+            plot_bgcolor=plot_plot_bgcolor,
+            showlegend=True,
+        )
         remove_buttons = []
         for plot_id in _plot_ids_to_combine:
             figure = _plot_figures[plot_id]["figure"]
@@ -137,6 +159,15 @@ def init(app, path):
             id={"type": "remove-button", "index": plot_id},
         )
 
+    def build_aggregate_tab_placeholder():
+        return html.Div(
+            html.Div(
+                "Add a plot on the left to aggregate it here",
+                className="tab-placeholder-text",
+            ),
+            className="tab-placeholder-container",
+        )
+
     @app.callback(
         Output("plot-tabs", "active_tab"),
         Input("plot-tabs", "children"),
@@ -149,37 +180,46 @@ def init(app, path):
 
     # App layout
 
-    app.layout = html.Div(
+    app.layout = dbc.Container(
         className="main",
         children=[
             dbc.Row(
-                dbc.Col(
-                    dbc.Nav(
-                        children=[
-                            html.A(
-                                html.Img(
-                                    id="entropy_logo",
-                                    src="/assets/images/entropy_logo_dark.svg",
+                dbc.Navbar(
+                    dbc.Container(
+                        [
+                            dbc.NavbarBrand(
+                                html.A(
+                                    html.Img(
+                                        src="/assets/images/entropy_logo_dark.svg",
+                                        width=150,
+                                    ),
                                 ),
-                                className="navbar-nav me-auto",
                                 href="#",
                             ),
-                            html.H3(
-                                f"{project_name(path)} ",
-                                className="navbar-nav me-auto",
+                            html.H4(f"{project_name(path)} ", id="project-name"),
+                            dbc.Tooltip(
+                                f"{project_path(path)}",
+                                target="project-name",
                             ),
-                            html.Small(
-                                f"[{project_path(path)}]",
-                                className="navbar-nav me-auto",
+                            dbc.NavItem(
+                                dbc.NavLink(
+                                    "Dashboard",
+                                    href="#",
+                                    active=True,
+                                )
                             ),
-                        ],
-                        className="navbar navbar-expand-lg navbar-dark bg-primary",
+                            dbc.NavItem(dbc.NavLink("Configuration", href="#")),
+                        ]
                     ),
-                    width="8",
+                    color="primary",
                 ),
-                className="bg-primary",
             ),
-            dbc.Row(dbc.Col([html.H5("Experiments"), (table(records))], width="12")),
+            dbc.Row(
+                dbc.Col(
+                    [html.H5("Experiments", id="experiments-title"), (table(records))],
+                    width="12",
+                )
+            ),
             dbc.Row(
                 [
                     dbc.Col(
@@ -195,7 +235,6 @@ def init(app, path):
                             dbc.Button(
                                 "Add >>",
                                 id="add-button",
-                                className="add-button",
                             ),
                             className="add-button-col-container",
                         ),
@@ -207,28 +246,23 @@ def init(app, path):
                             id="aggregate-tabs",
                             children=[
                                 dbc.Tab(
-                                    dcc.Graph(),
+                                    build_aggregate_tab_placeholder(),
+                                    label=f"Aggregate",
                                     id="aggregate-tab",
-                                    label="Aggregate",
-                                ),
+                                )
                             ],
                         ),
                         width="5",
                     ),
                     dbc.Col(
-                        html.Div(
-                            dbc.Button(
-                                "Plot 1",
-                                className="add-button",
-                            ),
-                            className="add-button-col-container",
-                        ),
+                        [
+                            html.Div("<< Remove", id="remove-title"),
+                            html.Div(id="remove-buttons"),
+                        ],
                         width="1",
-                        id="remove-buttons",
                     ),
-                ],
+                ]
             ),
-            html.Div(id="dropdown-container-output"),
         ],
     )
 

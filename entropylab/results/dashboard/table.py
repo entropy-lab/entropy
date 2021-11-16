@@ -14,7 +14,6 @@ def table(records):
             dict(name="user", id="user", type="text"),
             dict(name="success", id="success"),
         ],
-        # {"name": i, "id": i} for i in self._experiments.columns],
         data=records,
         row_selectable="multi",
         cell_selectable=False,

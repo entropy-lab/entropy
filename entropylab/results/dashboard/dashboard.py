@@ -11,7 +11,7 @@ from plotly.subplots import make_subplots
 
 from entropylab import SqlAlchemyDB
 from entropylab.results.dashboard.dashboard_data import SqlalchemyDashboardDataReader
-from entropylab.results.dashboard.table import table
+from entropylab.results.dashboard.layout import layout
 from entropylab.results.dashboard.theme import (
     colors,
     theme_stylesheet,
@@ -179,92 +179,7 @@ def init(app, path):
         return 0
 
     # App layout
-
-    app.layout = dbc.Container(
-        className="main",
-        children=[
-            dbc.Row(
-                dbc.Navbar(
-                    dbc.Container(
-                        [
-                            dbc.NavbarBrand(
-                                html.A(
-                                    html.Img(
-                                        src="/assets/images/entropy_logo_dark.svg",
-                                        width=150,
-                                    ),
-                                ),
-                                href="#",
-                            ),
-                            html.H4(f"{project_name(path)} ", id="project-name"),
-                            dbc.Tooltip(
-                                f"{project_path(path)}",
-                                target="project-name",
-                            ),
-                            dbc.NavItem(
-                                dbc.NavLink(
-                                    "Dashboard",
-                                    href="#",
-                                    active=True,
-                                )
-                            ),
-                            dbc.NavItem(dbc.NavLink("Configuration", href="#")),
-                        ]
-                    ),
-                    color="primary",
-                ),
-            ),
-            dbc.Row(
-                dbc.Col(
-                    [html.H5("Experiments", id="experiments-title"), (table(records))],
-                    width="12",
-                )
-            ),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        (
-                            dbc.Tabs(
-                                id="plot-tabs",
-                            ),
-                        ),
-                        width="5",
-                    ),
-                    dbc.Col(
-                        html.Div(
-                            dbc.Button(
-                                "Add >>",
-                                id="add-button",
-                            ),
-                            className="add-button-col-container",
-                        ),
-                        width="1",
-                        className="add-button-col",
-                    ),
-                    dbc.Col(
-                        dbc.Tabs(
-                            id="aggregate-tabs",
-                            children=[
-                                dbc.Tab(
-                                    build_aggregate_tab_placeholder(),
-                                    label=f"Aggregate",
-                                    id="aggregate-tab",
-                                )
-                            ],
-                        ),
-                        width="5",
-                    ),
-                    dbc.Col(
-                        [
-                            html.Div("<< Remove", id="remove-title"),
-                            html.Div(id="remove-buttons"),
-                        ],
-                        width="1",
-                    ),
-                ]
-            ),
-        ],
-    )
+    app.layout = layout(path, records)
 
 
 if __name__ == "__main__":

@@ -14,7 +14,6 @@ from entropylab.results.dashboard.dashboard_data import SqlalchemyDashboardDataR
 from entropylab.results.dashboard.layout import layout
 from entropylab.results.dashboard.theme import (
     colors,
-    theme_stylesheet,
     plot_legend_font_color,
     plot_paper_bgcolor,
     plot_plot_bgcolor,
@@ -99,7 +98,7 @@ def init(app, path):
                         ),
                         className="tab-placeholder-container",
                     ),
-                    label=f"Plots",
+                    label="Plots",
                     tab_id="plot-tab-placeholder",
                 )
             ]
@@ -180,10 +179,3 @@ def init(app, path):
 
     # App layout
     app.layout = layout(path, records)
-
-
-if __name__ == "__main__":
-    """ This is the dash app that hosts our results dashboard """
-    _app = dash.Dash(__name__, external_stylesheets=[theme_stylesheet])
-    init(_app, "tests")
-    _app.run_server(debug=True)

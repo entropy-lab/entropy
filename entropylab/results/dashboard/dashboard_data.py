@@ -46,7 +46,3 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
                     )
                 )
         return plots
-
-    def freestyle_query(self, query):
-        pass
-        # todo

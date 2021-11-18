@@ -72,7 +72,7 @@ def layout(path: str, records: dict):
                             children=[
                                 dbc.Tab(
                                     "",
-                                    label=f"Aggregate",
+                                    label="Aggregate",
                                     id="aggregate-tab",
                                 )
                             ],

@@ -47,7 +47,7 @@ dash-bootstrap-components = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
-black = "^20.8b1"
+black = "^21.11b1"
 flake8 = "^3.9.0"
 flake8-bugbear = "^21.3.2"
 pytest-repeat = "^0.9.1"

@@ -3,6 +3,7 @@ import functools
 import sys
 
 from entropylab.logger import logger
+from entropylab.results.dashboard import serve_dashboard
 from entropylab.results_backend.sqlalchemy import init_db, upgrade_db
 
 
@@ -40,6 +41,11 @@ def update(args: argparse.Namespace):
     upgrade_db(args.directory)
 
 
+@command
+def serve(args: argparse.Namespace):
+    serve_dashboard(args.directory, args.debug)
+
+
 def _build_parser():
     parser = argparse.ArgumentParser()
     # in case no arguments were supplied:
@@ -63,6 +69,14 @@ def _build_parser():
     )
     update_parser.add_argument("directory", **directory_arg)
     update_parser.set_defaults(func=update)
+
+    # serve
+    serve_parser = subparsers.add_parser(
+        "serve", help="serve & launch the results dashboard app in a browser"
+    )
+    serve_parser.add_argument("directory", **directory_arg)
+    serve_parser.add_argument("--debug", dest="debug", action="store_true")
+    serve_parser.set_defaults(func=serve, debug=False)
 
     return parser
 

@@ -39,7 +39,7 @@ class _DbInitializer:
             self._alembic_util = _AlembicUtil(self._engine)
         else:
             logger.debug("_DbInitializer is in project directory mode")
-            creating_new = os.path.isdir(path)
+            creating_new = not os.path.isdir(path)
             entropy_dir_path = os.path.join(path, _ENTROPY_DIRNAME)
             os.makedirs(entropy_dir_path, exist_ok=True)
             logger.debug(f"Entropy directory is at: {entropy_dir_path}")

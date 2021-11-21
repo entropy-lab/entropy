@@ -250,7 +250,7 @@ class PlotTable(Base):
         return f"<PlotSpec(id='{self.id}')>"
 
     def to_record(self) -> PlotRecord:
-        data = _decode_serialized_data(self.data, self.data_type)
+        data = _decode_serialized_data(self.plot_data, self.data_type)
         generator = _get_class(self.generator_module, self.generator_class)
         return PlotRecord(
             experiment_id=self.experiment_id,

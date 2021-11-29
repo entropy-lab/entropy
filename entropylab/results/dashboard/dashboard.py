@@ -1,13 +1,11 @@
 import json
 
 import dash
-import pandas as pd
 from dash import html, dcc
 from dash.dependencies import Input, Output, State, ALL
 import dash_bootstrap_components as dbc
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
-
 
 from entropylab import SqlAlchemyDB
 from entropylab.api.data_reader import PlotRecord
@@ -19,40 +17,41 @@ from entropylab.results.dashboard.layout import layout
 from entropylab.results.dashboard.theme import (
     colors,
     dark_plot_layout,
+    theme_stylesheet,
 )
 from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 
 MAX_EXPERIMENTS_NUM = 10000
 EXPERIMENTS_PAGE_SIZE = 6
 
-_dashboard_data_reader: SqlalchemyDashboardDataReader
-_plot_figures = {}
-_plot_keys_to_combine = []
 
-
-def init(app, path):
+def build_dashboard_app(path):
     """Initialize the results dashboard Dash app to display an Entropy project
 
-    :param app the Dash app to initialize with the dashboard contents
     :param path path where the Entropy project to be used resides."""
 
-    # App setup
-
-    _title = f"Entropy - {project_name(path)} [{project_path(path)}]"
-    app.title = _title
-
-    # Fetching data from DB
-
-    global _dashboard_data_reader
     _dashboard_data_reader = SqlalchemyDashboardDataReader(SqlAlchemyDB(path))
-    experiments = pd.DataFrame(
-        _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
-    )
-    # TODO: How to filter this column when its values are emoji?
-    experiments["success"] = experiments["success"].apply(lambda x: "✔️" if x else "❌")
-    records = experiments.to_dict("records")
+    _plot_figures = {}
+    _plot_keys_to_combine = []
 
-    @app.callback(
+    def serve_layout():
+        """This function is called on "page load", fetching Experiment records
+        from the project DB and embedding them in the app layout."""
+        experiments = _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
+        # TODO: How to filter this column when its values are emoji?
+        experiments["success"] = experiments["success"].apply(
+            lambda x: "✔️" if x else "❌"
+        )
+        records = experiments.to_dict("records")
+        return layout(path, records)
+
+    _app = dash.Dash(__name__, external_stylesheets=[theme_stylesheet])
+    _app.title = f"Entropy - {project_name(path)} [{project_path(path)}]"
+    _app.layout = serve_layout
+
+    """ CALLBACKS and their helper functions """
+
+    @_app.callback(
         Output("plot-tabs", "children"),
         Input("experiments-table", "selected_row_ids"),
     )
@@ -115,7 +114,6 @@ def init(app, path):
         plot_key = f"{experiment_id}/auto"
         plot_name = f"Plot {plot_key}"
         # TODO: Fix this global workaround
-        global _dashboard_data_reader
         exp_result = _dashboard_data_reader.get_last_result_of_experiment(experiment_id)
         if exp_result:
             plot_figure = auto_plot(exp_result.data)
@@ -139,7 +137,7 @@ def init(app, path):
             tab_id=f"plot-tab-{plot_key}",
         )
 
-    @app.callback(
+    @_app.callback(
         Output("aggregate-tab", "children"),
         Output("remove-buttons", "children"),
         Input({"type": "remove-button", "index": ALL}, "n_clicks"),
@@ -194,7 +192,7 @@ def init(app, path):
             className="tab-placeholder-container",
         )
 
-    @app.callback(
+    @_app.callback(
         Output("plot-tabs", "active_tab"),
         Input("plot-tabs", "children"),
     )
@@ -204,5 +202,4 @@ def init(app, path):
             return children[last_tab]["props"]["tab_id"]
         return 0
 
-    # App layout
-    app.layout = layout(path, records)
+    return _app

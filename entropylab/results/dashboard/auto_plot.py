@@ -52,7 +52,7 @@ def xs_from(lst):
 
 
 def list_is_all_numeric(lst):
-    return all(is_numeric(x) for x in lst)
+    return len(lst) > 0 and all(is_numeric(x) for x in lst)
 
 
 def is_all_lists(lst):
@@ -76,9 +76,12 @@ def list_contains_one_list_of_scalars(data):
 
 
 def list_is_2d_equal_dims(lst):
+    if any(len(sublist) == 0 for sublist in lst):
+        raise EntropyError("Cannot auto-plot empty list or lists")
     types = map(type, lst)
-    if not all(t == List for t in list(types)):
+    if not all(t == list for t in list(types)):
         raise EntropyError(f"Cannot auto-plot list of these types: {list(types)}")
+
     sublist_len = len(lst[0])
     return all(
         len(sublist) == sublist_len and list_is_all_numeric(sublist) for sublist in lst

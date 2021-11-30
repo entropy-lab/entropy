@@ -18,7 +18,6 @@ plot_paper_bgcolor = "rgb(48, 48, 48)"
 plot_plot_bgcolor = "rgb(173, 181, 189)"
 
 dark_plot_layout = dict(
-    width=526,
     font_color=plot_font_color,
     legend_font_color=plot_legend_font_color,
     paper_bgcolor=plot_paper_bgcolor,

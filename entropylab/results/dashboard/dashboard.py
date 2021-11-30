@@ -129,9 +129,7 @@ def build_dashboard_app(path):
         plot_figure: go.Figure, plot_name: str, plot_key: str
     ) -> dbc.Tab:
         return dbc.Tab(
-            dcc.Graph(
-                figure=plot_figure,
-            ),
+            dcc.Graph(figure=plot_figure, responsive=True),
             label=plot_name,
             id=f"plot-tab-{plot_key}",
             tab_id=f"plot-tab-{plot_key}",
@@ -165,7 +163,6 @@ def build_dashboard_app(path):
 
     def build_aggregate_graph_and_remove_buttons():
         combined_figure = make_subplots(specs=[[{"secondary_y": True}]])
-        combined_figure.update_layout(dark_plot_layout)
         remove_buttons = []
         for plot_id in _plot_keys_to_combine:
             figure = _plot_figures[plot_id]["figure"]
@@ -173,7 +170,8 @@ def build_dashboard_app(path):
             combined_figure.add_trace(figure.data[0])
             button = build_remove_button(plot_id, color)
             remove_buttons.append(button)
-        return dcc.Graph(figure=combined_figure), remove_buttons
+        combined_figure.update_layout(dark_plot_layout)
+        return dcc.Graph(figure=combined_figure, responsive=True), remove_buttons
 
     def build_remove_button(plot_id, color):
         return dbc.Button(

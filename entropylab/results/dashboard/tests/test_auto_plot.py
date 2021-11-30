@@ -54,7 +54,7 @@ def test_auto_plot_list_containing_two_empty_lists():
 
 
 def test_auto_plot_list_containing_more_than_two_empty_lists():
-    data = [[1], [2], [3]]
+    data = [[], [], []]
     with pytest.raises(RuntimeError):
         auto_plot(data)
 

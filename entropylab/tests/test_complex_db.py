@@ -11,7 +11,7 @@ db_file=r'C:\repos\entropy\entropylab\tests\myproj'
 db=SqlAlchemyDB(path=db_file)
 er = ExperimentResources(db)    
 
-##
+## 1d array, single node
 def node_operation():
     return {'res':np.array([1,2,3,4])}
 
@@ -20,6 +20,8 @@ experiment = Graph(resources=er, graph={node1}, story="run_a")
 handle = experiment.run()
 
 
+
+## 2d array, single node
 def node_operation():
     return {'res':np.random.randn(5,5)}
 
@@ -28,7 +30,7 @@ experiment = Graph(resources=er, graph={node1}, story="run_a")
 handle = experiment.run()
 
 
-
+## 3d array, single node
 def node_operation():
     return {'res':np.random.randn(5,5,3)}
 
@@ -36,8 +38,7 @@ node1 = PyNode(label="3d array", program=node_operation,output_vars={'res'})
 experiment = Graph(resources=er, graph={node1}, story="run_a") 
 handle = experiment.run()
 
-
-
+## 2 1d arrays, 1 2d array , single node
 def node_operation():
     return {'x':np.random.randn(10),'y':np.random.randn(10),'res3':np.random.randn(10,10)}
 
@@ -46,14 +47,14 @@ experiment = Graph(resources=er, graph={node1}, story="run_a")
 handle = experiment.run()
 
 
-
+##2 nodes
 def node_operation1():
     return {'x':np.random.randn(10),'y':np.random.randn(10),'res3':np.random.randn(10,10)}
 
 def node_operation2():
     return {'x':np.random.randn(10),'y':np.random.randn(10),'res3':np.random.randn(10,10)}
 
-node1 = PyNode(label="multiple res", program=node1_operation,output_vars={'res'})
-node2 = PyNode(label="multiple res", program=node2_operation,output_vars={'res'})
+node1 = PyNode("the first node", node_operation1, output_vars={"x"})
+node2 = PyNode("the second node", node_operation2, input_vars={"x": node1.outputs["x"]})
 experiment = Graph(resources=er, graph={node1,node2}, story="multi-node") 
-handle = experiment.run()
+graph_handle = experiment.run(db)

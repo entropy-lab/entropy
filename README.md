@@ -72,5 +72,5 @@ See [docs](docs) folder in this repository for all the dirty details.
 
 Entropy can and will be extended via custom extensions. An example is `entropylab-qpudb`, an extension built to keep track of the calibration parameters of a mutli-qubit Quantum Processing Unit (QPU). This extension is useful when writing an automatic calibration graph. 
 
-
+   
 

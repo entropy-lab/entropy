@@ -1,11 +1,12 @@
 from typing import List
 
 import plotly
+import plotly.express as px
+import plotly.graph_objects as go
 from bokeh.models import Renderer
 from bokeh.plotting import Figure
-import plotly.graph_objects as go
-from matplotlib.figure import Figure as matplotlibFigure
 from matplotlib.axes import Axes as Axes
+from matplotlib.figure import Figure as matplotlibFigure
 
 from entropylab.api.data_writer import PlotGenerator
 
@@ -91,3 +92,18 @@ class CirclePlotGenerator(PlotGenerator):
             return figure
         else:
             raise TypeError("data type is not supported")
+
+
+class ImShowPlotGenerator(PlotGenerator):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def plot_plotly(self, figure: go.Figure, data, **kwargs) -> None:
+        # TODO: Validate type of data
+        return px.imshow(data)
+
+    def plot_bokeh(self, figure: Figure, data, **kwargs) -> Renderer:
+        raise NotImplementedError()
+
+    def plot_matplotlib(self, figure: matplotlibFigure, data, **kwargs):
+        raise NotImplementedError()

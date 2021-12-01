@@ -1,17 +1,14 @@
 import json
 
 import dash
+import dash_bootstrap_components as dbc
 from dash import html, dcc
 from dash.dependencies import Input, Output, State, ALL
-import dash_bootstrap_components as dbc
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 
 from entropylab import SqlAlchemyDB
 from entropylab.api.data_reader import PlotRecord
-from entropylab.logger import logger
-from entropylab.api.errors import EntropyError
-from entropylab.results.dashboard.auto_plot import auto_plot
 from entropylab.results.dashboard.dashboard_data import SqlalchemyDashboardDataReader
 from entropylab.results.dashboard.layout import layout
 from entropylab.results.dashboard.theme import (
@@ -59,6 +56,7 @@ def build_dashboard_app(path):
         selected_row_ids,
     ):
         result = []
+        failed_exp_ids = []
         if selected_row_ids:
             for exp_id in selected_row_ids:
                 plots = _dashboard_data_reader.get_plot_data(exp_id)
@@ -68,32 +66,28 @@ def build_dashboard_app(path):
                             color = colors[len(result) % len(colors)]
                             plot_tab = build_plot_tab_from_plot(plot, color)
                             result.append(plot_tab)
+                        else:
+                            failed_exp_ids.append(exp_id)
                 else:
-                    try:
-                        color = colors[len(result) % len(colors)]
-                        plot_tab = build_plot_tab_from_experiment(exp_id, color)
-                        result.append(plot_tab)
-                    except EntropyError:
-                        # TODO: Show notification to user that exp cannot be plotted
-                        logger.exception(
-                            f"Failed to auto-plot from experiment id [{exp_id}]"
-                        )
+                    failed_exp_ids.append(exp_id)
+        # TODO: Show notification to user that exp cannot be plotted (failed_exp_ids)
+        if len(result) > 0:
+            return result
         else:
-            result = [
-                dbc.Tab(
-                    html.Div(
-                        html.Div(
-                            "Select an experiment above to display its plots here",
-                            className="tab-placeholder-text",
-                        ),
-                        className="tab-placeholder-container",
-                    ),
-                    label="Plots",
-                    tab_id="plot-tab-placeholder",
-                )
-            ]
-            pass
-        return result
+            return [build_plot_tabs_placeholder()]
+
+    def build_plot_tabs_placeholder():
+        return dbc.Tab(
+            html.Div(
+                html.Div(
+                    "Select an experiment above to display its plots here",
+                    className="tab-placeholder-text",
+                ),
+                className="tab-placeholder-container",
+            ),
+            label="Plots",
+            tab_id="plot-tab-placeholder",
+        )
 
     def build_plot_tab_from_plot(plot: PlotRecord, color: str) -> dbc.Tab:
         plot_key = f"{plot.experiment_id}/{plot.id}"
@@ -109,21 +103,6 @@ def build_dashboard_app(path):
         plot_figure.update_layout(dark_plot_layout)
         _plot_figures[plot_key] = dict(figure=plot_figure, color=color)
         return build_plot_tab(plot_figure, plot_name, plot_key)
-
-    def build_plot_tab_from_experiment(experiment_id: int, color: str) -> dbc.Tab:
-        plot_key = f"{experiment_id}/auto"
-        plot_name = f"Plot {plot_key}"
-        # TODO: Fix this global workaround
-        exp_result = _dashboard_data_reader.get_last_result_of_experiment(experiment_id)
-        if exp_result:
-            plot_figure = auto_plot(exp_result.data)
-            # TODO: Handle line plots and imshow's:
-            plot_figure["data"][0]["marker"]["color"] = color
-            plot_figure.update_layout(dark_plot_layout)
-            _plot_figures[plot_key] = dict(figure=plot_figure, color=color)
-            return build_plot_tab(plot_figure, plot_name, plot_key)
-        else:
-            raise EntropyError(f"No results found for experiment id [{experiment_id}]")
 
     def build_plot_tab(
         plot_figure: go.Figure, plot_name: str, plot_key: str

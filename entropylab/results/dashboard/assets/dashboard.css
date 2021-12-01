@@ -106,6 +106,7 @@ input.current-page::placeholder {
 }
 
 .remove-button {
+  width: 70px;
   margin-top: 4px;
   margin-bottom: 4px;
   border-color: #666666;

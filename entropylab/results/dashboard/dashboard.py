@@ -50,15 +50,18 @@ def build_dashboard_app(path):
 
     @_app.callback(
         Output("plot-tabs", "children"),
-        Input("experiments-table", "selected_row_ids"),
+        State("experiments-table", "data"),
+        Input("experiments-table", "selected_rows"),
     )
     def render_plot_tabs_from_selected_experiments_table_rows(
-        selected_row_ids,
+        data,
+        selected_rows,
     ):
         result = []
         failed_exp_ids = []
-        if selected_row_ids:
-            for exp_id in selected_row_ids:
+        if selected_rows:
+            for row_num in selected_rows:
+                exp_id = data[row_num]["id"]
                 plots = _dashboard_data_reader.get_plot_data(exp_id)
                 if plots:
                     for plot in plots:

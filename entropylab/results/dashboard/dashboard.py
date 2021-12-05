@@ -1,4 +1,5 @@
 import json
+from typing import Dict
 
 import dash
 import dash_bootstrap_components as dbc
@@ -28,8 +29,8 @@ def build_dashboard_app(path):
     :param path path where the Entropy project to be used resides."""
 
     _dashboard_data_reader = SqlalchemyDashboardDataReader(SqlAlchemyDB(path))
-    _plot_figures = {}
-    _plot_keys_to_combine = []
+    # _plot_figures = {}
+    # _plot_keys_to_combine = []
 
     def serve_layout():
         """This function is called on "page load", fetching Experiment records
@@ -50,13 +51,15 @@ def build_dashboard_app(path):
 
     @_app.callback(
         Output("plot-tabs", "children"),
-        State("experiments-table", "data"),
+        Output("plot-figures", "data"),
         Input("experiments-table", "selected_rows"),
+        State("experiments-table", "data"),
+        State("plot-figures", "data"),
     )
     def render_plot_tabs_from_selected_experiments_table_rows(
-        data,
-        selected_rows,
+        selected_rows, data, plot_figures
     ):
+        plot_figures = plot_figures or {}
         result = []
         failed_exp_ids = []
         if selected_rows:
@@ -67,7 +70,9 @@ def build_dashboard_app(path):
                     for plot in plots:
                         if plot.generator:
                             color = colors[len(result) % len(colors)]
-                            plot_tab = build_plot_tab_from_plot(plot, color)
+                            plot_tab, plot_figures = build_plot_tab_from_plot(
+                                plot_figures, plot, color
+                            )
                             result.append(plot_tab)
                         else:
                             failed_exp_ids.append(exp_id)
@@ -75,9 +80,9 @@ def build_dashboard_app(path):
                     failed_exp_ids.append(exp_id)
         # TODO: Show notification to user that exp cannot be plotted (failed_exp_ids)
         if len(result) > 0:
-            return result
+            return result, plot_figures
         else:
-            return [build_plot_tabs_placeholder()]
+            return [build_plot_tabs_placeholder()], plot_figures
 
     def build_plot_tabs_placeholder():
         return dbc.Tab(
@@ -92,7 +97,9 @@ def build_dashboard_app(path):
             tab_id="plot-tab-placeholder",
         )
 
-    def build_plot_tab_from_plot(plot: PlotRecord, color: str) -> dbc.Tab:
+    def build_plot_tab_from_plot(
+        plot_figures, plot: PlotRecord, color: str
+    ) -> (dbc.Tab, Dict):
         plot_key = f"{plot.experiment_id}/{plot.id}"
         plot_name = f"Plot {plot_key}"
         plot_figure = go.Figure()
@@ -104,8 +111,8 @@ def build_dashboard_app(path):
             showlegend=False,
         )
         plot_figure.update_layout(dark_plot_layout)
-        _plot_figures[plot_key] = dict(figure=plot_figure, color=color)
-        return build_plot_tab(plot_figure, plot_name, plot_key)
+        plot_figures[plot_key] = dict(figure=plot_figure, color=color)
+        return build_plot_tab(plot_figure, plot_name, plot_key), plot_figures
 
     def build_plot_tab(
         plot_figure: go.Figure, plot_name: str, plot_key: str
@@ -120,36 +127,62 @@ def build_dashboard_app(path):
     @_app.callback(
         Output("aggregate-tab", "children"),
         Output("remove-buttons", "children"),
+        Output("plot-keys-to-combine", "data"),
         Input({"type": "remove-button", "index": ALL}, "n_clicks"),
         Input("add-button", "n_clicks"),
         State("plot-tabs", "active_tab"),
+        State("plot-figures", "data"),
+        State("plot-keys-to-combine", "data"),
     )
-    def add_or_remove_plot_in_combined_plot(n_clicks1, n_clicks2, active_tab):
+    def add_or_remove_plot_in_combined_plot(
+        n_clicks1, n_clicks2, active_tab, plot_figures, plot_keys_to_combine
+    ):
+        plot_keys_to_combine = plot_keys_to_combine or []
         prop_id = dash.callback_context.triggered[0]["prop_id"]
         # trigger was a click on the "Add >>" button
         if prop_id == "add-button.n_clicks" and active_tab:
             active_plot_key = active_tab.replace("plot-tab-", "")
-            if active_plot_key not in _plot_keys_to_combine:
-                _plot_keys_to_combine.append(active_plot_key)
-            return build_aggregate_graph_and_remove_buttons()
+            if active_plot_key not in plot_keys_to_combine:
+                plot_keys_to_combine.append(active_plot_key)
+            tabs, remove_buttons = build_aggregate_graph_and_remove_buttons(
+                plot_figures, plot_keys_to_combine
+            )
+            return (
+                tabs,
+                remove_buttons,
+                plot_keys_to_combine,
+            )
         # trigger was a click on one of the remove buttons
         elif "remove-button" in prop_id:
             id_dict = json.loads(prop_id.replace(".n_clicks", ""))
             remove_plot_key = id_dict["index"]
-            if remove_plot_key in _plot_keys_to_combine:
-                _plot_keys_to_combine.remove(remove_plot_key)
-            return build_aggregate_graph_and_remove_buttons()
+            if remove_plot_key in plot_keys_to_combine:
+                plot_keys_to_combine.remove(remove_plot_key)
+
+                tabs, remove_buttons = build_aggregate_graph_and_remove_buttons(
+                    plot_figures, plot_keys_to_combine
+                )
+                return (
+                    tabs,
+                    remove_buttons,
+                    plot_keys_to_combine,
+                )
+
         # default case
         else:
-            return [build_aggregate_tab_placeholder()], [html.Div()]
+            return (
+                [build_aggregate_tab_placeholder()],
+                [html.Div()],
+                plot_keys_to_combine,
+            )
 
-    def build_aggregate_graph_and_remove_buttons():
+    def build_aggregate_graph_and_remove_buttons(plot_figures, plot_keys_to_combine):
         combined_figure = make_subplots(specs=[[{"secondary_y": True}]])
         remove_buttons = []
-        for plot_id in _plot_keys_to_combine:
-            figure = _plot_figures[plot_id]["figure"]
-            color = _plot_figures[plot_id]["color"]
-            combined_figure.add_trace(figure.data[0])
+        for plot_id in plot_keys_to_combine:
+            figure = plot_figures[plot_id]["figure"]
+            color = plot_figures[plot_id]["color"]
+            combined_figure.add_trace(figure["data"][0])
             button = build_remove_button(plot_id, color)
             remove_buttons.append(button)
         combined_figure.update_layout(dark_plot_layout)

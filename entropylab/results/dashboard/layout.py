@@ -1,13 +1,16 @@
-from dash import html
 import dash_bootstrap_components as dbc
-from entropylab.results_backend.sqlalchemy.project import project_name, project_path
+from dash import html, dcc
+
 from entropylab.results.dashboard.table import table
+from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 
 
 def layout(path: str, records: dict):
     return dbc.Container(
         className="main",
         children=[
+            dcc.Store(id="plot-figures", storage_type="session"),
+            dcc.Store(id="plot-keys-to-combine", storage_type="session"),
             dbc.Row(
                 dbc.Navbar(
                     dbc.Container(
@@ -76,6 +79,7 @@ def layout(path: str, records: dict):
                                     id="aggregate-tab",
                                 )
                             ],
+                            persistence=True,
                         ),
                         width="5",
                     ),

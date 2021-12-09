@@ -15,6 +15,7 @@ def table(records):
             dict(name="success", id="success"),
         ],
         data=records,
+        persistence=True,
         row_selectable="multi",
         cell_selectable=False,
         sort_action="native",

@@ -9,6 +9,8 @@ import subprocess
 from pathlib import Path
 import os
 import pytest
+from distutils.dir_util import copy_tree
+from os.path import abspath
 
 def abs_path_to(rel_path: str) -> str:
     source_path = Path(__file__).resolve()
@@ -74,15 +76,18 @@ def create_and_populate_db(tmpdir_factory):
     return temp_dir
 
 @pytest.fixture(scope="function")
-def complex_db(create_and_populate_db):
+def complex_db(create_and_populate_db,tmpdir_factory):
+    local_temp = abspath(tmpdir_factory.mktemp('local_temp'))
+    copy_tree(abspath(create_and_populate_db) , abspath(local_temp))
+    return local_temp
+
+def test_fetch_res_by_name(complex_db):
+    db=SqlAlchemyDB(complex_db)
+    assert len(db.get_all_results_with_label(1,'res'))!=0 
+
+def test_fetch_2d_array(complex_db):
+    db=SqlAlchemyDB(complex_db)
+    data = db.get_results_from_node("2d array")[0]
     
-    pass
-    # TODO: copy db_file folder into a temp 
-    # TODO 
-
-def test_moo(create_and_populate_db):
-     pass
-
-
 
 

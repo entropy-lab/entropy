@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 * New results dashboard web application
 * Dashboard: Auto plot last result
+* Dashboard: Serve using production-grade WSGI server (waitress 2.0.0)
 
 ## [0.3.0] - 2021-10-11
 ### Added

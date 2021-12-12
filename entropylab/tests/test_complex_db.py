@@ -88,6 +88,5 @@ def test_fetch_res_by_name(complex_db):
 def test_fetch_2d_array(complex_db):
     db=SqlAlchemyDB(complex_db)
     data = db.get_results_from_node("2d array")[0]
-    
-
+    assert data.results[0].label == "2d array"
 

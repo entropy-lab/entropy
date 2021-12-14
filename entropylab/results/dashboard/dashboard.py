@@ -23,31 +23,33 @@ MAX_EXPERIMENTS_NUM = 10000
 EXPERIMENTS_PAGE_SIZE = 6
 
 
-def build_dashboard_app(path):
+def build_dashboard_app(proj_path):
     """Initialize the results dashboard Dash app to display an Entropy project
 
-    :param path path where the Entropy project to be used resides."""
+    :param proj_path path where the Entropy project to be used resides."""
 
-    _dashboard_data_reader = SqlalchemyDashboardDataReader(SqlAlchemyDB(path))
-    # _plot_figures = {}
-    # _plot_keys_to_combine = []
+    """ Creating and setting up our Dash app """
 
-    def serve_layout():
-        """This function is called on "page load", fetching Experiment records
-        from the project DB and embedding them in the app layout."""
-        experiments = _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
-        # TODO: How to filter this column when its values are emoji?
-        experiments["success"] = experiments["success"].apply(
-            lambda x: "✔️" if x else "❌"
-        )
-        records = experiments.to_dict("records")
-        return layout(path, records)
+    _dashboard_data_reader = SqlalchemyDashboardDataReader(SqlAlchemyDB(proj_path))
+
+    def _build_layout():
+        records = _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
+        return layout(proj_path, records)
 
     _app = dash.Dash(__name__, external_stylesheets=[theme_stylesheet])
-    _app.title = f"Entropy - {project_name(path)} [{project_path(path)}]"
-    _app.layout = serve_layout
+    _app.title = f"Entropy - {project_name(proj_path)} [{project_path(proj_path)}]"
+    _app.layout = _build_layout  # See: https://dash.plotly.com/live-updates
 
     """ CALLBACKS and their helper functions """
+
+    @_app.callback(
+        Output("experiments-table", "data"), Input("interval", "n_intervals")
+    )
+    def refresh_experiments_table(_):
+        """{Periodically refresh the experiments table.
+        See https://dash.plotly.com/live-updates}"""
+        records = _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
+        return records
 
     @_app.callback(
         Output("plot-tabs", "children"),
@@ -132,7 +134,7 @@ def build_dashboard_app(path):
         State("plot-keys-to-combine", "data"),
     )
     def add_or_remove_plot_keys_based_on_click_events(
-        n_clicks1, n_clicks2, active_tab, plot_keys_to_combine
+        _, __, active_tab, plot_keys_to_combine
     ):
         plot_keys_to_combine = plot_keys_to_combine or []
         prop_id = dash.callback_context.triggered[0]["prop_id"]

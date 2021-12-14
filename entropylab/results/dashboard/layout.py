@@ -1,3 +1,5 @@
+from typing import List, Dict
+
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 
@@ -5,12 +7,15 @@ from entropylab.results.dashboard.table import table
 from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 
 
-def layout(path: str, records: dict):
+def layout(path: str, records: List[Dict]):
     return dbc.Container(
         className="main",
         children=[
             dcc.Store(id="plot-figures", storage_type="session"),
             dcc.Store(id="plot-keys-to-combine", storage_type="session"),
+            dcc.Interval(
+                id="interval", interval=3 * 1000, n_intervals=0  # in milliseconds
+            ),
             dbc.Row(
                 dbc.Navbar(
                     dbc.Container(

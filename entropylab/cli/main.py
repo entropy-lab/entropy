@@ -7,7 +7,7 @@ from entropylab.results.dashboard import serve_dashboard
 from entropylab.results_backend.sqlalchemy import init_db, upgrade_db
 
 
-# decorator
+# Decorator for friendly error messages
 
 
 def command(func: callable) -> callable:
@@ -43,7 +43,10 @@ def update(args: argparse.Namespace):
 
 @command
 def serve(args: argparse.Namespace):
-    serve_dashboard(args.directory, args.debug)
+    serve_dashboard(args.directory, args.host, args.port, args.debug)
+
+
+# The parser
 
 
 def _build_parser():
@@ -75,6 +78,18 @@ def _build_parser():
         "serve", help="serve & launch the results dashboard app in a browser"
     )
     serve_parser.add_argument("directory", **directory_arg)
+    serve_parser.add_argument(
+        "host",
+        help="host name from which to serve the dashboard app",
+        nargs="?",
+        default=None,
+    )
+    serve_parser.add_argument(
+        "port",
+        help="port number from which to serve the dashboard app",
+        nargs="?",
+        default=None,
+    )
     serve_parser.add_argument("--debug", dest="debug", action="store_true")
     serve_parser.set_defaults(func=serve, debug=False)
 

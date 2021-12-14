@@ -9,7 +9,7 @@ from entropylab.cli.main import init, command
 
 def test_init_with_no_args():
     # arrange
-    args = argparse.Namespace
+    args = argparse.Namespace()
     args.directory = ""
     # act
     init(args)
@@ -17,7 +17,7 @@ def test_init_with_no_args():
 
 def test_init_with_current_dir():
     # arrange
-    args = argparse.Namespace
+    args = argparse.Namespace()
     args.directory = "."
     # act
     init(args)
@@ -29,14 +29,13 @@ def test_init_with_current_dir():
 
 
 # def test_serve():
-#     mock_function = create_autospec(serve_results, return_value=None)
-#     # mock serve_results
-#     # mocker.patch("serve_results")
-#     args = argparse.Namespace
-#     args.directory = "."
-#     args.port = 12345
+#     args = argparse.Namespace()
+#     args.directory = "tests_cache"
+#     args.host = "localhost"
+#     args.port = 9876
+#     args.debug = True
 #     serve(args)
-#     mock_function.assert_called_once()
+#     assert False
 
 
 def test_safe_run_command_with_no_args():

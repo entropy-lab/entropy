@@ -120,7 +120,7 @@ class ExperimentTable(Base):
 
 
 class ResultDataType(enum.Enum):
-    """ Numeric values """
+    """Numeric values"""
 
     Pickled = 1
     String = 2

@@ -11,7 +11,7 @@ from entropylab.results_backend.sqlalchemy import init_db, upgrade_db
 
 
 def command(func: callable) -> callable:
-    """Decorator that runs commands. On error, prints friendly message when possible """
+    """Decorator that runs commands. On error, prints friendly message when possible"""
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):

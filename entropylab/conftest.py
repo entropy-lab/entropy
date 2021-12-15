@@ -69,7 +69,7 @@ def _delete_if_exists(directory: str):
 
 
 def _copy_db_template(src, dst, request):
-    """ Copy the source DB (path relative to test file) to the destination dir """
+    """Copy the source DB (path relative to test file) to the destination dir"""
     if src is not None and src != "":
         abs_src = os.path.join(request.fspath.dirname, src)
         logger.debug(f"Copied db template from '{abs_src}' to '{dst}'")

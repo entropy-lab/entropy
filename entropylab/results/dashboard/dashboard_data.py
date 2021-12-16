@@ -2,6 +2,7 @@ import abc
 from typing import List, Dict
 
 # import numpy as np
+import pandas as pd
 from pandas import DataFrame
 
 from entropylab import SqlAlchemyDB
@@ -28,6 +29,12 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
         experiments = self._db.get_last_experiments(max_num_of_experiments)
         experiments["success"] = experiments["success"].apply(
             lambda x: "✔️" if x else "❌"
+        )
+        experiments["start_time"] = pd.DatetimeIndex(
+            experiments["start_time"]
+        ).strftime("%Y-%m-%d %H:%M:%S")
+        experiments["end_time"] = pd.DatetimeIndex(experiments["end_time"]).strftime(
+            "%Y-%m-%d %H:%M:%S"
         )
         records = experiments.to_dict("records")
         return records

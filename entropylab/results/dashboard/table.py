@@ -32,12 +32,12 @@ def table(records):
         },
         style_cell_conditional=[
             {"if": {"column_id": "id"}, "width": "7%"},
-            {"if": {"column_id": "label"}, "width": "20%"},
+            {"if": {"column_id": "label"}, "width": "30%"},
             {
                 "if": {"column_id": "start_time"},
-                "width": "23%",
+                "width": "18%",
             },
-            {"if": {"column_id": "end_time"}, "width": "23%"},
+            {"if": {"column_id": "end_time"}, "width": "18%"},
             {"if": {"column_id": "user"}, "width": "17%"},
             {"if": {"column_id": "success"}, "width": "10%"},
         ],

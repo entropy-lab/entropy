@@ -39,7 +39,10 @@ def build_dashboard_app(proj_path):
         return layout(proj_path, records)
 
     _app = dash.Dash(
-        __name__, external_stylesheets=[theme_stylesheet], update_title=None
+        __name__,
+        external_stylesheets=[theme_stylesheet],
+        update_title=None,
+        suppress_callback_exceptions=True,
     )
     _app.title = f"Entropy - {project_name(proj_path)} [{project_path(proj_path)}]"
     _app.layout = _build_layout  # See: https://dash.plotly.com/live-updates
@@ -216,7 +219,14 @@ def build_dashboard_app(proj_path):
                 button = build_remove_button(plot_id, color)
                 remove_buttons.append(button)
             combined_figure.update_layout(dark_plot_layout)
-            return dcc.Graph(figure=combined_figure, responsive=True), remove_buttons
+            return (
+                dcc.Graph(
+                    id="aggregate-graph",
+                    figure=combined_figure,
+                    responsive=True,
+                ),
+                remove_buttons,
+            )
         else:
             return (
                 [build_aggregate_tab_placeholder()],
@@ -233,10 +243,18 @@ def build_dashboard_app(proj_path):
 
     def build_aggregate_tab_placeholder():
         return html.Div(
-            html.Div(
-                "Add a plot on the left to aggregate it here",
-                className="tab-placeholder-text",
-            ),
+            [
+                html.Div(
+                    "Add a plot on the left to aggregate it here",
+                    className="tab-placeholder-text",
+                ),
+                dcc.Graph(
+                    id="aggregate-graph",
+                    figure=go.Figure(),
+                    responsive=True,
+                    style={"display": "none"},
+                ),
+            ],
             className="tab-placeholder-container",
         )
 
@@ -250,6 +268,15 @@ def build_dashboard_app(proj_path):
             return children[last_tab]["props"]["tab_id"]
         return 0
 
+    @_app.callback(
+        Output("aggregate-clipboard", "content"),
+        Input("aggregate-clipboard", "n_clicks"),
+        State("aggregate-graph", "figure"),
+        prevent_initial_call=True,
+    )
+    def copy_aggregate_data_to_clipboard_as_python_code(_, figure):
+        return _copy_aggregate_data_to_clipboard_as_python_code(_, figure)
+
     return _app
 
 
@@ -259,3 +286,8 @@ def get_added_row(prev: List[int], curr: List[int]) -> int or None:
         return added_rows[0]
     else:
         return None
+
+
+def _copy_aggregate_data_to_clipboard_as_python_code(_, figure):
+    _dict = list(map(lambda d: {d["name"]: {"x": d["x"], "y": d["y"]}}, figure["data"]))
+    return f"data = {_dict}".replace("array(", "np.array(")

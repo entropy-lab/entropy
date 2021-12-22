@@ -48,7 +48,7 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
             return plots
         else:
             last_result = self._db.get_last_result_of_experiment(exp_id)
-            if last_result and last_result.data:
+            if last_result is not None and last_result.data is not None:
                 plot = auto_plot(exp_id, last_result.data)
                 return [plot]
             else:

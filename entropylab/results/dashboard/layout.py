@@ -127,17 +127,33 @@ def layout(path: str, records: List[Dict]):
                         className="add-button-col",
                     ),
                     dbc.Col(
-                        dbc.Tabs(
-                            id="aggregate-tabs",
-                            children=[
-                                dbc.Tab(
-                                    "",
-                                    label="Aggregate",
-                                    id="aggregate-tab",
-                                )
-                            ],
-                            persistence=True,
-                        ),
+                        [
+                            dbc.Tabs(
+                                id="aggregate-tabs",
+                                children=[
+                                    dbc.Tab(
+                                        "",
+                                        label="Aggregate",
+                                        id="aggregate-tab",
+                                    )
+                                ],
+                                persistence=True,
+                            ),
+                            dbc.Button(
+                                [
+                                    "Copy Data to Clipboard",
+                                    dcc.Clipboard(
+                                        title="Copy data to clipboard",
+                                        id="aggregate-clipboard",
+                                        className="position-absolute start-0 top-0 "
+                                        "h-100 w-100 opacity-0",
+                                    ),
+                                ],
+                                id="copy-data-button",
+                                color="primary",
+                            ),
+                        ],
+                        id="aggregate-container",
                         width="5",
                     ),
                     dbc.Col(

@@ -86,7 +86,7 @@ input.current-page::placeholder {
 .tab-content {
   width:100%;
   min-height:400px !important;
-  background-color: #333333;
+  background-color: rgb(var(--bs-dark-rgb)); /*#333333;*/
 }
 
 .tab-placeholder-container {
@@ -147,4 +147,19 @@ input.current-page::placeholder {
   right: 20px;
   z-index: 100;
   opacity: 95%;
+}
+
+#aggregate-container {
+  position: relative;
+}
+
+#aggregate-tabs .nav-item {
+  width:154px;
+}
+
+#copy-data-button {
+  position: absolute;
+  top: 3px;
+  left: 240px;
+  font-size:12px;
 }

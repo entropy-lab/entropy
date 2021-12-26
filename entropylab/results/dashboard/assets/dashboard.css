@@ -53,6 +53,10 @@ input.current-page::placeholder {
   color: var(--bs-body-color) !important;
 }
 
+#no-paging-spacer {
+  height:40px
+}
+
 /* Tab colors */
 .nav .nav-item .active.nav-link {
   background-color: rgb(var(--bs-dark-rgb)) !important;

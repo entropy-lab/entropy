@@ -49,7 +49,11 @@ def layout(path: str, records: List[Dict]):
             ),
             dbc.Row(
                 dbc.Col(
-                    [html.H5("Experiments", id="experiments-title"), (table(records))],
+                    [
+                        html.H5("Experiments", id="experiments-title"),
+                        (table(records)),
+                        html.Div(id="no-paging-spacer"),
+                    ],
                     width="12",
                 )
             ),

@@ -54,6 +54,7 @@ def build_dashboard_app(proj_path):
     @_app.callback(
         Output("plot-tabs", "children"),
         Output("plot-figures", "data"),
+        Output("no-paging-spacer", "hidden"),
         Input("experiments-table", "selected_rows"),
         State("experiments-table", "data"),
         State("plot-figures", "data"),
@@ -64,6 +65,7 @@ def build_dashboard_app(proj_path):
         plot_figures = plot_figures or {}
         result = []
         failed_exp_ids = []
+        spacer_hidden = len(data) > EXPERIMENTS_PAGE_SIZE
         if selected_rows:
             for row_num in selected_rows:
                 exp_id = data[row_num]["id"]
@@ -82,9 +84,9 @@ def build_dashboard_app(proj_path):
                     failed_exp_ids.append(exp_id)
         # TODO: Show notification to user that exp cannot be plotted (failed_exp_ids)
         if len(result) > 0:
-            return result, plot_figures
+            return result, plot_figures, spacer_hidden
         else:
-            return [build_plot_tabs_placeholder()], plot_figures
+            return [build_plot_tabs_placeholder()], plot_figures, spacer_hidden
 
     def build_plot_tabs_placeholder():
         return dbc.Tab(

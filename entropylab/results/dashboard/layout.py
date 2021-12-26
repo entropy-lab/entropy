@@ -13,8 +13,27 @@ def layout(path: str, records: List[Dict]):
         children=[
             dcc.Store(id="plot-figures", storage_type="session"),
             dcc.Store(id="plot-keys-to-combine", storage_type="session"),
+            dcc.Store(id="failed_exp_ids", storage_type="session"),
+            dcc.Store(id="failed_plot_ids", storage_type="session"),
+            dcc.Store(id="prev_selected_rows", storage_type="session"),
             dcc.Interval(
                 id="interval", interval=3 * 1000, n_intervals=0  # in milliseconds
+            ),
+            dbc.Alert(
+                "",
+                id="failed-exp-alert",
+                color="warning",
+                is_open=False,
+                fade=True,
+                duration=3000,
+            ),
+            dbc.Alert(
+                "",
+                id="failed-plot-alert",
+                color="warning",
+                is_open=False,
+                fade=True,
+                duration=3000,
             ),
             dbc.Row(
                 dbc.Navbar(

@@ -1,5 +1,5 @@
 import json
-from typing import Dict
+from typing import Dict, List
 
 import dash
 import dash_bootstrap_components as dbc
@@ -10,6 +10,8 @@ from plotly.subplots import make_subplots
 
 from entropylab import SqlAlchemyDB
 from entropylab.api.data_reader import PlotRecord
+from entropylab.api.errors import EntropyError
+from entropylab.logger import logger
 from entropylab.results.dashboard.dashboard_data import SqlalchemyDashboardDataReader
 from entropylab.results.dashboard.layout import layout
 from entropylab.results.dashboard.theme import (
@@ -54,37 +56,89 @@ def build_dashboard_app(proj_path):
     @_app.callback(
         Output("plot-tabs", "children"),
         Output("plot-figures", "data"),
+        Output("failed_exp_ids", "data"),
+        Output("failed_plot_ids", "data"),
+        Output("prev_selected_rows", "data"),
         Input("experiments-table", "selected_rows"),
         State("experiments-table", "data"),
         State("plot-figures", "data"),
+        State("prev_selected_rows", "data"),
+        # State("failed_exp_ids", "data"),
+        # State("failed_plot_ids", "data"),
     )
     def render_plot_tabs_from_selected_experiments_table_rows(
-        selected_rows, data, plot_figures
+        selected_rows,
+        data,
+        plot_figures,
+        prev_selected_rows,  # , failed_exp_ids, failed_plot_ids
     ):
         plot_figures = plot_figures or {}
-        result = []
+        # failed_exp_ids = failed_exp_ids or []
+        # failed_plot_ids = failed_plot_ids or []
         failed_exp_ids = []
+        failed_plot_ids = []
+        result = []
+        prev_selected_rows = prev_selected_rows or {}
+        added_row = get_added_row(prev_selected_rows, selected_rows)
         if selected_rows:
             for row_num in selected_rows:
                 exp_id = data[row_num]["id"]
+                alert_on_fail = row_num == added_row
                 plots = _dashboard_data_reader.get_plot_data(exp_id)
                 if plots:
                     for plot in plots:
                         if plot.generator:
                             color = colors[len(result) % len(colors)]
-                            plot_tab, plot_figures = build_plot_tab_from_plot(
-                                plot_figures, plot, color
-                            )
-                            result.append(plot_tab)
+                            try:
+                                plot_tab, plot_figures = build_plot_tab_from_plot(
+                                    plot_figures, plot, color
+                                )
+                                result.append(plot_tab)
+                            except EntropyError:
+                                logger.exception(
+                                    f"Failed to auto plot plot with id {plot.id}"
+                                )
+                                if alert_on_fail:
+                                    failed_plot_ids.append(plot.id)
                         else:
-                            failed_exp_ids.append(exp_id)
+                            if alert_on_fail:
+                                failed_plot_ids.append(plot.id)
                 else:
-                    failed_exp_ids.append(exp_id)
-        # TODO: Show notification to user that exp cannot be plotted (failed_exp_ids)
-        if len(result) > 0:
-            return result, plot_figures
+                    if alert_on_fail:
+                        failed_exp_ids.append(exp_id)
+        if len(result) == 0:
+            result = [build_plot_tabs_placeholder()]
+        return result, plot_figures, failed_exp_ids, failed_plot_ids, selected_rows
+
+    @_app.callback(
+        Output("failed-exp-alert", "children"),
+        Output("failed-exp-alert", "is_open"),
+        Input("failed_exp_ids", "data"),
+    )
+    def show_failed_exp_alert(failed_exp_ids):
+        if len(failed_exp_ids) != 0:
+            ids = ",".join(map(str, failed_exp_ids))
+            alert_text = f"⚠ Some experiments cannot be rendered. (ids: {ids})"
+            alert_is_open = True
         else:
-            return [build_plot_tabs_placeholder()], plot_figures
+            alert_text = ""
+            alert_is_open = False
+        return alert_text, alert_is_open
+
+    @_app.callback(
+        Output("failed-plot-alert", "children"),
+        Output("failed-plot-alert", "is_open"),
+        Input("failed_plot_ids", "data"),
+    )
+    def show_failed_plot_alert(failed_plot_ids):
+        if len(failed_plot_ids) != 0:
+            ids = ",".join(map(str, failed_plot_ids))
+            alert_text = f"⚠ Some plots cannot be rendered. (ids: {ids})"
+            alert_is_open = True
+        else:
+            alert_text = ""
+            alert_is_open = False
+        return alert_text, alert_is_open
 
     def build_plot_tabs_placeholder():
         return dbc.Tab(
@@ -201,3 +255,11 @@ def build_dashboard_app(proj_path):
         return 0
 
     return _app
+
+
+def get_added_row(prev: List[int], curr: List[int]) -> int or None:
+    added_rows = list(set(curr) - set(prev))
+    if len(added_rows) != 0:
+        return added_rows[0]
+    else:
+        return None

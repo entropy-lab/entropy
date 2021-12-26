@@ -25,6 +25,25 @@ def layout(path: str, records: List[Dict]):
                 fade=True,
                 # duration=3000,
             ),
+            dbc.Modal(
+                [
+                    dbc.ModalHeader(
+                        dbc.ModalTitle(
+                            f"ℹ️ Project '{project_name(path)}' contains no experiments"
+                        ),
+                        close_button=False,
+                    ),
+                    dbc.ModalBody(
+                        "As soon as experiments are saved to the project this notice "
+                        "will be closed and the experiments will be shown below."
+                    ),
+                    dbc.ModalFooter(),
+                ],
+                id="empty-project-modal",
+                backdrop="static",
+                centered=True,
+                is_open=False,
+            ),
             dbc.Row(
                 dbc.Navbar(
                     [

@@ -38,20 +38,25 @@ def build_dashboard_app(proj_path):
         records = _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
         return layout(proj_path, records)
 
-    _app = dash.Dash(__name__, external_stylesheets=[theme_stylesheet])
+    _app = dash.Dash(
+        __name__, external_stylesheets=[theme_stylesheet], update_title=None
+    )
     _app.title = f"Entropy - {project_name(proj_path)} [{project_path(proj_path)}]"
     _app.layout = _build_layout  # See: https://dash.plotly.com/live-updates
 
     """ CALLBACKS and their helper functions """
 
     @_app.callback(
-        Output("experiments-table", "data"), Input("interval", "n_intervals")
+        Output("experiments-table", "data"),
+        Output("empty-project-modal", "is_open"),
+        Input("interval", "n_intervals"),
     )
     def refresh_experiments_table(_):
         """{Periodically refresh the experiments table.
         See https://dash.plotly.com/live-updates}"""
         records = _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
-        return records
+        open_empty_project_modal = len(records) == 0
+        return records, open_empty_project_modal
 
     @_app.callback(
         Output("failed-plotting-alert", "is_open"),
@@ -81,7 +86,7 @@ def build_dashboard_app(proj_path):
         alert_text = ""
         added_row = get_added_row(prev_selected_rows, selected_rows)
         spacer_hidden = len(data) > EXPERIMENTS_PAGE_SIZE
-        if selected_rows:
+        if data and selected_rows:
             for row_num in selected_rows:
                 alert_on_fail = row_num == added_row
                 exp_id = data[row_num]["id"]

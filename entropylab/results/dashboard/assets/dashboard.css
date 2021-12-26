@@ -126,6 +126,10 @@ input.current-page::placeholder {
   border-color: #999999;
 }
 
+.modal-backdrop.show {
+  opacity: 0.8;
+}
+
 #failed-plotting-alert {
   position: absolute;
   top: 20px;

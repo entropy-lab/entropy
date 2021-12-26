@@ -121,12 +121,10 @@ input.current-page::placeholder {
   border-color: #999999;
 }
 
-
-#failed-exp-alert,
-#failed-plot-alert {
+#failed-plotting-alert {
   position: fixed;
   top: 20px;
-  right:20px;
+  margin-left:930px;
   z-index: 100;
   opacity: 95%;
 }

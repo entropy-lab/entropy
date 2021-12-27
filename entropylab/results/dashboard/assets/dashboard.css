@@ -15,6 +15,17 @@ html,body {
   color: var(--bg-primary) !important;
 }
 
+#logo-col {
+  justify-content: center;
+  display: flex;
+}
+
+#project-name {
+  font-family: monospace !important;
+  font-weight: 900 !important;
+  font-size: 24px;
+}
+
 #experiments-title {
   margin-top:20px;
 }

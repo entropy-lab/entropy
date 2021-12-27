@@ -28,31 +28,49 @@ def layout(path: str, records: List[Dict]):
             dbc.Row(
                 dbc.Navbar(
                     [
-                        dbc.Container(
-                            [
-                                dbc.NavbarBrand(
-                                    html.A(
-                                        html.Img(
-                                            src="/assets/images/entropy_logo_dark.svg",
-                                            width=150,
-                                        ),
+                        dbc.Col(
+                            dbc.NavbarBrand(
+                                html.A(
+                                    html.Img(
+                                        src="/assets/images/entropy_logo_dark.svg",
+                                        width=150,
+                                        id="entropy-logo",
                                     ),
                                     href="#",
                                 ),
-                                html.H4(f"{project_name(path)} ", id="project-name"),
+                                href="#",
+                            ),
+                            width="3",
+                            id="logo-col",
+                        ),
+                        dbc.Col(
+                            [
+                                html.Div(f"{project_name(path)}", id="project-name"),
                                 dbc.Tooltip(
                                     f"{project_path(path)}",
                                     target="project-name",
                                 ),
-                                dbc.NavItem(
-                                    dbc.NavLink(
-                                        "Dashboard",
-                                        href="#",
-                                        active=True,
-                                    )
-                                ),
-                                dbc.NavItem(dbc.NavLink("Configuration", href="#")),
                             ],
+                            width="3",
+                        ),
+                        dbc.Col(
+                            dbc.Row(
+                                [
+                                    dbc.Col(
+                                        dbc.NavItem(
+                                            dbc.NavLink(
+                                                "Dashboard", href="#", active=True
+                                            )
+                                        )
+                                    ),
+                                    dbc.Col(
+                                        dbc.NavItem(
+                                            dbc.NavLink("Configuration", href="#")
+                                        )
+                                    ),
+                                ]
+                            ),
+                            width="6",
                         ),
                     ],
                     color="primary",

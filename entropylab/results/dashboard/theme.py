@@ -23,4 +23,5 @@ dark_plot_layout = dict(
     paper_bgcolor=plot_paper_bgcolor,
     plot_bgcolor=plot_plot_bgcolor,
     showlegend=False,
+    margin=dict(b=40, t=40, l=40, r=40),
 )

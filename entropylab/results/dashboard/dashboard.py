@@ -54,10 +54,16 @@ def build_dashboard_app(proj_path):
         return records
 
     @_app.callback(
+        Output("failed-plotting-alert", "is_open"),
+        Input("failed-plotting-alert", "children"),
+    )
+    def open_failed_plotting_alert_when_its_not_empty(children):
+        return children != ""
+
+    @_app.callback(
         Output("plot-tabs", "children"),
         Output("plot-figures", "data"),
         Output("prev-selected-rows", "data"),
-        Output("failed-plotting-alert", "is_open"),
         Output("failed-plotting-alert", "children"),
         Input("experiments-table", "selected_rows"),
         State("experiments-table", "data"),
@@ -70,44 +76,56 @@ def build_dashboard_app(proj_path):
         result = []
         plot_figures = plot_figures or {}
         prev_selected_rows = prev_selected_rows or {}
-        alert_is_open = False
         alert_text = ""
         added_row = get_added_row(prev_selected_rows, selected_rows)
         if selected_rows:
             for row_num in selected_rows:
                 alert_on_fail = row_num == added_row
                 exp_id = data[row_num]["id"]
-                plots = _dashboard_data_reader.get_plot_data(exp_id)
+                try:
+                    plots = _dashboard_data_reader.get_plot_data(exp_id)
+                except EntropyError:
+                    logger.exception(
+                        f"Exception when getting plot data for exp_id={exp_id}"
+                    )
+                    if alert_on_fail:
+                        alert_text = (
+                            f"⚠ Error when reading plot data for this "
+                            f"experiment. (id: {exp_id})"
+                        )
+                    plots = None
                 if plots and len(plots) > 0:
                     failed_plot_ids = []
-                    for plot in plots:
-                        try:
-                            color = colors[len(result) % len(colors)]
-                            plot_tab, plot_figures = build_plot_tab_from_plot(
-                                plot_figures, plot, color
-                            )
-                            result.append(plot_tab)
-                        except EntropyError:
-                            logger.exception(
-                                f"Failed to auto plot plot with id {plot.id}"
-                            )
-                            if alert_on_fail:
-                                failed_plot_ids.append(plot.id)
+                    plot_figures = build_plot_tabs(
+                        alert_on_fail, failed_plot_ids, plot_figures, plots, result
+                    )
                     if len(failed_plot_ids) > 0:
-                        alert_is_open = True
                         alert_text = (
                             f"⚠ Some plots could not be rendered. "
                             f"(ids: {failed_plot_ids})"
                         )
                 else:
-                    if alert_on_fail:
-                        alert_is_open = True
+                    if alert_on_fail and alert_text == "":
                         alert_text = (
                             f"⚠ Experiment has no plots to render. (id: {exp_id})"
                         )
         if len(result) == 0:
             result = [build_plot_tabs_placeholder()]
-        return result, plot_figures, selected_rows, alert_is_open, alert_text
+        return result, plot_figures, selected_rows, alert_text
+
+    def build_plot_tabs(alert_on_fail, failed_plot_ids, plot_figures, plots, result):
+        for plot in plots:
+            try:
+                color = colors[len(result) % len(colors)]
+                plot_tab, plot_figures = build_plot_tab_from_plot(
+                    plot_figures, plot, color
+                )
+                result.append(plot_tab)
+            except EntropyError:
+                logger.exception(f"Failed to auto plot plot with id {plot.id}")
+                if alert_on_fail:
+                    failed_plot_ids.append(plot.id)
+        return plot_figures
 
     def build_plot_tabs_placeholder():
         return dbc.Tab(

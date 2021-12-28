@@ -23,7 +23,7 @@ def layout(path: str, records: List[Dict]):
                 color="warning",
                 is_open=False,
                 fade=True,
-                duration=3000,
+                # duration=3000,
             ),
             dbc.Row(
                 dbc.Navbar(

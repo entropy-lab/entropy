@@ -67,7 +67,10 @@ def _encode_serialized_data(data):
 
 def _decode_serialized_data(serialized_data, data_type):
     if data_type == ResultDataType.Pickled:
-        data = pickle.loads(serialized_data)
+        try:
+            data = pickle.loads(serialized_data)
+        except TypeError as te:
+            raise EntropyError("TypeError when loading pickled data", te)
     elif data_type == ResultDataType.Npy:
         bio = BytesIO(serialized_data)
         data = np.load(bio)

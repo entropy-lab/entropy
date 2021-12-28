@@ -122,9 +122,9 @@ input.current-page::placeholder {
 }
 
 #failed-plotting-alert {
-  position: fixed;
+  position: absolute;
   top: 20px;
-  margin-left:930px;
+  right: 20px;
   z-index: 100;
   opacity: 95%;
 }

@@ -102,7 +102,7 @@ def build_dashboard_app(proj_path):
                     if len(failed_plot_ids) > 0:
                         alert_text = (
                             f"⚠ Some plots could not be rendered. "
-                            f"(ids: {failed_plot_ids})"
+                            f"(ids: {','.join(failed_plot_ids)})"
                         )
                 else:
                     if alert_on_fail and alert_text == "":
@@ -121,10 +121,11 @@ def build_dashboard_app(proj_path):
                     plot_figures, plot, color
                 )
                 result.append(plot_tab)
-            except EntropyError:
-                logger.exception(f"Failed to auto plot plot with id {plot.id}")
+            except (EntropyError, TypeError):
+                logger.exception(f"Failed to render plot id [{plot.id}]")
                 if alert_on_fail:
-                    failed_plot_ids.append(plot.id)
+                    plot_key = f"{plot.experiment_id}/{plot.id}"
+                    failed_plot_ids.append(plot_key)
         return plot_figures
 
     def build_plot_tabs_placeholder():

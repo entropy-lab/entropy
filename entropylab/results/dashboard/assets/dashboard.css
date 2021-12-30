@@ -2,6 +2,10 @@ html,body {
   height:100%;
 }
 
+.main {
+  position: relative;
+}
+
 #top-bar {
   background: #039;
 }
@@ -49,12 +53,13 @@ html,body {
   color: var(--bs-body-color) !important;
   background-color: var(--bs-secondary);
 }
-input.current-page::placeholder {
-  color: var(--bs-body-color) !important;
-}
 
 #no-paging-spacer {
   height:40px
+}
+
+input.current-page::placeholder {
+  color: var(--bs-body-color) !important;
 }
 
 /* Tab colors */
@@ -119,4 +124,12 @@ input.current-page::placeholder {
 
 .remove-button:hover {
   border-color: #999999;
+}
+
+#failed-plotting-alert {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  opacity: 95%;
 }

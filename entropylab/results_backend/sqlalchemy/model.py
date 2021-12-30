@@ -35,13 +35,14 @@ from entropylab.api.data_writer import (
     PlotSpec,
     NodeData,
 )
+from entropylab.api.errors import EntropyError
 from entropylab.logger import logger
 
 
 def _get_class(module_name, class_name):
     module = importlib.import_module(module_name)
     if not hasattr(module, class_name):
-        raise Exception("class {} is not in {}".format(class_name, module_name))
+        raise EntropyError("class {} is not in {}".format(class_name, module_name))
     logger.debug("reading class {} from module {}".format(class_name, module_name))
     cls = getattr(module, class_name)
     return cls

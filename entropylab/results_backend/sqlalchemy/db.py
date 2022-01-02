@@ -12,7 +12,6 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.sql import Selectable
 from sqlalchemy.util.compat import contextmanager
 
-from entropylab.config import settings
 from entropylab.api.data_reader import (
     DataReader,
     ExperimentRecord,
@@ -31,6 +30,7 @@ from entropylab.api.data_writer import (
     PlotSpec,
     NodeData,
 )
+from entropylab.config import settings
 from entropylab.instruments.instrument_driver import Function, Parameter
 from entropylab.instruments.lab_topology import (
     PersistentLabDB,
@@ -282,6 +282,14 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         return []
 
     def get_last_result_of_experiment(
+        self, experiment_id: int
+    ) -> Optional[ResultRecord]:
+        if self.__hdf5_storage_enabled():
+            return self._storage.get_last_result_of_experiment(experiment_id)
+        else:
+            return self.__get_last_result_of_experiment_from_sqlalchemy(experiment_id)
+
+    def __get_last_result_of_experiment_from_sqlalchemy(
         self, experiment_id: int
     ) -> Optional[ResultRecord]:
         with self._session_maker() as sess:

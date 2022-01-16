@@ -28,9 +28,33 @@ def test_get_when_key_is_none_then_keyerror_is_raised():
 """ commit() """
 
 
-def test_commit_empty_dict(tinydb_file_path):
+def test_commit_when_body_is_empty_does_not_throw(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     assert target.commit() == "bf21a9e8fbc5a3846fb05b4fa0859e0917b2202f"
+
+
+def test_commit_when_committing_twice_the_same_id_is_returned(tinydb_file_path):
+    target = InProcessParamStore(tinydb_file_path)
+    first = target.commit()
+    second = target.commit()
+    assert first == second
+
+
+def test_commit_when_committing_same_state_twice_the_same_id_is_returned(
+    tinydb_file_path,
+):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = "bar"
+    first = target.commit()
+    del target["foo"]
+    # noinspection PyUnusedLocal
+    second = target.commit()
+    target["foo"] = "bar"
+    # act
+    third = target.commit()
+    # assert
+    assert first == third
 
 
 """ checkout() """

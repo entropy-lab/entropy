@@ -40,6 +40,15 @@ def db_file_path(request) -> str:
 
 
 @pytest.fixture()
+def tinydb_file_path(request) -> str:
+    """Generate a unique path to a (non-existent) tinydb json file
+    The file will be removed on tear down"""
+    file_path = _build_project_dir_path_for_test(request) + ".json"
+    yield file_path
+    _delete_if_exists(file_path)
+
+
+@pytest.fixture()
 def initialized_project_dir_path(request, project_dir_path) -> str:
     """Create an initialized project and return the path to its directory
     The directory will be removed recursively on tear down"""

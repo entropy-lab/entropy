@@ -5,6 +5,18 @@ from entropylab.api.param_store import InProcessParamStore
 """ __getitem()__"""
 
 
+def test___getattribute_works():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    assert target.foo == "bar"
+
+
+def test___setattr_works():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    assert target["foo"] == "bar"
+
+
 def test_get_when_key_is_present_then_value_is_returned():
     target = InProcessParamStore()
     target["foo"] = "bar"
@@ -30,17 +42,17 @@ def test_get_when_key_is_none_then_keyerror_is_raised():
 
 def test_commit_when_body_is_empty_does_not_throw(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
-    assert target.commit() == "bf21a9e8fbc5a3846fb05b4fa0859e0917b2202f"
+    assert len(target.commit()) == 40
 
 
-def test_commit_when_committing_twice_the_same_id_is_returned(tinydb_file_path):
+def test_commit_when_committing_non_dirty_does_nothing(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     first = target.commit()
     second = target.commit()
     assert first == second
 
 
-def test_commit_when_committing_same_state_twice_the_same_id_is_returned(
+def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
     tinydb_file_path,
 ):
     # arrange
@@ -54,7 +66,7 @@ def test_commit_when_committing_same_state_twice_the_same_id_is_returned(
     # act
     third = target.commit()
     # assert
-    assert first == third
+    assert first != third
 
 
 """ checkout() """
@@ -73,15 +85,17 @@ def test_checkout_and_id_removed_from_dict(tinydb_file_path):
     assert "_id" not in target
 
 
-""" _hash_dict() """
+""" _generate_header() """
 
 
-def test__hash_dict_empty_dict():
+def test__generate_header_empty_dict():
     target = InProcessParamStore()
-    assert target._hash_dict() == "bf21a9e8fbc5a3846fb05b4fa0859e0917b2202f"
+    actual = target._generate_header()
+    assert len(actual.id) == 40
 
 
-def test__hash_dict_nonempty_dict():
+def test__generate_header_nonempty_dict():
     target = InProcessParamStore()
     target["foo"] = "bar"
-    assert target._hash_dict() == "bc4919c6adf7168088eaea06e27a5b23f0f9f9da"
+    actual = target._generate_header()
+    assert len(actual.id) == 40

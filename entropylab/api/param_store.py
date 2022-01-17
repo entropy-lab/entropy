@@ -13,14 +13,15 @@ from entropylab.api.errors import EntropyError
 
 @unique
 class MergeStrategy(Enum):
-    OURS = (1,)
-    THEIRS = (2,)
+    OURS = 1
+    THEIRS = 2
     BOTH = 3
 
 
 class Metadata:
     id: str
     ns: int
+    label: Optional[str]
 
     def __repr__(self) -> str:
         return json.dumps(
@@ -28,7 +29,7 @@ class Metadata:
         )
 
     def to_dict(self) -> dict:
-        return dict(id=self.id, ns=self.ns)
+        return dict(id=self.id, ns=self.ns, label=self.label)
 
 
 class ParamStore(ABC):
@@ -133,11 +134,12 @@ class InProcessParamStore(ParamStore):
 
     """ Commits """
 
-    def commit(self) -> str:
+    def commit(self, label: Optional[str] = None) -> str:
         if not self._is_dirty:
             return self._base_commit_id
-        metadata = self._generate_metadata()
-        self._db.insert(dict(metadata=metadata.to_dict(), params=self._params))
+        metadata = self._generate_metadata(label)
+
+        self._db.insert(dict(metadata=metadata.__dict__, params=self._params))
         self._base_commit_id = metadata.id
         self._is_dirty = False
         return metadata.id
@@ -148,12 +150,13 @@ class InProcessParamStore(ParamStore):
         self._base_commit_id = commit_id
         self._is_dirty = False
 
-    def _generate_metadata(self) -> (str, int):
+    def _generate_metadata(self, label: Optional[str] = None) -> (str, int):
         metadata = Metadata()
         metadata.ns = time.time_ns()
         jzon = json.dumps(self._params, sort_keys=True, ensure_ascii=True)
         bytez = (jzon + str(metadata.ns)).encode("utf-8")
         metadata.id = hashlib.sha1(bytez).hexdigest()
+        metadata.label = label
         return metadata
 
     def _get_commit_params(self, commit_id: str) -> Dict:

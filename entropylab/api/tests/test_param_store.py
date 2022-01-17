@@ -1,4 +1,5 @@
 import pytest
+from tinydb import Query
 
 from entropylab.api.param_store import InProcessParamStore
 
@@ -67,6 +68,20 @@ def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
     third = target.commit()
     # assert
     assert first != third
+
+
+def test_commit_when_label_is_not_given_then_null_is_saved(tinydb_file_path):
+    target = InProcessParamStore(tinydb_file_path)
+    commit_id = target.commit()
+    result = target._db.search(Query().metadata.id == commit_id)
+    assert result[0]["metadata"]["label"] is None
+
+
+def test_commit_when_label_is_given_then_label_is_saved(tinydb_file_path):
+    target = InProcessParamStore(tinydb_file_path)
+    commit_id = target.commit("foo")
+    result = target._db.search(Query().metadata.id == commit_id)
+    assert result[0]["metadata"]["label"] == "foo"
 
 
 """ checkout() """

@@ -72,7 +72,7 @@ def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
 """ checkout() """
 
 
-def test_checkout_and_id_removed_from_dict(tinydb_file_path):
+def test_checkout_when_commit_id_exists_value_is_reverted(tinydb_file_path):
     # arrange
     target = InProcessParamStore(tinydb_file_path)
     target["foo"] = "bar"
@@ -82,20 +82,41 @@ def test_checkout_and_id_removed_from_dict(tinydb_file_path):
     target.checkout(commit_id)
     # assert
     assert target["foo"] == "bar"
-    assert "_id" not in target
 
 
-""" _generate_header() """
+def test_checkout_when_commit_id_exists_value_remains_the_same(tinydb_file_path):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = "bar"
+    commit_id = target.commit()
+    # act
+    target.checkout(commit_id)
+    # assert
+    assert target["foo"] == "bar"
 
 
-def test__generate_header_empty_dict():
+def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    commit_id = target.commit()
+    target["foo"] = "baz"
+    # act
+    target.checkout(commit_id)
+    # assert
+    assert "foo" not in target
+
+
+""" _generate_metadata() """
+
+
+def test__generate_metadata_empty_dict():
     target = InProcessParamStore()
-    actual = target._generate_header()
+    actual = target._generate_metadata()
     assert len(actual.id) == 40
 
 
-def test__generate_header_nonempty_dict():
+def test__generate_metadata_nonempty_dict():
     target = InProcessParamStore()
     target["foo"] = "bar"
-    actual = target._generate_header()
+    actual = target._generate_metadata()
     assert len(actual.id) == 40

@@ -18,7 +18,7 @@ class MergeStrategy(Enum):
     BOTH = 3
 
 
-class Header:
+class Metadata:
     id: str
     ns: int
 
@@ -35,7 +35,7 @@ class ParamStore(ABC):
     def __init__(self):
         super().__init__()
 
-    """ Present dictionary """
+    """ Params dictionary """
 
     @abstractmethod
     def __getitem__(self, key: str) -> Any:
@@ -60,7 +60,7 @@ class ParamStore(ABC):
     # ) -> None:
     #     pass
 
-    def search_for_label(self, label: str) -> List[Header]:
+    def search_for_label(self, label: str) -> List[Metadata]:
         pass
 
 
@@ -77,7 +77,7 @@ class InProcessParamStore(ParamStore):
         super().__init__()
         self._is_dirty = True  # were params modified since commit() / checkout()?
         self._base_commit_id = None  # id of last commit checked out/committed
-        self._body = dict()
+        self._params = dict()
         if path is None:
             self._db = TinyDB(storage=MemoryStorage)
         else:
@@ -89,46 +89,46 @@ class InProcessParamStore(ParamStore):
         if name.startswith("_"):
             super().__setattr__(name, value)
         else:
-            self._body[name] = value
+            self._params[name] = value
             self._is_dirty = True
 
     def __getattr__(self, name):
         if name.startswith("_"):
             return super().__getattribute__(name)
         else:
-            return self._body[name]
+            return self._params[name]
 
     def __delattr__(self, name):
         if name.startswith("_"):
             super().__delattr__(name)
         else:
-            del self._body[name]
+            del self._params[name]
             self._is_dirty = True
 
     """ Items """
 
     def __setitem__(self, key: str, value: Any) -> None:
-        self._body[key] = value
+        self._params[key] = value
         self._is_dirty = True
 
     def __getitem__(self, key: str) -> Any:
-        return self._body[key]
+        return self._params[key]
 
     def __delitem__(self, *args, **kwargs):
-        self._body.__delitem__(*args, **kwargs)
+        self._params.__delitem__(*args, **kwargs)
         self._is_dirty = True
 
     def __contains__(self, key: str) -> bool:
-        return key in self._body
+        return key in self._params
 
     def to_dict(self) -> Dict:
-        return dict(self._body)
+        return dict(self._params)
 
     def get(self, key: str, commit_id: Optional[str] = None):
         if commit_id is None:
             return self[key]
         else:
-            commit_dict = self._get_commit_body(commit_id)
+            commit_dict = self._get_commit_params(commit_id)
             return commit_dict[key]
 
     """ Commits """
@@ -136,30 +136,30 @@ class InProcessParamStore(ParamStore):
     def commit(self) -> str:
         if not self._is_dirty:
             return self._base_commit_id
-        header = self._generate_header()
-        self._db.insert(dict(header=header.to_dict(), body=self._body))
-        self._base_commit_id = header.id
+        metadata = self._generate_metadata()
+        self._db.insert(dict(metadata=metadata.to_dict(), params=self._params))
+        self._base_commit_id = metadata.id
         self._is_dirty = False
-        return header.id
+        return metadata.id
 
     def checkout(self, commit_id: str):
-        commit_dict = self._get_commit_body(commit_id)
-        self._body = commit_dict
+        commit_dict = self._get_commit_params(commit_id)
+        self._params = commit_dict
         self._base_commit_id = commit_id
         self._is_dirty = False
 
-    def _generate_header(self) -> (str, int):
-        header = Header()
-        header.ns = time.time_ns()
-        jzon = json.dumps(self._body, sort_keys=True, ensure_ascii=True)
-        bytez = (jzon + str(header.ns)).encode("utf-8")
-        header.id = hashlib.sha1(bytez).hexdigest()
-        return header
+    def _generate_metadata(self) -> (str, int):
+        metadata = Metadata()
+        metadata.ns = time.time_ns()
+        jzon = json.dumps(self._params, sort_keys=True, ensure_ascii=True)
+        bytez = (jzon + str(metadata.ns)).encode("utf-8")
+        metadata.id = hashlib.sha1(bytez).hexdigest()
+        return metadata
 
-    def _get_commit_body(self, commit_id: str) -> Dict:
+    def _get_commit_params(self, commit_id: str) -> Dict:
         query = Query()
         # noinspection PyProtectedMember
-        result = self._db.search(query.header.id == commit_id)
+        result = self._db.search(query.metadata.id == commit_id)
         # validate
         if len(result) == 0:
             raise EntropyError(f"Commit with id '{commit_id}' not found")
@@ -168,4 +168,4 @@ class InProcessParamStore(ParamStore):
                 f"{len(result)} commits with id '{commit_id}' found. "
                 f"Only one commit is allowed per id"
             )
-        return result[0]["body"]
+        return result[0]["params"]

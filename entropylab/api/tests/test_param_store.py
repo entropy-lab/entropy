@@ -1,7 +1,7 @@
 import pytest
 from tinydb import Query
 
-from entropylab.api.param_store import InProcessParamStore
+from entropylab.api.param_store import InProcessParamStore, Metadata
 
 """ __getitem()__"""
 
@@ -119,6 +119,54 @@ def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
     target.checkout(commit_id)
     # assert
     assert "foo" not in target
+
+
+""" log() """
+
+
+def test_log_no_args_returns_all_metadata(
+    tinydb_file_path,
+):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = "bar"
+    target.commit("first")
+    target["foo"] = "baz"
+    target.commit("second")
+    target["foo"] = "buzz"
+    target.commit("third")
+    # act
+    actual = target.log()
+    # assert
+    assert all(type(m) == Metadata for m in actual)
+    assert actual[0].label == "first"
+    assert actual[1].label == "second"
+    assert actual[2].label == "third"
+
+
+def test_log_when_label_exists_then_it_is_returned(
+    tinydb_file_path,
+):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = "exact"
+    target.commit("label")
+    target["foo"] = "pre"
+    target.commit("foolabel")
+    target["foo"] = "post"
+    target.commit("labelfoo")
+    target["foo"] = "no-match"
+    target.commit("foo")
+    target["foo"] = "empty"
+    target.commit("")
+    target["foo"] = "None"
+    target.commit()
+    # act
+    actual = target.log("label")
+    # assert
+    assert all(type(m) == Metadata for m in actual)
+    assert all("label" in m.label for m in actual)
+    assert len(actual) == 3
 
 
 """ _generate_metadata() """

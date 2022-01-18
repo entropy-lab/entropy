@@ -7,6 +7,7 @@ from typing import Dict, List, Any, Optional
 
 from tinydb import TinyDB, Query
 from tinydb.storages import MemoryStorage
+from tinydb.table import Document
 
 from entropylab.api.errors import EntropyError
 
@@ -19,17 +20,19 @@ class MergeStrategy(Enum):
 
 
 class Metadata:
+    # TODO: Proper public props
     id: str
     ns: int
     label: Optional[str]
+
+    def __init__(self, dikt=None):
+        if dikt:
+            self.__dict__.update(dikt)
 
     def __repr__(self) -> str:
         return json.dumps(
             self, default=lambda o: o.__dict__, sort_keys=True, ensure_ascii=True
         )
-
-    def to_dict(self) -> dict:
-        return dict(id=self.id, ns=self.ns, label=self.label)
 
 
 class ParamStore(ABC):
@@ -149,6 +152,21 @@ class InProcessParamStore(ParamStore):
         self._params = commit_dict
         self._base_commit_id = commit_id
         self._is_dirty = False
+
+    def log(self, label: Optional[str] = None) -> List[Metadata]:
+        documents = self._db.search(
+            Query().metadata.label.test(self._test_if_value_contains(label))
+        )
+        metadata = map(self._extract_metadata, documents)
+        return list(metadata)
+
+    @staticmethod
+    def _test_if_value_contains(label: str):
+        return lambda val: (label or "") in (val or "")
+
+    @staticmethod
+    def _extract_metadata(document: Document):
+        return Metadata(document.get("metadata"))
 
     def _generate_metadata(self, label: Optional[str] = None) -> (str, int):
         metadata = Metadata()

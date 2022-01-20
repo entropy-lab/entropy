@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from enum import Enum, unique
 from typing import Dict, List, Any, Optional
 
+import pandas as pd
 from tinydb import TinyDB, Query
 from tinydb.storages import MemoryStorage
 from tinydb.table import Document
@@ -16,7 +17,6 @@ from entropylab.api.errors import EntropyError
 class MergeStrategy(Enum):
     OURS = 1
     THEIRS = 2
-    BOTH = 3
 
 
 class Metadata:
@@ -30,9 +30,11 @@ class Metadata:
             self.__dict__.update(dikt)
 
     def __repr__(self) -> str:
-        return json.dumps(
-            self, default=lambda o: o.__dict__, sort_keys=True, ensure_ascii=True
-        )
+        date = pd.to_datetime(self.ns).to_pydatetime()
+        return f"<Metadata(id='{self.id}', ns='{date}', label='{self.label}')>"
+        # return json.dumps(
+        #     self, default=lambda o: o.__dict__, sort_keys=True, ensure_ascii=True
+        # )
 
 
 class ParamStore(ABC):
@@ -57,16 +59,6 @@ class ParamStore(ABC):
     def to_dict(self) -> Dict:
         pass
 
-    # def merge(
-    #     self,
-    #     theirs: ParamStore,
-    #     merge_strategy: Optional[MergeStrategy] = MergeStrategy.OURS,
-    # ) -> None:
-    #     pass
-
-    def search_for_label(self, label: str) -> List[Metadata]:
-        pass
-
 
 class InProcessParamStore(ParamStore):
 
@@ -77,7 +69,7 @@ class InProcessParamStore(ParamStore):
     """
 
     # TODO: Use path to entropy project instead of direct path to tinydb file?
-    def __init__(self, path: Optional[str] = None):
+    def __init__(self, path: Optional[str] = None, theirs: Dict | ParamStore = None):
         super().__init__()
         self._is_dirty = True  # were params modified since commit() / checkout()?
         self._base_commit_id = None  # id of last commit checked out/committed
@@ -86,6 +78,8 @@ class InProcessParamStore(ParamStore):
             self._db = TinyDB(storage=MemoryStorage)
         else:
             self._db = TinyDB(path)
+        if theirs is not None:
+            self.merge(theirs, MergeStrategy.THEIRS)
 
     """ Attributes """
 
@@ -130,10 +124,10 @@ class InProcessParamStore(ParamStore):
 
     def get(self, key: str, commit_id: Optional[str] = None):
         if commit_id is None:
-            return self[key]
+            return self._params.get(key)
         else:
-            commit_dict = self._get_commit_params(commit_id)
-            return commit_dict[key]
+            commit_params = self._get_commit_params(commit_id)
+            return commit_params[key]
 
     """ Commits """
 
@@ -190,3 +184,17 @@ class InProcessParamStore(ParamStore):
                 f"Only one commit is allowed per id"
             )
         return result[0]["params"]
+
+    """ Import """
+
+    def merge(
+        self,
+        theirs: Dict | ParamStore,
+        merge_strategy: Optional[MergeStrategy] = MergeStrategy.OURS,
+    ) -> None:
+        if type(theirs) == ParamStore:
+            theirs = theirs.to_dict()
+        if merge_strategy == MergeStrategy.OURS:
+            pass
+        if merge_strategy == MergeStrategy.THEIRS:
+            pass

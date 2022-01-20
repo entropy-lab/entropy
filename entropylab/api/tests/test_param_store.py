@@ -1,3 +1,5 @@
+from pprint import pprint
+
 import pytest
 from tinydb import Query
 
@@ -183,3 +185,35 @@ def test__generate_metadata_nonempty_dict():
     target["foo"] = "bar"
     actual = target._generate_metadata()
     assert len(actual.id) == 40
+
+
+def test_demo(tinydb_file_path):
+    target = InProcessParamStore(tinydb_file_path)
+    target["qubit1.flux_capacitor.freq"] = 8.0
+    target["qubit1.flux_capacitor.amp"] = 5.0
+    target["qubit1.flux_capacitor"] = {"wave": "manifold", "warp": 1337.0}
+
+    print(f"before commit freq: {target['qubit1.flux_capacitor.freq']}")
+
+    commit_id1 = target.commit("warm-up")
+
+    print(f"first commit freq: {target['qubit1.flux_capacitor.freq']}")
+
+    target["qubit1.flux_capacitor.freq"] = 11.0
+
+    print(f"second commit freq: {target['qubit1.flux_capacitor.freq']}")
+    print(
+        f"first commit freq from history: {target.get('qubit1.flux_capacitor.freq', commit_id1)}"
+    )
+
+    commit_id2 = target.commit("warm-up")
+
+    target.checkout(commit_id1)
+
+    print(f"checked out freq: {target['qubit1.flux_capacitor.freq']}")
+
+    print("log commits labeled 'warm': ")
+    pprint(target.log("warm"))
+
+    print("all params: ")
+    pprint(target.to_dict())

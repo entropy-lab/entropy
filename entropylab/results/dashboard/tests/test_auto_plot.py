@@ -2,8 +2,39 @@ import numpy as np
 import pytest
 
 from entropylab.api.data_reader import PlotRecord
+from entropylab.api.errors import EntropyError
 from entropylab.api.plot import CirclePlotGenerator, ImShowPlotGenerator
 from entropylab.results.dashboard.auto_plot import auto_plot
+
+
+# Dictionaries
+
+
+def test_auto_plot_empty_dict():
+    data = dict()
+    with pytest.raises(EntropyError):
+        auto_plot(1, data)
+
+
+def test_auto_plot_dict_with_one_value():
+    data = dict(res=[10, 20, 40, 30, 50])
+    actual = auto_plot(1, data)
+    assert isinstance(actual, PlotRecord)
+    assert actual.id == 0
+    assert actual.experiment_id == 1
+    assert isinstance(actual.generator, CirclePlotGenerator)
+
+
+def test_auto_plot_dict_with_two_values():
+    data = dict(
+        res=[10, 20, 40, 30, 50],
+        foo=[-10, -20, -40, -30, -50],
+    )
+    actual = auto_plot(1, data)
+    assert isinstance(actual, PlotRecord)
+    assert actual.id == 0
+    assert actual.experiment_id == 1
+    assert isinstance(actual.generator, CirclePlotGenerator)
 
 
 # Lists

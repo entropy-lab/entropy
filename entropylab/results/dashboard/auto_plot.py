@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 
 import numpy as np
 
@@ -8,15 +8,27 @@ from entropylab.api.plot import CirclePlotGenerator, ImShowPlotGenerator
 
 
 def auto_plot(experiment_id: int, data):
-    if isinstance(data, list):
+    if isinstance(data, dict):
+        return _auto_plot_from_dict(experiment_id, data)
+    elif isinstance(data, list):
         plot = _auto_plot_from_list(data)
     elif isinstance(data, np.ndarray):
         plot = _auto_plot_from_ndarray(data)
     else:
-        raise EntropyError("Only list and ndarrays can be auto-plotted at this time")
+        raise EntropyError(
+            "Only lists, dicts and ndarrays can be auto-plotted at this time"
+        )
     plot.experiment_id = experiment_id
     plot.id = 0
     return plot
+
+
+def _auto_plot_from_dict(experiment_id: int, data: Dict) -> PlotRecord:
+    if len(data) > 0:
+        first = list(data.values())[0]  # arbitrarily plot "first" value
+        return auto_plot(experiment_id, first)
+    else:
+        raise EntropyError("Cannot auto-plot an empty dict")
 
 
 def _auto_plot_from_list(data: List) -> PlotRecord:

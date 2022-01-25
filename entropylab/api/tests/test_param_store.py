@@ -3,7 +3,7 @@ from pprint import pprint
 import pytest
 from tinydb import Query
 
-from entropylab.api.param_store import InProcessParamStore, Metadata
+from entropylab.api.param_store import InProcessParamStore, Metadata, MergeStrategy
 
 """ __getitem()__"""
 
@@ -187,6 +187,147 @@ def test__generate_metadata_nonempty_dict():
     assert len(actual.id) == 40
 
 
+""" merge() MergeStrategy.OURS """
+
+
+def test_merge_strategy_ours_when_both_are_empty_result_is_empty():
+    target = InProcessParamStore()
+    theirs = InProcessParamStore()
+    target.merge(theirs, MergeStrategy.OURS)
+    assert len(target.to_dict().items()) == 0
+
+
+def test_merge_strategy_ours_when_their_key_is_new_then_it_is_copied():
+    target = InProcessParamStore()
+    theirs = InProcessParamStore()
+    theirs["foo"] = "bar"
+    target.merge(theirs, MergeStrategy.OURS)
+    assert target["foo"] == "bar"
+
+
+def test_merge_strategy_ours_when_their_key_is_present_in_ours_then_it_is_ignored():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    theirs = InProcessParamStore()
+    theirs["foo"] = "baz"
+    target.merge(theirs, MergeStrategy.OURS)
+    assert target["foo"] == "bar"
+
+
+def test_merge_strategy_ours_merge_two_leaves_under_same_parent_dict():
+    target = InProcessParamStore()
+    target["foo"] = {"a": 1}
+    theirs = InProcessParamStore()
+    theirs["foo"] = {"b": 2}
+    target.merge(theirs, MergeStrategy.OURS)
+    assert target["foo"]["a"] == 1 and target["foo"]["b"] == 2
+
+
+def test_merge_strategy_ours_when_ours_is_leaf_theirs_is_dict_then_theirs_is_ignored():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    theirs = InProcessParamStore()
+    theirs["foo"] = {"baz": 1}
+    target.merge(theirs, MergeStrategy.OURS)
+    assert target["foo"] == "bar"
+
+
+def test_merge_strategy_ours_when_ours_is_dict_theirs_is_leaf_then_theirs_is_ignored():
+    target = InProcessParamStore()
+    target["foo"] = {"bar": 1}
+    theirs = InProcessParamStore()
+    theirs["foo"] = "baz"
+    target.merge(theirs, MergeStrategy.OURS)
+    assert target["foo"] == {"bar": 1}
+
+
+def test_merge_strategy_ours_both_sides():
+    target = InProcessParamStore()
+    target["foo"] = dict(a=1, b=dict(y=5, z=6))
+    theirs = InProcessParamStore()
+    theirs["foo"] = dict(b=dict(x=4, y=-5), c=3)
+    target.merge(theirs, MergeStrategy.OURS)
+    assert target.to_dict() == {
+        "foo": {
+            "a": 1,
+            "b": {"x": 4, "y": 5, "z": 6},
+            "c": 3,
+        }
+    }
+
+
+""" merge() MergeStrategy.THEIRS """
+
+
+def test_merge_strategy_theirs_when_both_are_empty_result_is_empty():
+    target = InProcessParamStore()
+    theirs = InProcessParamStore()
+    target.merge(theirs, MergeStrategy.THEIRS)
+    assert len(target.to_dict().items()) == 0
+
+
+def test_merge_strategy_theirs_when_their_key_is_new_then_it_is_copied():
+    target = InProcessParamStore()
+    theirs = InProcessParamStore()
+    theirs["foo"] = "bar"
+    target.merge(theirs, MergeStrategy.THEIRS)
+    assert target["foo"] == "bar"
+
+
+def test_merge_strategy_theirs_when_their_key_is_present_in_ours_then_it_overwrites():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    theirs = InProcessParamStore()
+    theirs["foo"] = "baz"
+    target.merge(theirs, MergeStrategy.THEIRS)
+    assert target["foo"] == "baz"
+
+
+def test_merge_strategy_theirs_merge_two_leaves_under_same_parent_dict():
+    target = InProcessParamStore()
+    target["foo"] = {"a": 1}
+    theirs = InProcessParamStore()
+    theirs["foo"] = {"b": 2}
+    target.merge(theirs, MergeStrategy.THEIRS)
+    assert target["foo"]["a"] == 1 and target["foo"]["b"] == 2
+
+
+def test_merge_strategy_theirs_when_ours_is_leaf_theirs_is_dict_then_theirs_is_copied():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    theirs = InProcessParamStore()
+    theirs["foo"] = {"baz": 1}
+    target.merge(theirs, MergeStrategy.THEIRS)
+    assert target["foo"] == {"baz": 1}
+
+
+def test_merge_strategy_theirs_when_ours_is_dict_theirs_is_leaf_then_theirs_overwrites():
+    target = InProcessParamStore()
+    target["foo"] = {"bar": 1}
+    theirs = InProcessParamStore()
+    theirs["foo"] = "baz"
+    target.merge(theirs, MergeStrategy.THEIRS)
+    assert target["foo"] == "baz"
+
+
+def test_merge_strategy_theirs_both_sides():
+    target = InProcessParamStore()
+    target["foo"] = dict(a=1, b=dict(y=5, z=6))
+    theirs = InProcessParamStore()
+    theirs["foo"] = dict(b=dict(x=4, y=-5), c=3)
+    target.merge(theirs, MergeStrategy.THEIRS)
+    assert target.to_dict() == {
+        "foo": {
+            "a": 1,
+            "b": {"x": 4, "y": -5, "z": 6},
+            "c": 3,
+        }
+    }
+
+
+""" demo test """
+
+
 def test_demo(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     target["qubit1.flux_capacitor.freq"] = 8.0
@@ -195,7 +336,7 @@ def test_demo(tinydb_file_path):
 
     print(f"before commit freq: {target['qubit1.flux_capacitor.freq']}")
 
-    commit_id1 = target.commit("warm-up")
+    commit_id = target.commit("warm-up")
 
     print(f"first commit freq: {target['qubit1.flux_capacitor.freq']}")
 
@@ -203,12 +344,12 @@ def test_demo(tinydb_file_path):
 
     print(f"second commit freq: {target['qubit1.flux_capacitor.freq']}")
     print(
-        f"first commit freq from history: {target.get('qubit1.flux_capacitor.freq', commit_id1)}"
+        f"first commit freq from history: {target.get('qubit1.flux_capacitor.freq', commit_id)}"
     )
 
-    commit_id2 = target.commit("warm-up")
+    target.commit("warm-up")
 
-    target.checkout(commit_id1)
+    target.checkout(commit_id)
 
     print(f"checked out freq: {target['qubit1.flux_capacitor.freq']}")
 

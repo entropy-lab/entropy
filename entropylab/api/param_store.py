@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import json
 import time
@@ -69,7 +71,12 @@ class InProcessParamStore(ParamStore):
     """
 
     # TODO: Use path to entropy project instead of direct path to tinydb file?
-    def __init__(self, path: Optional[str] = None, theirs: Dict | ParamStore = None):
+    def __init__(
+        self,
+        path: Optional[str] = None,
+        theirs: Optional[Dict | ParamStore] = None,
+        merge_strategy: Optional[MergeStrategy] = MergeStrategy.THEIRS,
+    ):
         super().__init__()
         self._is_dirty = True  # were params modified since commit() / checkout()?
         self._base_commit_id = None  # id of last commit checked out/committed
@@ -79,7 +86,7 @@ class InProcessParamStore(ParamStore):
         else:
             self._db = TinyDB(path)
         if theirs is not None:
-            self.merge(theirs, MergeStrategy.THEIRS)
+            self.merge(theirs, merge_strategy)
 
     """ Attributes """
 
@@ -149,18 +156,10 @@ class InProcessParamStore(ParamStore):
 
     def log(self, label: Optional[str] = None) -> List[Metadata]:
         documents = self._db.search(
-            Query().metadata.label.test(self._test_if_value_contains(label))
+            Query().metadata.label.test(_test_if_value_contains(label))
         )
-        metadata = map(self._extract_metadata, documents)
+        metadata = map(_extract_metadata, documents)
         return list(metadata)
-
-    @staticmethod
-    def _test_if_value_contains(label: str):
-        return lambda val: (label or "") in (val or "")
-
-    @staticmethod
-    def _extract_metadata(document: Document):
-        return Metadata(document.get("metadata"))
 
     def _generate_metadata(self, label: Optional[str] = None) -> (str, int):
         metadata = Metadata()
@@ -185,16 +184,43 @@ class InProcessParamStore(ParamStore):
             )
         return result[0]["params"]
 
-    """ Import """
+    """ Merge """
 
     def merge(
         self,
         theirs: Dict | ParamStore,
         merge_strategy: Optional[MergeStrategy] = MergeStrategy.OURS,
     ) -> None:
-        if type(theirs) == ParamStore:
+        if issubclass(type(theirs), ParamStore):
             theirs = theirs.to_dict()
         if merge_strategy == MergeStrategy.OURS:
-            pass
+            _merge_trees(self._params, theirs)
         if merge_strategy == MergeStrategy.THEIRS:
-            pass
+            theirs_copy = dict(theirs)
+            _merge_trees(theirs_copy, self._params)
+            self._params = theirs_copy
+
+
+def _test_if_value_contains(label: str):
+    return lambda val: (label or "") in (val or "")
+
+
+def _extract_metadata(document: Document):
+    return Metadata(document.get("metadata"))
+
+
+def _merge_trees(a: Dict, b: Dict, path: List[str] = None):
+    """Merges b into a - Copy pasted from https://stackoverflow.com/a/7205107/33404"""
+    if path is None:
+        path = []
+    for key in b:
+        if key in a:
+            if isinstance(a[key], dict) and isinstance(b[key], dict):
+                _merge_trees(a[key], b[key], path + [str(key)])
+            elif a[key] == b[key]:
+                pass  # same leaf value, nothing to do
+            else:
+                pass  # conflict, ignore b
+        else:
+            a[key] = b[key]  # "copy" from b to a
+    return a

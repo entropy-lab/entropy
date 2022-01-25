@@ -3,6 +3,7 @@ from pprint import pprint
 import pytest
 from tinydb import Query
 
+from entropylab.api.errors import EntropyError
 from entropylab.api.param_store import InProcessParamStore, Metadata, MergeStrategy
 
 """ __getitem()__"""
@@ -121,6 +122,66 @@ def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
     target.checkout(commit_id)
     # assert
     assert "foo" not in target
+
+
+def test_checkout_when_commit_id_doesnt_exist_error_is_raised(tinydb_file_path):
+    target = InProcessParamStore(tinydb_file_path)
+    with pytest.raises(EntropyError):
+        target.checkout("foo")
+
+
+def test_checkout_when_commit_num_exists_value_is_reverted(tinydb_file_path):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = "bar"
+    target.commit()
+    target["foo"] = "baz"
+    # act
+    target.checkout(commit_num=1)
+    # assert
+    assert target["foo"] == "bar"
+
+
+@pytest.mark.parametrize(
+    "commit_num",
+    [2, 0, -1],
+)
+def test_checkout_when_commit_num_doesnt_exist_error_is_raised(
+    tinydb_file_path, commit_num
+):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = "bar"
+    target.commit()  # commit_num == 1
+    # act & assert
+    with pytest.raises(EntropyError):
+        target.checkout(commit_num=commit_num)
+
+
+@pytest.mark.parametrize(
+    "move_by, expected_val",
+    [
+        (-1, "foo"),
+        (0, "bar"),
+        (1, "baz"),
+    ],
+)
+def test_checkout_when_move_by_exists_value_is_reverted(
+    tinydb_file_path, move_by, expected_val
+):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["val"] = "foo"
+    target.commit()
+    target["val"] = "bar"
+    commit_id = target.commit()
+    target["val"] = "baz"
+    target.commit()
+    target.checkout(commit_id)  # commit_num == 1
+    # act
+    target.checkout(move_by=move_by)
+    # assert
+    assert target["val"] == expected_val
 
 
 """ log() """

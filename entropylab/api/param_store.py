@@ -80,6 +80,7 @@ class InProcessParamStore(ParamStore):
         super().__init__()
         self._is_dirty = True  # were params modified since commit() / checkout()?
         self._base_commit_id = None  # id of last commit checked out/committed
+        self._base_doc_id = None
         self._params = dict()
         if path is None:
             self._db = TinyDB(storage=MemoryStorage)
@@ -133,8 +134,8 @@ class InProcessParamStore(ParamStore):
         if commit_id is None:
             return self._params.get(key)
         else:
-            commit_params = self._get_commit_params(commit_id)
-            return commit_params[key]
+            commit = self._get_commit(commit_id)
+            return commit["params"][key]
 
     """ Commits """
 
@@ -143,15 +144,22 @@ class InProcessParamStore(ParamStore):
             return self._base_commit_id
         metadata = self._generate_metadata(label)
 
-        self._db.insert(dict(metadata=metadata.__dict__, params=self._params))
+        doc_id = self._db.insert(dict(metadata=metadata.__dict__, params=self._params))
         self._base_commit_id = metadata.id
+        self._base_doc_id = doc_id
         self._is_dirty = False
         return metadata.id
 
-    def checkout(self, commit_id: str):
-        commit_dict = self._get_commit_params(commit_id)
-        self._params = commit_dict
+    def checkout(
+        self,
+        commit_id: Optional[str] = None,
+        commit_num: Optional[int] = None,
+        move_by: Optional[int] = None,
+    ) -> None:
+        commit = self._get_commit(commit_id, commit_num, move_by)
+        self._params = commit["params"]
         self._base_commit_id = commit_id
+        self._base_doc_id = commit.doc_id
         self._is_dirty = False
 
     def log(self, label: Optional[str] = None) -> List[Metadata]:
@@ -170,19 +178,48 @@ class InProcessParamStore(ParamStore):
         metadata.label = label
         return metadata
 
-    def _get_commit_params(self, commit_id: str) -> Dict:
+    def _get_commit(
+        self,
+        commit_id: Optional[str] = None,
+        commit_num: Optional[int] = None,
+        move_by: Optional[int] = None,
+    ) -> Document:
         query = Query()
         # noinspection PyProtectedMember
-        result = self._db.search(query.metadata.id == commit_id)
-        # validate
+        if commit_id is not None:
+            commit = self._get_commit_by_id(commit_id)
+        elif commit_num is not None:
+            commit = self._get_commit_by_num(commit_num)
+        elif move_by is not None:
+            commit = self._get_commit_by_move_by(move_by)
+        else:
+            raise EntropyError(
+                "Please provide one of the following arguments: "
+                "commit_id, commit_num, or move_by"
+            )
+        return commit
+
+    def _get_commit_by_id(self, commit_id: str):
+        result = self._db.search(Query().metadata.id == commit_id)
         if len(result) == 0:
             raise EntropyError(f"Commit with id '{commit_id}' not found")
-        if len(result) == 0:
+        if len(result) > 1:
             raise EntropyError(
                 f"{len(result)} commits with id '{commit_id}' found. "
                 f"Only one commit is allowed per id"
             )
-        return result[0]["params"]
+        return result[0]
+
+    def _get_commit_by_num(self, commit_num: int):
+        result = self._db.get(doc_id=commit_num)
+        if result is None:
+            raise EntropyError(f"Commit with number '{commit_num}' not found")
+        return result
+
+    def _get_commit_by_move_by(self, move_by: int):
+        doc_id = self._base_doc_id + move_by
+        result = self._db.get(doc_id=doc_id)
+        return result
 
     """ Merge """
 

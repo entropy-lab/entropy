@@ -73,6 +73,10 @@ help = "Check for lint errors"
 cmd = "pytest"
 help = "Run all unit tests"
 
+[tool.poe.tasks.check]
+sequence = ["check-format", "lint", "test"]
+help = "Perform all check possible on the code"
+
 [tool.black]
 target-version = ["py37"]
 line-length = 88

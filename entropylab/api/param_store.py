@@ -32,11 +32,12 @@ class Metadata:
             self.__dict__.update(dikt)
 
     def __repr__(self) -> str:
-        date = pd.to_datetime(self.ns).to_pydatetime()
-        return f"<Metadata(id='{self.id}', ns='{date}', label='{self.label}')>"
-        # return json.dumps(
-        #     self, default=lambda o: o.__dict__, sort_keys=True, ensure_ascii=True
-        # )
+        d = self.__dict__.copy()
+        d["ns"] = str(pd.to_datetime(self.ns).to_pydatetime())
+        jzon = json.dumps(
+            d, default=lambda o: o.__dict__, sort_keys=True, ensure_ascii=True
+        )
+        return f"<Metadata({jzon})>"
 
 
 class ParamStore(ABC):

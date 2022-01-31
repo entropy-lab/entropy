@@ -6,6 +6,14 @@ from tinydb import Query
 from entropylab.api.errors import EntropyError
 from entropylab.api.param_store import InProcessParamStore, Metadata, MergeStrategy
 
+""" ctor """
+
+
+def test_ctor_is_dirty_is_true():
+    target = InProcessParamStore()
+    assert target.is_dirty is True
+
+
 """ __getitem()__"""
 
 
@@ -184,10 +192,10 @@ def test_checkout_when_move_by_exists_value_is_reverted(
     assert target["val"] == expected_val
 
 
-""" log() """
+""" list_commits() """
 
 
-def test_log_no_args_returns_all_metadata(
+def test_list_commits_no_args_returns_all_metadata(
     tinydb_file_path,
 ):
     # arrange
@@ -199,7 +207,7 @@ def test_log_no_args_returns_all_metadata(
     target["foo"] = "buzz"
     target.commit("third")
     # act
-    actual = target.log()
+    actual = target.list_commits()
     # assert
     assert all(type(m) == Metadata for m in actual)
     assert actual[0].label == "first"
@@ -207,7 +215,7 @@ def test_log_no_args_returns_all_metadata(
     assert actual[2].label == "third"
 
 
-def test_log_when_label_exists_then_it_is_returned(
+def test_list_commits_when_label_exists_then_it_is_returned(
     tinydb_file_path,
 ):
     # arrange
@@ -225,7 +233,7 @@ def test_log_when_label_exists_then_it_is_returned(
     target["foo"] = "None"
     target.commit()
     # act
-    actual = target.log("label")
+    actual = target.list_commits("label")
     # assert
     assert all(type(m) == Metadata for m in actual)
     assert all("label" in m.label for m in actual)
@@ -414,8 +422,8 @@ def test_demo(tinydb_file_path):
 
     print(f"checked out freq: {target['qubit1.flux_capacitor.freq']}")
 
-    print("log commits labeled 'warm': ")
-    pprint(target.log("warm"))
+    print("list_commits commits labeled 'warm': ")
+    pprint(target.list_commits("warm"))
 
     print("all params: ")
     pprint(target.to_dict())

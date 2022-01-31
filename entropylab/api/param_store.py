@@ -81,14 +81,20 @@ class InProcessParamStore(ParamStore):
         super().__init__()
         self._is_dirty = True  # were params modified since commit() / checkout()?
         self._base_commit_id = None  # id of last commit checked out/committed
-        self._base_doc_id = None
-        self._params = dict()
+        self._base_doc_id = None  # tinydb document id of last commit...
+        self._params = dict()  # where current params are stored
         if path is None:
             self._db = TinyDB(storage=MemoryStorage)
         else:
             self._db = TinyDB(path)
         if theirs is not None:
             self.merge(theirs, merge_strategy)
+
+    @property
+    def is_dirty(self):
+        """True iff params have been changed since the store has last been
+        initialized or checked out"""
+        return self._is_dirty
 
     """ Attributes """
 
@@ -132,6 +138,13 @@ class InProcessParamStore(ParamStore):
         return dict(self._params)
 
     def get(self, key: str, commit_id: Optional[str] = None):
+        """
+            returns the value of a param by key
+
+        :param key: the key identifying the param
+        :param commit_id: an optional commit_id. if provided, the value will be
+        returned from the specified commit
+        """
         if commit_id is None:
             return self._params.get(key)
         else:
@@ -163,7 +176,13 @@ class InProcessParamStore(ParamStore):
         self._base_doc_id = commit.doc_id
         self._is_dirty = False
 
-    def log(self, label: Optional[str] = None) -> List[Metadata]:
+    def list_commits(self, label: Optional[str] = None) -> List[Metadata]:
+        """
+            returns a list of commits
+
+        :param label: an optional label, if given then only commits that match
+        it will be returned
+        """
         documents = self._db.search(
             Query().metadata.label.test(_test_if_value_contains(label))
         )
@@ -185,7 +204,6 @@ class InProcessParamStore(ParamStore):
         commit_num: Optional[int] = None,
         move_by: Optional[int] = None,
     ) -> Document:
-        query = Query()
         # noinspection PyProtectedMember
         if commit_id is not None:
             commit = self._get_commit_by_id(commit_id)

@@ -4,8 +4,9 @@ import hashlib
 import json
 import time
 from abc import ABC, abstractmethod
+from datetime import datetime
 from enum import Enum, unique
-from typing import Dict, List, Any, Optional, MutableMapping, Iterator
+from typing import Dict, List, Any, Optional, MutableMapping, Iterator, Callable
 
 import pandas as pd
 from tinydb import TinyDB, Query
@@ -32,11 +33,8 @@ class Metadata:
 
     def __repr__(self) -> str:
         d = self.__dict__.copy()
-        d["ns"] = str(pd.to_datetime(self.ns).to_pydatetime())
-        serialized = json.dumps(
-            d, default=lambda o: o.__dict__, sort_keys=True, ensure_ascii=True
-        )
-        return f"<Metadata({serialized})>"
+        d["ns"] = _ns_to_datetime(self.ns)
+        return f"<Metadata({_dict_to_json(d)})>"
 
 
 class ParamStore(ABC):
@@ -60,16 +58,31 @@ class ParamStore(ABC):
         pass
 
     @abstractmethod
-    def checkout(self, commit_id, commit_num, move_by):
+    def checkout(self, commit_id: str, commit_num: int, move_by: int):
         pass
 
     @abstractmethod
-    def list_commits(self, label):
+    def list_commits(self, label: str):
         """
             returns a list of commits
 
         :param label: an optional label, if given then only commits that match
         it will be returned
+        """
+        pass
+
+    @abstractmethod
+    def list_values(self, key: str) -> pd.DataFrame:
+        """
+            list all the values of a given key taken from commit history,
+            sorted by date ascending
+
+        :param key: the key for which to list values
+        :returns: a list of tuples where the values are, in order:
+            - the value of the key
+            - time of commit
+            - commit_id
+            - label assigned to commit
         """
         pass
 
@@ -187,7 +200,7 @@ class InProcessParamStore(ParamStore, MutableMapping):
             return self._base_commit_id
         metadata = self._generate_metadata(label)
         if self._is_in_memory_mode:
-            params = self._deep_copy(self._params)
+            params = _deep_copy(self._params)
         else:
             params = self._params
         doc_id = self._db.insert(dict(metadata=metadata.__dict__, params=params))
@@ -223,10 +236,6 @@ class InProcessParamStore(ParamStore, MutableMapping):
         metadata.id = hashlib.sha1(commit_encoded).hexdigest()
         metadata.label = label
         return metadata
-
-    @staticmethod
-    def _deep_copy(d: Dict) -> Dict:
-        return json.loads(json.dumps(d))
 
     def _get_commit(
         self,
@@ -286,23 +295,50 @@ class InProcessParamStore(ParamStore, MutableMapping):
             _merge_trees(theirs_copy, self._params)
             self._params = theirs_copy
 
+    def list_values(self, key: str) -> pd.DataFrame:
+        values = []
+        commits = self._db.all()
+        commits.sort(key=lambda x: x["metadata"]["ns"])
+        for commit in commits:
+            try:
+                value = (
+                    commit["params"][key],
+                    _ns_to_datetime(commit["metadata"]["ns"]),
+                    commit["metadata"]["id"],
+                    commit["metadata"]["label"],
+                )
+                values.append(value)
+            except KeyError:
+                pass
+        if key in self._params:
+            values.append((self._params[key], None, None, None))
+        df = pd.DataFrame(values)
+        if not df.empty:
+            df.columns = ["value", "time", "commit_id", "label"]
+        return df
 
-def _test_if_value_contains(label: str):
+
+""" Static helper methods """
+
+
+def _deep_copy(d: Dict) -> Dict:
+    return json.loads(json.dumps(d))
+
+
+def _test_if_value_contains(label: str) -> Callable:
     return lambda val: (label or "") in (val or "")
 
 
-def _extract_metadata(document: Document):
+def _extract_metadata(document: Document) -> Metadata:
     return Metadata(document.get("metadata"))
 
 
-def _merge_trees(a: Dict, b: Dict, path: List[str] = None):
+def _merge_trees(a: Dict, b: Dict) -> Dict:
     """Merges b into a - Copy pasted from https://stackoverflow.com/a/7205107/33404"""
-    if path is None:
-        path = []
     for key in b:
         if key in a:
             if isinstance(a[key], dict) and isinstance(b[key], dict):
-                _merge_trees(a[key], b[key], path + [str(key)])
+                _merge_trees(a[key], b[key])
             elif a[key] == b[key]:
                 pass  # same leaf value, nothing to do
             else:
@@ -310,3 +346,19 @@ def _merge_trees(a: Dict, b: Dict, path: List[str] = None):
         else:
             a[key] = b[key]  # "copy" from b to a
     return a
+
+
+def _json_dumps_default(value):
+    if isinstance(value, datetime):
+        return str(value)
+    else:
+        return value.__dict__
+
+
+def _dict_to_json(d: Dict) -> str:
+    return json.dumps(d, default=_json_dumps_default, sort_keys=True, ensure_ascii=True)
+
+
+def _ns_to_datetime(ns: int) -> datetime:
+    """Convert a UNIX epoch timestamp in nano-seconds to a human readable string"""
+    return pd.to_datetime(ns).to_pydatetime()

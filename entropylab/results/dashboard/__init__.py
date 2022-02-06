@@ -1,4 +1,6 @@
 import logging
+import os
+import sys
 from typing import Optional
 
 from waitress import serve
@@ -28,6 +30,7 @@ def serve_dashboard(
     if debug is None:
         debug = settings.get("dashboard.debug", False)
 
+    sys.path.append(os.path.abspath(path))
     app = build_dashboard_app(path)
 
     if debug:

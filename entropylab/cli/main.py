@@ -2,6 +2,8 @@ import argparse
 import functools
 import sys
 
+import pkg_resources
+
 from entropylab.logger import logger
 from entropylab.results.dashboard import serve_dashboard
 from entropylab.results_backend.sqlalchemy import init_db, upgrade_db
@@ -60,6 +62,13 @@ def _build_parser():
         "nargs": "?",
         "default": ".",
     }
+
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version="%(prog)s " + pkg_resources.get_distribution("entropylab").version,
+    )
 
     # init
     init_parser = subparsers.add_parser("init", help="initialize a new Entropy project")

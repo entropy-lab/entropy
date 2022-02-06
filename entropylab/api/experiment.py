@@ -39,7 +39,7 @@ class _Experiment:
         self._experiment_resources: ExperimentResources = (
             definition.get_experiment_resources()
         )
-        self._user: str = ""
+        self._user: str = definition._user
         self._id: int = -1
         self._executor = self._definition._get_execution_instructions()
 
@@ -150,6 +150,7 @@ class ExperimentDefinition(abc.ABC):
         resources: Optional[ExperimentResources],
         label: Optional[str] = None,
         story: str = None,
+        user:str= ""
     ) -> None:
         super().__init__()
         self._resources: ExperimentResources = resources
@@ -158,6 +159,7 @@ class ExperimentDefinition(abc.ABC):
         self.label = label
         self.story = story
         self._kwargs = {}
+        self._user = user
 
     def get_experiment_resources(self) -> ExperimentResources:
         """

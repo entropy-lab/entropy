@@ -1,6 +1,7 @@
 import os
 import shutil
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
@@ -40,6 +41,15 @@ def db_file_path(request) -> str:
 
 
 @pytest.fixture()
+def tinydb_file_path(request) -> str:
+    """Generate a unique path to a (non-existent) tinydb json file
+    The file will be removed on tear down"""
+    file_path = _build_project_dir_path_for_test(request) + ".json"
+    yield file_path
+    _delete_if_exists(file_path)
+
+
+@pytest.fixture()
 def initialized_project_dir_path(request, project_dir_path) -> str:
     """Create an initialized project and return the path to its directory
     The directory will be removed recursively on tear down"""
@@ -59,13 +69,17 @@ def _build_project_dir_path_for_test(request):
     project_dir_path = (
         f"tests_cache/{request.node.name}_{datetime.now():%Y-%m-%d-%H-%M-%S}"
     )
+    Path("tests_cache").mkdir(parents=True, exist_ok=True)
     return project_dir_path
 
 
-def _delete_if_exists(directory: str):
-    if os.path.isdir(directory):
-        logger.debug(f"Deleting test project directory '{directory}'")
-        shutil.rmtree(directory)
+def _delete_if_exists(path: str):
+    if os.path.isdir(path):
+        logger.debug(f"Test cleanup. Deleting directory '{path}'")
+        shutil.rmtree(path)
+    elif os.path.isfile(path):
+        logger.debug(f"Test cleanup. Deleting file '{path}'")
+        os.remove(path)
 
 
 def _copy_db_template(src, dst, request):

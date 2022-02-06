@@ -5,7 +5,7 @@ import json
 import time
 from abc import ABC, abstractmethod
 from enum import Enum, unique
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, MutableMapping, Iterator
 
 import pandas as pd
 from tinydb import TinyDB, Query
@@ -22,48 +22,74 @@ class MergeStrategy(Enum):
 
 
 class Metadata:
-    # TODO: Proper public props
     id: str
     ns: int
     label: Optional[str]
 
-    def __init__(self, dikt=None):
-        if dikt:
-            self.__dict__.update(dikt)
+    def __init__(self, d: Dict = None):
+        if d:
+            self.__dict__.update(d)
 
     def __repr__(self) -> str:
         d = self.__dict__.copy()
         d["ns"] = str(pd.to_datetime(self.ns).to_pydatetime())
-        jzon = json.dumps(
+        serialized = json.dumps(
             d, default=lambda o: o.__dict__, sort_keys=True, ensure_ascii=True
         )
-        return f"<Metadata({jzon})>"
+        return f"<Metadata({serialized})>"
 
 
 class ParamStore(ABC):
-    def __init__(self):
-        super().__init__()
-
-    """ Params dictionary """
-
     @abstractmethod
-    def __getitem__(self, key: str) -> Any:
+    def to_dict(self):
         pass
 
     @abstractmethod
-    def __setitem__(self, key: str, value: Any) -> None:
+    def get(self, key, commit_id):
+        """
+            returns the value of a param by key
+
+        :param key: the key identifying the param
+        :param commit_id: an optional commit_id. if provided, the value will be
+        returned from the specified commit
+        """
         pass
 
     @abstractmethod
-    def commit(self) -> str:
+    def commit(self, label):
         pass
 
     @abstractmethod
-    def to_dict(self) -> Dict:
+    def checkout(self, commit_id, commit_num, move_by):
+        pass
+
+    @abstractmethod
+    def list_commits(self, label):
+        """
+            returns a list of commits
+
+        :param label: an optional label, if given then only commits that match
+        it will be returned
+        """
+        pass
+
+    @abstractmethod
+    def merge(
+        self,
+        theirs: Dict | ParamStore,
+        merge_strategy: Optional[MergeStrategy] = MergeStrategy.OURS,
+    ) -> None:
+        pass
+
+    @property
+    @abstractmethod
+    def is_dirty(self):
+        """True iff params have been changed since the store has last been
+        initialized or checked out"""
         pass
 
 
-class InProcessParamStore(ParamStore):
+class InProcessParamStore(ParamStore, MutableMapping):
 
     """Naive implementation of ParamStore based on tinydb
 
@@ -71,7 +97,6 @@ class InProcessParamStore(ParamStore):
     Using this implementation in multiple concurrent processes is not supported.
     """
 
-    # TODO: Use path to entropy project instead of direct path to tinydb file?
     def __init__(
         self,
         path: Optional[str] = None,
@@ -79,24 +104,35 @@ class InProcessParamStore(ParamStore):
         merge_strategy: Optional[MergeStrategy] = MergeStrategy.THEIRS,
     ):
         super().__init__()
-        self._is_dirty = True  # were params modified since commit() / checkout()?
         self._base_commit_id = None  # id of last commit checked out/committed
         self._base_doc_id = None  # tinydb document id of last commit...
         self._params = dict()  # where current params are stored
+        self._is_dirty = True  # can the store be committed at this time?
         if path is None:
+            self._is_in_memory_mode = True
             self._db = TinyDB(storage=MemoryStorage)
         else:
+            self._is_in_memory_mode = False
             self._db = TinyDB(path)
         if theirs is not None:
             self.merge(theirs, merge_strategy)
 
+    """ Properties """
+
     @property
     def is_dirty(self):
-        """True iff params have been changed since the store has last been
-        initialized or checked out"""
         return self._is_dirty
 
-    """ Attributes """
+    """ MutableMapping """
+
+    def __iter__(self) -> Iterator[Any]:
+        return self._params.__iter__()
+
+    def __len__(self) -> int:
+        return self._params.__len__()
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._params
 
     def __setattr__(self, name, value):
         if name.startswith("_"):
@@ -118,11 +154,14 @@ class InProcessParamStore(ParamStore):
             del self._params[name]
             self._is_dirty = True
 
-    """ Items """
-
     def __setitem__(self, key: str, value: Any) -> None:
-        self._params[key] = value
-        self._is_dirty = True
+        if key.startswith("_"):
+            raise KeyError(
+                f"ParamStore keys cannot start with underscore (_). Key: {key}"
+            )
+        else:
+            self._params[key] = value
+            self._is_dirty = True
 
     def __getitem__(self, key: str) -> Any:
         return self._params[key]
@@ -131,20 +170,10 @@ class InProcessParamStore(ParamStore):
         self._params.__delitem__(*args, **kwargs)
         self._is_dirty = True
 
-    def __contains__(self, key: str) -> bool:
-        return key in self._params
-
     def to_dict(self) -> Dict:
         return dict(self._params)
 
     def get(self, key: str, commit_id: Optional[str] = None):
-        """
-            returns the value of a param by key
-
-        :param key: the key identifying the param
-        :param commit_id: an optional commit_id. if provided, the value will be
-        returned from the specified commit
-        """
         if commit_id is None:
             return self._params.get(key)
         else:
@@ -157,8 +186,11 @@ class InProcessParamStore(ParamStore):
         if not self._is_dirty:
             return self._base_commit_id
         metadata = self._generate_metadata(label)
-
-        doc_id = self._db.insert(dict(metadata=metadata.__dict__, params=self._params))
+        if self._is_in_memory_mode:
+            params = self._deep_copy(self._params)
+        else:
+            params = self._params
+        doc_id = self._db.insert(dict(metadata=metadata.__dict__, params=params))
         self._base_commit_id = metadata.id
         self._base_doc_id = doc_id
         self._is_dirty = False
@@ -177,26 +209,24 @@ class InProcessParamStore(ParamStore):
         self._is_dirty = False
 
     def list_commits(self, label: Optional[str] = None) -> List[Metadata]:
-        """
-            returns a list of commits
-
-        :param label: an optional label, if given then only commits that match
-        it will be returned
-        """
         documents = self._db.search(
             Query().metadata.label.test(_test_if_value_contains(label))
         )
         metadata = map(_extract_metadata, documents)
         return list(metadata)
 
-    def _generate_metadata(self, label: Optional[str] = None) -> (str, int):
+    def _generate_metadata(self, label: Optional[str] = None) -> Metadata:
         metadata = Metadata()
         metadata.ns = time.time_ns()
-        jzon = json.dumps(self._params, sort_keys=True, ensure_ascii=True)
-        bytez = (jzon + str(metadata.ns)).encode("utf-8")
-        metadata.id = hashlib.sha1(bytez).hexdigest()
+        params_json = json.dumps(self._params, sort_keys=True, ensure_ascii=True)
+        commit_encoded = (params_json + str(metadata.ns)).encode("utf-8")
+        metadata.id = hashlib.sha1(commit_encoded).hexdigest()
         metadata.label = label
         return metadata
+
+    @staticmethod
+    def _deep_copy(d: Dict) -> Dict:
+        return json.loads(json.dumps(d))
 
     def _get_commit(
         self,

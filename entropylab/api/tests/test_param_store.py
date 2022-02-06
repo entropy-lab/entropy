@@ -14,42 +14,88 @@ def test_ctor_is_dirty_is_true():
     assert target.is_dirty is True
 
 
-""" __getitem()__"""
+""" MutableMapping """
 
 
-def test___getattribute_works():
+def test___iter___works():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    target["baz"] = "buzz"
+    actual = iter(target)
+    assert next(actual) == "foo"
+    assert next(actual) == "baz"
+
+
+def test___len___works():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    target["baz"] = "buzz"
+    assert len(target) == 2
+
+
+def test___contains___works():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    assert "foo" in target
+
+
+def test___getattr___works():
     target = InProcessParamStore()
     target["foo"] = "bar"
     assert target.foo == "bar"
 
 
-def test___setattr_works():
+def test___setattr___works():
     target = InProcessParamStore()
     target.foo = "bar"
     assert target["foo"] == "bar"
 
 
-def test_get_when_key_is_present_then_value_is_returned():
+def test___getitem___when_key_is_present_then_value_is_returned():
     target = InProcessParamStore()
     target["foo"] = "bar"
     assert target["foo"] == "bar"
 
 
-def test_get_when_key_is_missing_then_keyerror_is_raised():
+def test___getitem___when_key_is_missing_then_keyerror_is_raised():
     target = InProcessParamStore()
     with pytest.raises(KeyError):
         # noinspection PyStatementEffect
         target["foo"]
 
 
-def test_get_when_key_is_none_then_keyerror_is_raised():
+def test___getitem___when_key_is_none_then_keyerror_is_raised():
     target = InProcessParamStore()
     with pytest.raises(KeyError):
         # noinspection PyTypeChecker,PyStatementEffect
         target[None]
 
 
+def test___getitem___when_key_starts_with_underscore_then_keyerror_is_raised():
+    target = InProcessParamStore()
+    with pytest.raises(KeyError):
+        # noinspection PyTypeChecker,PyStatementEffect
+        target["_base_doc_id"]
+
+
+def test___setitem___when_key_starts_with_underscore_then_keyerror_is_raised():
+    target = InProcessParamStore()
+    with pytest.raises(KeyError):
+        target["_base_doc_id"] = "bar"
+
+
 """ commit() """
+
+
+def test_commit_in_memory_when_param_changes_commit_doesnt_change():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    commit_id = target.commit()
+    # act
+    target["foo"] = "baz"
+    # assert
+    assert target.get("foo", commit_id) == "bar"
 
 
 def test_commit_when_body_is_empty_does_not_throw(tinydb_file_path):
@@ -81,7 +127,7 @@ def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
     assert first != third
 
 
-def test_commit_when_label_is_not_given_then_null_is_saved(tinydb_file_path):
+def test_commit_when_label_is_not_given_then_null_label_is_saved(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     commit_id = target.commit()
     result = target._db.search(Query().metadata.id == commit_id)

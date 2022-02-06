@@ -1,4 +1,5 @@
 from pprint import pprint
+from time import sleep
 
 import pytest
 from tinydb import Query
@@ -117,6 +118,7 @@ def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
     target = InProcessParamStore(tinydb_file_path)
     target["foo"] = "bar"
     first = target.commit()
+    sleep(0.1)
     del target["foo"]
     # noinspection PyUnusedLocal
     second = target.commit()
@@ -438,6 +440,89 @@ def test_merge_strategy_theirs_both_sides():
             "c": 3,
         }
     }
+
+
+""" list_values() """
+
+
+def test_list_values_when_key_was_never_in_store_then_empty_list_is_returned():
+    target = InProcessParamStore()
+    assert target.list_values("foo").empty
+
+
+def test_list_values_when_key_is_dirty_in_store_then_one_value_is_returned():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    actual = target.list_values("foo")
+    assert actual.iloc[0]["value"] == "bar"
+    assert actual.iloc[0]["time"] is None
+    assert actual.iloc[0]["commit_id"] is None
+    assert actual.iloc[0]["label"] is None
+
+
+def test_list_values_when_store_is_not_dirty_then_value_is_full():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    target.commit("label")
+    actual = target.list_values("foo")
+    assert actual.iloc[0]["value"] == "bar"
+    assert actual.iloc[0]["time"] is not None
+    assert actual.iloc[0]["commit_id"] is not None
+    assert actual.iloc[0]["label"] == "label"
+
+
+def test_list_values_when_key_is_dirty_and_in_commit_then_two_values_are_returned():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    target.commit()
+    target["foo"] = "baz"
+    actual = target.list_values("foo")
+    assert actual.iloc[0]["value"] == "bar"
+    assert actual.iloc[1]["value"] == "baz"
+
+
+def test_list_values_then_values_are_sorted_by_ns_ascending():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = 1
+    target.commit()
+    target["foo"] = 2
+    target.commit("beta")
+    target["foo"] = 3
+    target.commit("gamma")
+    target["foo"] = 4
+    # act
+    actual = target.list_values("foo")
+    # assert
+    assert actual.iloc[0]["value"] == 1
+    assert actual.iloc[1]["value"] == 2
+    assert actual.iloc[2]["value"] == 3
+    assert actual.iloc[3]["value"] == 4
+    assert actual.iloc[0]["label"] is None
+    assert actual.iloc[1]["label"] == "beta"
+    assert actual.iloc[2]["label"] == "gamma"
+    assert actual.iloc[3]["label"] is None
+
+
+def test_list_values_then_when_key_is_deleted_it_is_not_in_list_of_values():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = 1
+    target.commit("alpha")
+    del target["foo"]
+    target.commit("beta")
+    target["foo"] = 3
+    target.commit("gamma")
+    target["foo"] = 4
+    # act
+    actual = target.list_values("foo")
+    # assert
+    assert actual.iloc[0]["value"] == 1
+    assert actual.iloc[1]["value"] == 3
+    assert actual.iloc[2]["value"] == 4
+    assert actual.iloc[0]["label"] == "alpha"
+    assert actual.iloc[1]["label"] == "gamma"
+    assert actual.iloc[2]["label"] is None
 
 
 """ demo test """

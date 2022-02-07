@@ -143,3 +143,11 @@ def test_auto_plot_2d_ndarray():
     assert actual.id == 0
     assert actual.experiment_id == 1
     assert isinstance(actual.generator, ImShowPlotGenerator)
+
+def test_auto_plot_number():
+    data = 10
+    actual = auto_plot(1, data)
+    assert isinstance(actual, PlotRecord)
+    assert actual.id == 0
+    assert actual.experiment_id == 1
+    assert isinstance(actual.generator, CirclePlotGenerator)

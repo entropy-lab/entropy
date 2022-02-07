@@ -618,7 +618,7 @@ class Graph(ExperimentDefinition):
         story: str = None,
         key_nodes: Optional[Set[Node]] = None,
         execution_type: GraphExecutionType = GraphExecutionType.Sync,
-        user:str = ""
+        user: str = "",
     ) -> None:
         """
             Experiment defined by a graph model and runs within entropy.

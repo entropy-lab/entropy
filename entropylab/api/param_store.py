@@ -94,6 +94,20 @@ class ParamStore(ABC):
     ) -> None:
         pass
 
+    """ Tags """
+
+    @abstractmethod
+    def add_tag(self, tag: str, key: str) -> None:
+        pass
+
+    @abstractmethod
+    def remove_tag(self, tag: str, key: str) -> None:
+        pass
+
+    @abstractmethod
+    def list_keys(self, tag: str) -> List[str]:
+        pass
+
     @property
     @abstractmethod
     def is_dirty(self):
@@ -116,11 +130,15 @@ class InProcessParamStore(ParamStore, MutableMapping):
         theirs: Optional[Dict | ParamStore] = None,
         merge_strategy: Optional[MergeStrategy] = MergeStrategy.THEIRS,
     ):
+
         super().__init__()
-        self._base_commit_id = None  # id of last commit checked out/committed
-        self._base_doc_id = None  # tinydb document id of last commit...
-        self._params = dict()  # where current params are stored
-        self._is_dirty = True  # can the store be committed at this time?
+
+        self._base_commit_id: Optional[str] = None  # last commit checked out/committed
+        self._base_doc_id: Optional[int] = None  # tinydb document id of last commit...
+        self._params: Dict[str, Any] = dict()  # where current params are stored
+        self._tags: Dict[str, List[str]] = dict()  # tags that are mapped to keys
+        self._is_dirty: bool = True  # can the store be committed at this time?
+
         if path is None:
             self._is_in_memory_mode = True
             self._db = TinyDB(storage=MemoryStorage)
@@ -165,6 +183,7 @@ class InProcessParamStore(ParamStore, MutableMapping):
             super().__delattr__(name)
         else:
             del self._params[name]
+            self._remove_key_from_tags(name)
             self._is_dirty = True
 
     def __setitem__(self, key: str, value: Any) -> None:
@@ -181,6 +200,7 @@ class InProcessParamStore(ParamStore, MutableMapping):
 
     def __delitem__(self, *args, **kwargs):
         self._params.__delitem__(*args, **kwargs)
+        self._remove_key_from_tags(args[0])
         self._is_dirty = True
 
     def to_dict(self) -> Dict:
@@ -193,6 +213,11 @@ class InProcessParamStore(ParamStore, MutableMapping):
             commit = self._get_commit(commit_id)
             return commit["params"][key]
 
+    def _remove_key_from_tags(self, key: str):
+        for tag in self._tags:
+            if key in self._tags[tag]:
+                self._tags[tag].remove(key)
+
     """ Commits """
 
     def commit(self, label: Optional[str] = None) -> str:
@@ -203,7 +228,9 @@ class InProcessParamStore(ParamStore, MutableMapping):
             params = _deep_copy(self._params)
         else:
             params = self._params
-        doc_id = self._db.insert(dict(metadata=metadata.__dict__, params=params))
+        doc_id = self._db.insert(
+            dict(metadata=metadata.__dict__, params=params, tags=self._tags)
+        )
         self._base_commit_id = metadata.id
         self._base_doc_id = doc_id
         self._is_dirty = False
@@ -217,6 +244,7 @@ class InProcessParamStore(ParamStore, MutableMapping):
     ) -> None:
         commit = self._get_commit(commit_id, commit_num, move_by)
         self._params = commit["params"]
+        self._tags = commit["tags"]
         self._base_commit_id = commit_id
         self._base_doc_id = commit.doc_id
         self._is_dirty = False
@@ -290,10 +318,11 @@ class InProcessParamStore(ParamStore, MutableMapping):
             theirs = theirs.to_dict()
         if merge_strategy == MergeStrategy.OURS:
             _merge_trees(self._params, theirs)
-        if merge_strategy == MergeStrategy.THEIRS:
+        elif merge_strategy == MergeStrategy.THEIRS:
             theirs_copy = dict(theirs)
             _merge_trees(theirs_copy, self._params)
             self._params = theirs_copy
+        # TODO: Mark as dirty!
 
     def list_values(self, key: str) -> pd.DataFrame:
         values = []
@@ -316,6 +345,30 @@ class InProcessParamStore(ParamStore, MutableMapping):
         if not df.empty:
             df.columns = ["value", "time", "commit_id", "label"]
         return df
+
+    """ Tags """
+
+    def add_tag(self, tag: str, key: str) -> None:
+        if key not in self._params:
+            raise KeyError(f"key '{key}' is not in store")
+        if tag not in self._tags:
+            self._tags[tag] = []
+        self._tags[tag].append(key)
+        self._is_dirty = True
+
+    def remove_tag(self, tag: str, key: str) -> None:
+        if tag not in self._tags:
+            return
+        if key not in self._tags[tag]:
+            return
+        self._tags[tag].remove(key)
+        self._is_dirty = True
+
+    def list_keys(self, tag: str) -> List[str]:
+        if tag not in self._tags:
+            return []
+        else:
+            return self._tags[tag]
 
 
 """ Static helper methods """

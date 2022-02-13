@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 import time
 from collections import MutableMapping
 from datetime import datetime
@@ -33,6 +34,7 @@ class InProcessParamStore(ParamStore, MutableMapping):
 
         super().__init__()
 
+        self._lock = threading.Lock()
         self._base_commit_id: Optional[str] = None  # last commit checked out/committed
         self._base_doc_id: Optional[int] = None  # tinydb document id of last commit...
         self._params: Dict[str, Any] = dict()  # where current params are stored
@@ -52,39 +54,46 @@ class InProcessParamStore(ParamStore, MutableMapping):
 
     @property
     def is_dirty(self):
-        return self._is_dirty
+        with self._lock:
+            return self._is_dirty
 
     """ MutableMapping """
 
     def __iter__(self) -> Iterator[Any]:
-        return self._params.__iter__()
+        with self._lock:
+            return self._params.__iter__()
 
     def __len__(self) -> int:
-        return self._params.__len__()
+        with self._lock:
+            return self._params.__len__()
 
     def __contains__(self, key: str) -> bool:
-        return key in self._params
+        with self._lock:
+            return key in self._params
 
     def __setattr__(self, name, value):
         if name.startswith("_"):
             super().__setattr__(name, value)
         else:
-            self._params[name] = value
-            self._is_dirty = True
+            with self._lock:
+                self._params[name] = value
+                self._is_dirty = True
 
     def __getattr__(self, name):
         if name.startswith("_"):
             return super().__getattribute__(name)
         else:
-            return self._params[name]
+            with self._lock:
+                return self._params[name]
 
     def __delattr__(self, name):
         if name.startswith("_"):
             super().__delattr__(name)
         else:
-            del self._params[name]
-            self._remove_key_from_tags(name)
-            self._is_dirty = True
+            with self._lock:
+                del self._params[name]
+                self._remove_key_from_tags(name)
+                self._is_dirty = True
 
     def __setitem__(self, key: str, value: Any) -> None:
         if key.startswith("_"):
@@ -92,26 +101,31 @@ class InProcessParamStore(ParamStore, MutableMapping):
                 f"ParamStore keys cannot start with underscore (_). Key: {key}"
             )
         else:
-            self._params[key] = value
-            self._is_dirty = True
+            with self._lock:
+                self._params[key] = value
+                self._is_dirty = True
 
     def __getitem__(self, key: str) -> Any:
-        return self._params[key]
+        with self._lock:
+            return self._params[key]
 
     def __delitem__(self, *args, **kwargs):
-        self._params.__delitem__(*args, **kwargs)
-        self._remove_key_from_tags(args[0])
-        self._is_dirty = True
+        with self._lock:
+            self._params.__delitem__(*args, **kwargs)
+            self._remove_key_from_tags(args[0])
+            self._is_dirty = True
 
     def to_dict(self) -> Dict:
-        return dict(self._params)
+        with self._lock:
+            return dict(self._params)
 
     def get(self, key: str, commit_id: Optional[str] = None):
-        if commit_id is None:
-            return self._params.get(key)
-        else:
-            commit = self._get_commit(commit_id)
-            return commit["params"][key]
+        with self._lock:
+            if commit_id is None:
+                return self._params.get(key)
+            else:
+                commit = self._get_commit(commit_id)
+                return commit["params"][key]
 
     def _remove_key_from_tags(self, key: str):
         for tag in self._tags:
@@ -121,40 +135,21 @@ class InProcessParamStore(ParamStore, MutableMapping):
     """ Commits """
 
     def commit(self, label: Optional[str] = None) -> str:
-        if not self._is_dirty:
-            return self._base_commit_id
-        metadata = self._generate_metadata(label)
-        if self._is_in_memory_mode:
-            params = _deep_copy(self._params)
-        else:
-            params = self._params
-        doc_id = self._db.insert(
-            dict(metadata=metadata.__dict__, params=params, tags=self._tags)
-        )
-        self._base_commit_id = metadata.id
-        self._base_doc_id = doc_id
-        self._is_dirty = False
-        return metadata.id
-
-    def checkout(
-        self,
-        commit_id: Optional[str] = None,
-        commit_num: Optional[int] = None,
-        move_by: Optional[int] = None,
-    ) -> None:
-        commit = self._get_commit(commit_id, commit_num, move_by)
-        self._params = commit["params"]
-        self._tags = commit["tags"]
-        self._base_commit_id = commit_id
-        self._base_doc_id = commit.doc_id
-        self._is_dirty = False
-
-    def list_commits(self, label: Optional[str] = None) -> List[Metadata]:
-        documents = self._db.search(
-            Query().metadata.label.test(_test_if_value_contains(label))
-        )
-        metadata = map(_extract_metadata, documents)
-        return list(metadata)
+        with self._lock:
+            if not self._is_dirty:
+                return self._base_commit_id
+            metadata = self._generate_metadata(label)
+            if self._is_in_memory_mode:
+                params = _deep_copy(self._params)
+            else:
+                params = self._params
+            doc_id = self._db.insert(
+                dict(metadata=metadata.__dict__, params=params, tags=self._tags)
+            )
+            self._base_commit_id = metadata.id
+            self._base_doc_id = doc_id
+            self._is_dirty = False
+            return metadata.id
 
     def _generate_metadata(self, label: Optional[str] = None) -> Metadata:
         metadata = Metadata()
@@ -164,6 +159,28 @@ class InProcessParamStore(ParamStore, MutableMapping):
         metadata.id = hashlib.sha1(commit_encoded).hexdigest()
         metadata.label = label
         return metadata
+
+    def checkout(
+        self,
+        commit_id: Optional[str] = None,
+        commit_num: Optional[int] = None,
+        move_by: Optional[int] = None,
+    ) -> None:
+        with self._lock:
+            commit = self._get_commit(commit_id, commit_num, move_by)
+            self._params = commit["params"]
+            self._tags = commit["tags"]
+            self._base_commit_id = commit_id
+            self._base_doc_id = commit.doc_id
+            self._is_dirty = False
+
+    def list_commits(self, label: Optional[str] = None) -> List[Metadata]:
+        with self._lock:
+            documents = self._db.search(
+                Query().metadata.label.test(_test_if_value_contains(label))
+            )
+            metadata = map(_extract_metadata, documents)
+            return list(metadata)
 
     def _get_commit(
         self,
@@ -216,7 +233,8 @@ class InProcessParamStore(ParamStore, MutableMapping):
     ) -> None:
         if issubclass(type(theirs), ParamStore):
             theirs = theirs.to_dict()
-        self._merge_trees(self._params, theirs, merge_strategy)
+        with self._lock:
+            self._merge_trees(self._params, theirs, merge_strategy)
 
     def _merge_trees(self, a: Dict, b: Dict, merge_strategy: MergeStrategy) -> Dict:
         """Merges b into a - Copy pasted from https://stackoverflow.com/a/7205107/33404"""
@@ -243,50 +261,54 @@ class InProcessParamStore(ParamStore, MutableMapping):
         return a
 
     def list_values(self, key: str) -> pd.DataFrame:
-        values = []
-        commits = self._db.all()
-        commits.sort(key=lambda x: x["metadata"]["ns"])
-        for commit in commits:
-            try:
-                value = (
-                    commit["params"][key],
-                    _ns_to_datetime(commit["metadata"]["ns"]),
-                    commit["metadata"]["id"],
-                    commit["metadata"]["label"],
-                )
-                values.append(value)
-            except KeyError:
-                pass
-        if key in self._params:
-            values.append((self._params[key], None, None, None))
-        df = pd.DataFrame(values)
-        if not df.empty:
-            df.columns = ["value", "time", "commit_id", "label"]
-        return df
+        with self._lock:
+            values = []
+            commits = self._db.all()
+            commits.sort(key=lambda x: x["metadata"]["ns"])
+            for commit in commits:
+                try:
+                    value = (
+                        commit["params"][key],
+                        _ns_to_datetime(commit["metadata"]["ns"]),
+                        commit["metadata"]["id"],
+                        commit["metadata"]["label"],
+                    )
+                    values.append(value)
+                except KeyError:
+                    pass
+            if key in self._params:
+                values.append((self._params[key], None, None, None))
+            df = pd.DataFrame(values)
+            if not df.empty:
+                df.columns = ["value", "time", "commit_id", "label"]
+            return df
 
     """ Tags """
 
     def add_tag(self, tag: str, key: str) -> None:
-        if key not in self._params:
-            raise KeyError(f"key '{key}' is not in store")
-        if tag not in self._tags:
-            self._tags[tag] = []
-        self._tags[tag].append(key)
-        self._is_dirty = True
+        with self._lock:
+            if key not in self._params:
+                raise KeyError(f"key '{key}' is not in store")
+            if tag not in self._tags:
+                self._tags[tag] = []
+            self._tags[tag].append(key)
+            self._is_dirty = True
 
     def remove_tag(self, tag: str, key: str) -> None:
-        if tag not in self._tags:
-            return
-        if key not in self._tags[tag]:
-            return
-        self._tags[tag].remove(key)
-        self._is_dirty = True
+        with self._lock:
+            if tag not in self._tags:
+                return
+            if key not in self._tags[tag]:
+                return
+            self._tags[tag].remove(key)
+            self._is_dirty = True
 
     def list_keys(self, tag: str) -> List[str]:
-        if tag not in self._tags:
-            return []
-        else:
-            return self._tags[tag]
+        with self._lock:
+            if tag not in self._tags:
+                return []
+            else:
+                return self._tags[tag]
 
 
 class Metadata:

@@ -5,7 +5,11 @@ import pytest
 from tinydb import Query
 
 from entropylab.api.errors import EntropyError
-from entropylab.api.param_store import InProcessParamStore, Metadata, MergeStrategy
+from entropylab.api.in_process_param_store import (
+    InProcessParamStore,
+    Metadata,
+    MergeStrategy,
+)
 
 """ ctor """
 

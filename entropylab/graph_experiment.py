@@ -618,6 +618,7 @@ class Graph(ExperimentDefinition):
         story: str = None,
         key_nodes: Optional[Set[Node]] = None,
         execution_type: GraphExecutionType = GraphExecutionType.Sync,
+        user: str = "",
     ) -> None:
         """
             Experiment defined by a graph model and runs within entropy.
@@ -632,7 +633,7 @@ class Graph(ExperimentDefinition):
                         on a given time, or asynchronously - which will run node in parallel
                         according to their dependency and implementation (using async.io)
         """
-        super().__init__(resources, label, story)
+        super().__init__(resources, label, story, user)
         self._key_nodes = key_nodes
         if self._key_nodes is None:
             self._key_nodes = set()

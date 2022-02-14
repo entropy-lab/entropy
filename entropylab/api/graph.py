@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
-from typing import Set, Dict, Any, List
+from typing import Set, Dict, Any, List, Optional
 
 import networkx as nx
 from graphviz import Digraph
@@ -20,6 +20,24 @@ class Output:
     name: str
 
 
+@dataclass
+class RetryBehavior:
+    """
+    Attributes:
+        number_of_attempts: the maximum number of retries.
+        wait_time: the initial wait time between each attempt [seconds].
+        backoff: a factor that multiplies the delay on each attempt (1 is no backoff).
+        added_delay: delay that is added on each attempt [seconds].
+        max_wait_time: optional maximum delay.
+    """
+
+    number_of_attempts: float = 5
+    wait_time: float = 10
+    backoff: float = 2
+    added_delay: float = 0
+    max_wait_time: Optional[float] = None
+
+
 class Node(ABC):
     """
     An abstract class for Entropy graph node.
@@ -34,6 +52,7 @@ class Node(ABC):
         output_vars: Set[str] = None,
         must_run_after: Set[Node] = None,
         save_results: bool = True,
+        retry_on_error: RetryBehavior = None,
     ):
         """
             An abstract class for Entropy graph node.
@@ -58,6 +77,7 @@ class Node(ABC):
         if self._must_run_after is None:
             self._must_run_after = {}
         self._save_results = save_results
+        self._retry_on_error = retry_on_error
 
     @property
     def label(self) -> str:
@@ -157,6 +177,9 @@ class Node(ABC):
 
     def _should_save_results(self):
         return self._save_results
+
+    def _retry_on_error_function(self) -> RetryBehavior:
+        return self._retry_on_error
 
 
 @dataclass(frozen=True, eq=True)

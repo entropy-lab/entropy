@@ -1,6 +1,7 @@
 import asyncio
 import enum
 import sys
+import time
 import traceback
 from copy import deepcopy
 from datetime import datetime
@@ -27,9 +28,49 @@ from entropylab.api.experiment import (
     ExperimentHandle,
     _Experiment,
 )
-from entropylab.api.graph import GraphHelper, Node, Output, _NodeExecutionInfo
+from entropylab.api.graph import (
+    GraphHelper,
+    Node,
+    Output,
+    _NodeExecutionInfo,
+    RetryBehavior,
+)
 from entropylab.instruments.lab_topology import ExperimentResources
 from entropylab.logger import logger
+
+
+def _handle_wait_time(wait_time, backoff, added_delay, maximum_wait_time):
+    wait_time *= backoff
+    wait_time += added_delay
+    if maximum_wait_time is not None:
+        wait_time = min(wait_time, maximum_wait_time)
+    return wait_time
+
+
+def _retry(
+    node_label: str,
+    function,
+    number_of_attempts,
+    wait_time,
+    maximum_wait_time=None,
+    backoff: float = 1,
+    added_delay: float = 0,
+):
+    for attempt in range(number_of_attempts):
+        try:
+            return function()
+        except BaseException as e:
+            if attempt == number_of_attempts:
+                raise e
+            else:
+                logger.warning(
+                    f"node {node_label} has error, retrying #{attempt + 1}"
+                    f" in {wait_time} seconds : {e}"
+                )
+                time.sleep(wait_time)
+                wait_time = _handle_wait_time(
+                    wait_time, backoff, added_delay, maximum_wait_time
+                )
 
 
 def pynode(
@@ -82,6 +123,7 @@ class PyNode(Node):
         output_vars: Set[str] = None,
         must_run_after: Set[Node] = None,
         save_results: bool = True,
+        retry_on_error: RetryBehavior = None,
     ):
         """
             Node that gets a python function or coroutine and wraps
@@ -108,7 +150,9 @@ class PyNode(Node):
         :param must_run_after: A set of nodes. If those nodes are in the same graph,
                             current node will run after they finish execution.
         """
-        super().__init__(label, input_vars, output_vars, must_run_after, save_results)
+        super().__init__(
+            label, input_vars, output_vars, must_run_after, save_results, retry_on_error
+        )
         self._program = program
 
     async def _execute_async(
@@ -248,6 +292,7 @@ class SubGraphNode(Node):
         must_run_after: Set[Node] = None,
         key_nodes: Optional[Set[Node]] = None,
         save_results: bool = True,
+        retry_on_error: RetryBehavior = None,
     ):
         """
 
@@ -261,7 +306,9 @@ class SubGraphNode(Node):
         :param must_run_after: A set of nodes. If those nodes are in the same graph,
                             current node will run after they finish execution.
         """
-        super().__init__(label, input_vars, output_vars, must_run_after, save_results)
+        super().__init__(
+            label, input_vars, output_vars, must_run_after, save_results, retry_on_error
+        )
         self._key_nodes = key_nodes
         if self._key_nodes is None:
             self._key_nodes = set()
@@ -328,12 +375,29 @@ class _NodeExecutor:
         if self.to_run:
             context = context_factory.create()
             self._prepare_for_run(context)
-            self.result = self._node._execute(
-                input_values,
-                context,
-                is_last,
-                **kwargs,
-            )
+            retry_behavior = self._node._retry_on_error_function()
+            if retry_behavior is not None:
+                self.result = _retry(
+                    self._node.label,
+                    lambda: self._node._execute(
+                        input_values,
+                        context,
+                        is_last,
+                        **kwargs,
+                    ),
+                    number_of_attempts=retry_behavior.number_of_attempts,
+                    wait_time=retry_behavior.wait_time,
+                    backoff=retry_behavior.backoff,
+                    added_delay=retry_behavior.added_delay,
+                    maximum_wait_time=retry_behavior.max_wait_time,
+                )
+            else:
+                self.result = self._node._execute(
+                    input_values,
+                    context,
+                    is_last,
+                    **kwargs,
+                )
             return self._handle_result(context)
 
     async def run_async(
@@ -346,12 +410,29 @@ class _NodeExecutor:
         if self.to_run:
             context = context_factory.create()
             self._prepare_for_run(context)
-            self.result = await self._node._execute_async(
-                input_values,
-                context,
-                is_last,
-                **kwargs,
-            )
+            retry_behavior = self._node._retry_on_error_function()
+            if retry_behavior is not None:
+                self.result = await _retry(
+                    self._node.label,
+                    lambda: self._node._execute_async(
+                        input_values,
+                        context,
+                        is_last,
+                        **kwargs,
+                    ),
+                    number_of_attempts=retry_behavior.number_of_attempts,
+                    wait_time=retry_behavior.wait_time,
+                    backoff=retry_behavior.backoff,
+                    added_delay=retry_behavior.added_delay,
+                    maximum_wait_time=retry_behavior.max_wait_time,
+                )
+            else:
+                self.result = await self._node._execute_async(
+                    input_values,
+                    context,
+                    is_last,
+                    **kwargs,
+                )
             return self._handle_result(context)
 
     def _handle_result(self, context):

@@ -1,3 +1,4 @@
+import typing
 from typing import List, Dict
 
 import numpy as np
@@ -14,6 +15,8 @@ def auto_plot(experiment_id: int, data):
         plot = _auto_plot_from_list(data)
     elif isinstance(data, np.ndarray):
         plot = _auto_plot_from_ndarray(data)
+    elif isinstance(data, int) or isinstance(data, float):
+        plot = _auto_plot_from_list([data])
     else:
         raise EntropyError(
             "Only lists, dicts and ndarrays can be auto-plotted at this time"

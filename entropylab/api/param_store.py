@@ -316,13 +316,31 @@ class InProcessParamStore(ParamStore, MutableMapping):
     ) -> None:
         if issubclass(type(theirs), ParamStore):
             theirs = theirs.to_dict()
-        if merge_strategy == MergeStrategy.OURS:
-            _merge_trees(self._params, theirs)
-        elif merge_strategy == MergeStrategy.THEIRS:
-            theirs_copy = dict(theirs)
-            _merge_trees(theirs_copy, self._params)
-            self._params = theirs_copy
-        # TODO: Mark as dirty!
+        self._merge_trees(self._params, theirs, merge_strategy)
+
+    def _merge_trees(self, a: Dict, b: Dict, merge_strategy: MergeStrategy) -> Dict:
+        """Merges b into a - Copy pasted from https://stackoverflow.com/a/7205107/33404"""
+        for key in b:
+            if key in a:
+                if isinstance(a[key], dict) and isinstance(b[key], dict):
+                    self._merge_trees(a[key], b[key], merge_strategy)
+                elif a[key] == b[key]:
+                    pass  # same leaf value, nothing to do
+                else:  # conflict:
+                    if merge_strategy == MergeStrategy.OURS:
+                        pass  # a takes precedence, ignore b
+                    elif merge_strategy == MergeStrategy.THEIRS:
+                        a[key] = b[key]  # b takes precedence, overwrite a
+                        self._is_dirty = True
+                    else:
+                        raise NotImplementedError(
+                            f"MergeStrategy '{merge_strategy}' is not implemented"
+                        )
+
+            else:  # key from b is not in a:
+                a[key] = b[key]  # "copy" from b to a
+                self._is_dirty = True
+        return a
 
     def list_values(self, key: str) -> pd.DataFrame:
         values = []
@@ -384,21 +402,6 @@ def _test_if_value_contains(label: str) -> Callable:
 
 def _extract_metadata(document: Document) -> Metadata:
     return Metadata(document.get("metadata"))
-
-
-def _merge_trees(a: Dict, b: Dict) -> Dict:
-    """Merges b into a - Copy pasted from https://stackoverflow.com/a/7205107/33404"""
-    for key in b:
-        if key in a:
-            if isinstance(a[key], dict) and isinstance(b[key], dict):
-                _merge_trees(a[key], b[key])
-            elif a[key] == b[key]:
-                pass  # same leaf value, nothing to do
-            else:
-                pass  # conflict, ignore b
-        else:
-            a[key] = b[key]  # "copy" from b to a
-    return a
 
 
 def _json_dumps_default(value):

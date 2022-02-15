@@ -416,6 +416,23 @@ def test_merge_strategy_ours_both_sides():
     }
 
 
+def test_merge_strategy_ours_when_both_are_empty_then_store_remains_not_dirty():
+    target = InProcessParamStore()
+    theirs = InProcessParamStore()
+    target.commit()  # so is_dirty becomes False
+    target.merge(theirs, MergeStrategy.OURS)
+    assert not target.is_dirty
+
+
+def test_merge_strategy_ours_when_their_key_is_copied_then_store_is_dirty():
+    target = InProcessParamStore()
+    theirs = InProcessParamStore()
+    theirs["foo"] = "bar"
+    target.commit()  # so is_dirty becomes False
+    target.merge(theirs, MergeStrategy.OURS)
+    assert target.is_dirty
+
+
 """ merge() MergeStrategy.THEIRS """
 
 
@@ -483,6 +500,15 @@ def test_merge_strategy_theirs_both_sides():
             "c": 3,
         }
     }
+
+
+def test_merge_strategy_theirs_when_their_key_is_copied_then_store_is_dirty():
+    target = InProcessParamStore()
+    theirs = InProcessParamStore()
+    theirs["foo"] = "bar"
+    target.commit()  # so is_dirty becomes False
+    target.merge(theirs, MergeStrategy.THEIRS)
+    assert target.is_dirty
 
 
 """ list_values() """

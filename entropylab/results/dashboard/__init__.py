@@ -33,8 +33,9 @@ def serve_dashboard(
     sys.path.append(os.path.abspath(path))
     app = build_dashboard_app(path)
 
+    app.enable_dev_tools(debug=True)
+
     if debug:
-        app.enable_dev_tools(debug=debug)
         entropy_logger = logging.getLogger("entropy")
         entropy_logger.setLevel(logging.DEBUG)
         waitress_logger = logging.getLogger("waitress")

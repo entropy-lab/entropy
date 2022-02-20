@@ -5,7 +5,11 @@ import pytest
 from tinydb import Query
 
 from entropylab.api.errors import EntropyError
-from entropylab.api.param_store import InProcessParamStore, Metadata, MergeStrategy
+from entropylab.api.in_process_param_store import (
+    InProcessParamStore,
+    Metadata,
+    MergeStrategy,
+)
 
 """ ctor """
 
@@ -79,10 +83,21 @@ def test___getitem___when_key_starts_with_underscore_then_keyerror_is_raised():
         target["_base_doc_id"]
 
 
-def test___setitem___when_key_starts_with_underscore_then_keyerror_is_raised():
+def test___setitem___when_key_starts_with_underscore_then_key_can_be_retrieved():
     target = InProcessParamStore()
-    with pytest.raises(KeyError):
-        target["_base_doc_id"] = "bar"
+    target["_base_doc_id"] = "bar"
+    bar = target["_base_doc_id"]
+    assert bar == "bar"
+
+
+def test___setitem___when_key_starts_with_dunder_then_key_is_not_saved_to_db(
+    tinydb_file_path,
+):
+    with InProcessParamStore(tinydb_file_path) as target:
+        target.__foo = "bar"
+        target.commit()
+    with open(tinydb_file_path) as f:
+        assert "__foo" not in f.read()
 
 
 def test___delitem__():
@@ -150,14 +165,14 @@ def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
 def test_commit_when_label_is_not_given_then_null_label_is_saved(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     commit_id = target.commit()
-    result = target._db.search(Query().metadata.id == commit_id)
+    result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
     assert result[0]["metadata"]["label"] is None
 
 
 def test_commit_when_label_is_given_then_label_is_saved(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     commit_id = target.commit("foo")
-    result = target._db.search(Query().metadata.id == commit_id)
+    result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
     assert result[0]["metadata"]["label"] == "foo"
 
 
@@ -336,14 +351,14 @@ def test_list_commits_when_label_exists_then_it_is_returned(
 
 def test__generate_metadata_empty_dict():
     target = InProcessParamStore()
-    actual = target._generate_metadata()
+    actual = target._InProcessParamStore__generate_metadata()
     assert len(actual.id) == 40
 
 
 def test__generate_metadata_nonempty_dict():
     target = InProcessParamStore()
     target["foo"] = "bar"
-    actual = target._generate_metadata()
+    actual = target._InProcessParamStore__generate_metadata()
     assert len(actual.id) == 40
 
 

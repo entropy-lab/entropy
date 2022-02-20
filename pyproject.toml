@@ -45,6 +45,7 @@ dash = "^2.0.0"
 dash-bootstrap-components = "^1.0.0"
 waitress = "^2.0.0"
 tinydb = "^4.5.2"
+munch = "^2.5.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"

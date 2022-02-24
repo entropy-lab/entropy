@@ -116,20 +116,19 @@ class InProcessParamStore(ParamStore, Munch):
         with self.__lock:
             if not self.__is_dirty:
                 return self.__base_commit_id
-            metadata = self.__generate_metadata(label)
-            if self.__is_in_memory_mode:
-                params = _deep_copy(self.toDict())
-            else:
-                params = self.toDict()
-            doc_id = self.__db.insert(
-                dict(metadata=metadata.__dict__, params=params, tags=self.__tags)
-            )
-            self.__base_commit_id = metadata.id
+            doc = self.__build_document(label)
+            doc_id = self.__db.insert(doc)
+            self.__base_commit_id = doc["metadata"]["id"]
             self.__base_doc_id = doc_id
             self.__is_dirty = False
-            return metadata.id
+            return doc["metadata"]["id"]
 
-    def __generate_metadata(self, label: Optional[str] = None) -> Metadata:
+    def __build_document(self, label: Optional[str] = None) -> dict:
+        metadata = self.__build_metadata(label)
+        params = self.toDict()
+        return Munch(metadata=metadata.__dict__, params=params, tags=self.__tags)
+
+    def __build_metadata(self, label: Optional[str] = None) -> Metadata:
         metadata = Metadata()
         metadata.ns = time.time_ns()
         params_json = json.dumps(self.toDict(), sort_keys=True, ensure_ascii=True)
@@ -290,6 +289,33 @@ class InProcessParamStore(ParamStore, Munch):
             else:
                 return self.__tags[tag]
 
+    """ Temporary State """
+
+    def save_temp(self) -> None:
+        """
+        Saves the state of params to a temporary location
+        """
+        with self.__lock:
+            table = self.__db.table("temp")
+            doc = self.__build_document()
+            table.upsert(Document(doc, doc_id=1))
+
+    def load_temp(self) -> None:
+        """
+        Overwrites the current state of params with data loaded from the temporary
+        location
+        """
+        with self.__lock:
+            table = self.__db.table("temp")
+            doc = table.get(doc_id=1)
+            if not doc:
+                raise EntropyError(
+                    "Temp location is empty. Call save_temp() before calling load_temp()"
+                )
+            self.clear()
+            self.update(doc["params"])
+            self.__tags = doc["tags"]
+
 
 class Metadata:
     id: str
@@ -307,10 +333,6 @@ class Metadata:
 
 
 """ Static helper methods """
-
-
-def _deep_copy(d: Dict) -> Dict:
-    return json.loads(json.dumps(d))
 
 
 def _test_if_value_contains(label: str) -> Callable:

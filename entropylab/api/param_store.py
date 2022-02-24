@@ -84,6 +84,16 @@ class ParamStore(ABC):
     def list_keys(self, tag: str) -> List[str]:
         pass
 
+    """ Temporary State """
+
+    @abstractmethod
+    def save_temp(self) -> None:
+        pass
+
+    @abstractmethod
+    def load_temp(self) -> None:
+        pass
+
     @property
     @abstractmethod
     def is_dirty(self):

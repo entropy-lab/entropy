@@ -351,14 +351,14 @@ def test_list_commits_when_label_exists_then_it_is_returned(
 
 def test__generate_metadata_empty_dict():
     target = InProcessParamStore()
-    actual = target._InProcessParamStore__generate_metadata()
+    actual = target._InProcessParamStore__build_metadata()
     assert len(actual.id) == 40
 
 
 def test__generate_metadata_nonempty_dict():
     target = InProcessParamStore()
     target["foo"] = "bar"
-    actual = target._InProcessParamStore__generate_metadata()
+    actual = target._InProcessParamStore__build_metadata()
     assert len(actual.id) == 40
 
 
@@ -655,6 +655,26 @@ def test_list_keys_when_tag_exists_then_multiple_tags_are_returned():
     assert target.list_keys("tag") == ["foo", "boo"]
 
 
+""" temp """
+
+
+def test_save_temp_and_load_temp(tinydb_file_path):
+    target = InProcessParamStore(tinydb_file_path)
+    target.foo = "bar"
+    target.save_temp()
+    target.foo = "baz"
+    target.load_temp()
+    assert target.foo == "bar"
+
+
+def test_load_temp_when_save_temp_not_called_before_then_error_is_raised(
+    tinydb_file_path,
+):
+    target = InProcessParamStore(tinydb_file_path)
+    with pytest.raises(EntropyError):
+        target.load_temp()
+
+
 """ demo test """
 
 
@@ -664,7 +684,19 @@ def test_demo(tinydb_file_path):
     target["qubit1.flux_capacitor.amp"] = 5.0
     target["qubit1.flux_capacitor"] = {"wave": "manifold", "warp": 1337.0}
 
-    print(f"before commit freq: {target['qubit1.flux_capacitor.freq']}")
+    print(f"before saving to temp, freq: {target['qubit1.flux_capacitor.freq']}")
+
+    target.save_temp()
+
+    target["qubit1.flux_capacitor.freq"] = 18.0
+
+    print(f"changed after saving, freq: {target['qubit1.flux_capacitor.freq']}")
+
+    target.load_temp()
+
+    print(
+        f"loaded previous value from temp, freq: {target['qubit1.flux_capacitor.freq']}"
+    )
 
     commit_id = target.commit("warm-up")
 

@@ -354,6 +354,6 @@ def _json_dumps_default(value):
         return value.__dict__
 
 
-def _ns_to_datetime(ns: int) -> datetime:
+def _ns_to_datetime(ns: int) -> pd.datetime:
     """Convert a UNIX epoch timestamp in nano-seconds to a human readable string"""
-    return pd.to_datetime(ns).to_pydatetime()
+    return pd.to_datetime(ns)

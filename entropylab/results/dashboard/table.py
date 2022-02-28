@@ -16,6 +16,7 @@ def table(records):
         ],
         data=records,
         persistence=True,
+        persistence_type="session",
         row_selectable="multi",
         cell_selectable=False,
         sort_action="native",

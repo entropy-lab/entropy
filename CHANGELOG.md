@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 * add retry behavior for nodes - recovery from errors
 * When serving the Results Dashboard, Dash's "dev tools" feature is always enabled. 
+* added a paramStore: a mechanism for saving system state with a git-like interface
 
 ## [0.4.1] - 2022-01-23
 ### Changed

@@ -3,8 +3,8 @@ import os
 import sys
 from typing import Optional
 
-from waitress import serve
-
+import hupper
+import waitress
 from entropylab.config import settings
 from entropylab.results.dashboard.dashboard import build_dashboard_app
 from entropylab.results.dashboard.theme import theme_stylesheet
@@ -41,4 +41,12 @@ def serve_dashboard(
         waitress_logger = logging.getLogger("waitress")
         waitress_logger.setLevel(logging.DEBUG)
 
-    serve(app.server, host=host, port=port)
+    # Hot reloading using hupper
+    worker_kwargs = dict(path=path, host=host, port=port, debug=debug)
+    hupper.start_reloader(
+        "entropylab.results.dashboard.serve_dashboard",
+        worker_kwargs=worker_kwargs,
+        reload_interval=0,
+    )
+
+    waitress.serve(app.server, host=host, port=port)

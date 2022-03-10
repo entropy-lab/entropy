@@ -9,6 +9,7 @@ from entropylab.results_backend.sqlalchemy.project import project_name, project_
 
 def layout(path: str, records: List[Dict]):
     return dbc.Container(
+        fluid=True,
         className="main",
         children=[
             dcc.Store(id="plot-figures", storage_type="session"),

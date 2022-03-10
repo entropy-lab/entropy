@@ -16,7 +16,7 @@ html,body {
 }
 
 #logo-col {
-  justify-content: center;
+  justify-content: left;
   display: flex;
 }
 
@@ -113,6 +113,7 @@ input.current-page::placeholder {
 .add-button-col-container {
   display: table-cell;
   vertical-align: middle;
+  text-align: center;
 }
 
 #add-button {
@@ -127,8 +128,7 @@ input.current-page::placeholder {
 
 .remove-button {
   width: 70px;
-  margin-top: 4px;
-  margin-bottom: 4px;
+  margin: 4px;
   border-color: #666666;
   font-size:12px;
 }

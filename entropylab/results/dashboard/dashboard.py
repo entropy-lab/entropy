@@ -192,27 +192,32 @@ def build_dashboard_app(proj_path):
     def build_plot_tab_from_plot_or_figure(
         figures_by_key, plot_or_figure: PlotRecord | FigureRecord, color: str
     ) -> (dbc.Tab, Dict):
-        if plot_or_figure is PlotRecord:
-            plot = cast(PlotRecord, plot_or_figure)
-            plot_key = f"{plot.experiment_id}/{plot.id}/p"
-            plot_name = f"Plot {plot_key[:-2]}"
-            plot_figure = go.Figure()
+        if isinstance(plot_or_figure, PlotRecord):
+            plot_rec = cast(PlotRecord, plot_or_figure)
+            key = f"{plot_rec.experiment_id}/{plot_rec.id}/p"
+            name = f"Plot {key[:-2]}"
+            figure = go.Figure()
             plot_or_figure.generator.plot_plotly(
-                plot_figure,
+                figure,
                 plot_or_figure.plot_data,
-                name=plot_name,
+                name=name,
                 color=color,
                 showlegend=False,
             )
         else:
-            figure = cast(FigureRecord, plot_or_figure)
-            plot_key = f"{figure.experiment_id}/{figure.id}/f"
-            plot_name = f"Figure {plot_key[:-2]}"
-            plot_figure = figure.figure
-            # TODO: set figure color
-        plot_figure.update_layout(dark_plot_layout)
-        figures_by_key[plot_key] = dict(figure=plot_figure, color=color)
-        return build_plot_tab(plot_figure, plot_name, plot_key), figures_by_key
+            figure_rec = cast(FigureRecord, plot_or_figure)
+            key = f"{figure_rec.experiment_id}/{figure_rec.id}/f"
+            name = f"Figure {key[:-2]}"
+            figure = figure_rec.figure
+            # TODO: What if there is >1 trace? Right now we change color for all traces
+            for trace in figure.data:
+                if "line" in trace:
+                    trace["line"]["color"] = color
+                if trace["marker"]:
+                    trace["marker"]["color"] = color
+        figure.update_layout(dark_plot_layout)
+        figures_by_key[key] = dict(figure=figure, color=color)
+        return build_plot_tab(figure, name, key), figures_by_key
 
     def build_plot_tab(
         plot_figure: go.Figure, plot_name: str, plot_key: str

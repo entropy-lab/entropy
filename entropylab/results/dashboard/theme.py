@@ -10,7 +10,7 @@ colors = [
     "#f39c12",
     "#e74c3c",
     "#3498db",
-    "#adb5bd",
+    "#ad05bd",
 ]
 plot_font_color = "#fff"
 plot_legend_font_color = "#fff"

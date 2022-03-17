@@ -12,7 +12,7 @@ def layout(path: str, records: List[Dict], refresh_interval_in_millis: int):
         fluid=True,
         className="main",
         children=[
-            dcc.Store(id="plot-figures", storage_type="session"),
+            dcc.Store(id="figures-by-key", storage_type="session"),
             dcc.Store(id="plot-keys-to-combine", storage_type="session"),
             dcc.Store(id="prev-selected-rows", storage_type="session"),
             dcc.Interval(

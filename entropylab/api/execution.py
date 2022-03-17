@@ -7,6 +7,7 @@ from entropylab.api.data_writer import (
     RawResultData,
     Metadata,
     PlotSpec,
+    FigureSpec,
 )
 from entropylab.instruments.lab_topology import ExperimentResources
 
@@ -61,10 +62,19 @@ class EntropyContext:
     def add_plot(self, plot: PlotSpec, data: Any):
         """
             saves a new plot from this experiment in the database
+
         :param plot: description and plotting instructions
         :param data: the data for plotting
         """
         self._data_writer.save_plot(self._exp_id, plot, data)
+
+    def add_figure(self, figure_spec: FigureSpec) -> None:
+        """
+            saves a new figure from this experiment in the database
+
+        :param figure_spec: a figure object to be saved
+        """
+        self._data_writer.save_figure(self._exp_id, figure_spec)
 
     def get_resource(self, name):
         """

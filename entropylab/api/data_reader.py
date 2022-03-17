@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import List, Any, Optional, Iterable
 
 from pandas import DataFrame
+from plotly import graph_objects as go
 
 from entropylab.api.data_writer import PlotGenerator
 
@@ -84,13 +85,28 @@ class ResultRecord:
 @dataclass
 class PlotRecord:
     """
-    A single plot information and plotting instructions that was saved during the experiment
+    A single plot information and plotting instructions that was saved during the
+    experiment
     """
 
     experiment_id: int
     id: int
     plot_data: Any = None
     generator: Optional[PlotGenerator] = None
+    label: Optional[str] = None
+    story: Optional[str] = None
+
+
+@dataclass
+class FigureRecord:
+    """
+    A single plotly figure that was saved during the experiment
+    """
+
+    experiment_id: int
+    id: int
+    figure: go.Figure
+    time: datetime
     label: Optional[str] = None
     story: Optional[str] = None
 
@@ -154,7 +170,8 @@ class DataReader(ABC):
         success: Optional[bool] = None,
     ) -> Iterable[ExperimentRecord]:
         """
-            get multiple experiments records according to any combination of parameters filters
+            get multiple experiments records according to any combination of parameters
+            filters
         :param label: experiment label to filter by
         :param start_after: experiments start after specific time
         :param end_after: experiments ended after specific time
@@ -186,7 +203,8 @@ class DataReader(ABC):
         stage: Optional[int] = None,
     ) -> Iterable[MetadataRecord]:
         """
-            get multiple metadata records according to any combination of parameters filters
+            get multiple metadata records according to any combination of parameters
+            filters
 
         :param experiment_id: metadata from specific experiment
         :param label: metadata label to filter by
@@ -214,6 +232,13 @@ class DataReader(ABC):
     def get_plots(self, experiment_id: int) -> List[PlotRecord]:
         """
         returns a list of all plots saved in the requested experiment
+        """
+        pass
+
+    @abstractmethod
+    def get_figures(self, experiment_id: int) -> List[FigureRecord]:
+        """
+        returns a list of all figures saved in the requested experiment
         """
         pass
 

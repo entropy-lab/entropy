@@ -1,6 +1,8 @@
+import plotly.express as px
 import pytest
 
 from entropylab import SqlAlchemyDB, RawResultData
+from entropylab.api.data_writer import FigureSpec
 
 
 def test_save_result_raises_when_same_result_saved_twice(initialized_project_dir_path):
@@ -35,3 +37,11 @@ def test_get_last_result_of_experiment_works_with_db(initialized_project_dir_pat
     actual = db.get_last_result_of_experiment(1)
     # assert
     assert actual.data == "to db"
+
+
+def test_save_figure_(initialized_project_dir_path):
+    # arrange
+    db = SqlAlchemyDB(initialized_project_dir_path)
+    fig = px.line(x=["a", "b", "c"], y=[1, 3, 2], title="sample figure")
+    db.save_figure(0, FigureSpec(fig, "label", "story"))
+    assert True

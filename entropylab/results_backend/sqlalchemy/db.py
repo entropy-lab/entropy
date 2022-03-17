@@ -19,6 +19,7 @@ from entropylab.api.data_reader import (
     MetadataRecord,
     DebugRecord,
     PlotRecord,
+    FigureRecord,
 )
 from entropylab.api.data_writer import (
     DataWriter,
@@ -29,6 +30,7 @@ from entropylab.api.data_writer import (
     Debug,
     PlotSpec,
     NodeData,
+    FigureSpec,
 )
 from entropylab.config import settings
 from entropylab.instruments.instrument_driver import Function, Parameter
@@ -49,6 +51,7 @@ from entropylab.results_backend.sqlalchemy.model import (
     DebugTable,
     MetadataTable,
     NodeTable,
+    FigureTable,
 )
 
 T = TypeVar(
@@ -139,6 +142,10 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
 
     def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
         transaction = PlotTable.from_model(experiment_id, plot, data)
+        return self._execute_transaction(transaction)
+
+    def save_figure(self, experiment_id: int, figure_spec: FigureSpec) -> None:
+        transaction = FigureTable.from_model(experiment_id, figure_spec)
         return self._execute_transaction(transaction)
 
     def save_node(self, experiment_id: int, node_data: NodeData):
@@ -267,6 +274,17 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
             )
             if query:
                 return [plot.to_record() for plot in query]
+        return []
+
+    def get_figures(self, experiment_id: int) -> List[FigureRecord]:
+        with self._session_maker() as sess:
+            query = (
+                sess.query(FigureTable)
+                .filter(FigureTable.experiment_id == int(experiment_id))
+                .all()
+            )
+            if query:
+                return [figure.to_record() for figure in query]
         return []
 
     def get_nodes_id_by_label(

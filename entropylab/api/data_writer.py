@@ -124,6 +124,17 @@ class PlotSpec:
     story: Optional[str] = ""
 
 
+@dataclass(frozen=True, eq=True)
+class FigureSpec:
+    """
+    Metadata for a plotly figure that will be saved
+    """
+
+    figure: go.Figure
+    label: Optional[str] = None
+    story: Optional[str] = ""
+
+
 @dataclass
 class NodeData:
     """
@@ -187,6 +198,15 @@ class DataWriter(ABC):
         :param experiment_id: the experiment id
         :param plot: plotting instructions
         :param data: the data of the plot
+        """
+        pass
+
+    def save_figure(self, experiment_id: int, figure: FigureSpec) -> None:
+        """
+            save a new plotly figure to the db and associates it with an experiment
+
+        :param experiment_id: the id of the experiment to associate the figure to
+        :param figure: the figure to save to the database
         """
         pass
 

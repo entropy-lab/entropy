@@ -1,13 +1,14 @@
+from datetime import datetime
 from typing import List, Dict
 
 import numpy as np
+from plotly import express as px
 
-from entropylab.api.data_reader import PlotRecord
+from entropylab.api.data_reader import FigureRecord
 from entropylab.api.errors import EntropyError
-from entropylab.api.plot import CirclePlotGenerator, ImShowPlotGenerator
 
 
-def auto_plot(experiment_id: int, data):
+def auto_plot(experiment_id: int, data) -> FigureRecord:
     if isinstance(data, dict):
         return _auto_plot_from_dict(experiment_id, data)
     elif isinstance(data, list):
@@ -25,7 +26,7 @@ def auto_plot(experiment_id: int, data):
     return plot
 
 
-def _auto_plot_from_dict(experiment_id: int, data: Dict) -> PlotRecord:
+def _auto_plot_from_dict(experiment_id: int, data: Dict) -> FigureRecord:
     if len(data) > 0:
         first = list(data.values())[0]  # arbitrarily plot "first" value
         return auto_plot(experiment_id, first)
@@ -33,7 +34,7 @@ def _auto_plot_from_dict(experiment_id: int, data: Dict) -> PlotRecord:
         raise EntropyError("Cannot auto-plot an empty dict")
 
 
-def _auto_plot_from_list(data: List) -> PlotRecord:
+def _auto_plot_from_list(data: List) -> FigureRecord:
     if not data:
         raise EntropyError("Cannot auto-plot None")
     if len(data) == 0:
@@ -48,7 +49,7 @@ def _auto_plot_from_list(data: List) -> PlotRecord:
         return _imshow_from_2d(data)
 
 
-def _auto_plot_from_ndarray(data: np.ndarray) -> PlotRecord:
+def _auto_plot_from_ndarray(data: np.ndarray) -> FigureRecord:
     array: np.ndarray = data
     if not array.any():
         raise EntropyError("Cannot auto-plot an empty ndarray")
@@ -104,9 +105,9 @@ def _list_is_2d_equal_dims(lst):
     if not all(t == list for t in list(types)):
         raise EntropyError(f"Cannot auto-plot list of these types: {list(types)}")
 
-    sublist_len = len(lst[0])
+    size = len(lst[0])
     return all(
-        len(sublist) == sublist_len and _list_is_all_numeric(sublist) for sublist in lst
+        len(sublist) == size and _list_is_all_numeric(sublist) for sublist in lst
     )
 
 
@@ -138,8 +139,8 @@ def _ndarray_is_2d(array):
 
 
 def _circle_from_xy(x, y):
-    return PlotRecord(
-        experiment_id=0, id=0, plot_data=[x, y], generator=CirclePlotGenerator()
+    return FigureRecord(
+        experiment_id=0, id=0, figure=px.scatter(x=x, y=y), time=datetime.now()
     )
 
 
@@ -154,6 +155,6 @@ def _circle_from_list(lst):
 
 
 def _imshow_from_2d(data):
-    return PlotRecord(
-        experiment_id=0, id=0, plot_data=data, generator=ImShowPlotGenerator()
+    return FigureRecord(
+        experiment_id=0, id=0, figure=px.imshow(data), time=datetime.now()
     )

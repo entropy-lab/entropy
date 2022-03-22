@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Any, Optional, Iterable
+from warnings import warn
 
 from pandas import DataFrame
 from plotly import graph_objects as go
@@ -228,11 +229,17 @@ class DataReader(ABC):
         """
         pass
 
+    # noinspection PyTypeChecker
     @abstractmethod
     def get_plots(self, experiment_id: int) -> List[PlotRecord]:
         """
         returns a list of all plots saved in the requested experiment
         """
+        warn(
+            "This method will soon be deprecated. Please use get_figures() instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         pass
 
     @abstractmethod
@@ -334,4 +341,15 @@ class ExperimentReader:
         """
         returns a list of plot records that were saved for current experiment
         """
+        warn(
+            "This method will soon be deprecated. Please use get_plots() instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         return self._data_reader.get_plots(self._experiment_id)
+
+    def get_figures(self) -> List[FigureRecord]:
+        """
+        returns a list of plotly figures that were saved for current experiment
+        """
+        return self._data_reader.get_figures(self._experiment_id)

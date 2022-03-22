@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
 from typing import Set
+from warnings import warn
 
 import jsonpickle
 import pandas as pd
@@ -141,6 +142,11 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         return self._execute_transaction(transaction)
 
     def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
+        warn(
+            "This method will soon be deprecated. Please use save_figure() instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         transaction = PlotTable.from_model(experiment_id, plot, data)
         return self._execute_transaction(transaction)
 
@@ -266,6 +272,11 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
             return self._query_pandas(query)
 
     def get_plots(self, experiment_id: int) -> List[PlotRecord]:
+        warn(
+            "This method will soon be deprecated. Please use get_figures() instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         with self._session_maker() as sess:
             query = (
                 sess.query(PlotTable)

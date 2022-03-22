@@ -193,6 +193,7 @@ def build_dashboard_app(proj_path):
         figures_by_key, plot_or_figure: PlotRecord | FigureRecord, color: str
     ) -> (dbc.Tab, Dict):
         if isinstance(plot_or_figure, PlotRecord):
+            # For backwards compatibility with soon to be deprecated Plots API:
             plot_rec = cast(PlotRecord, plot_or_figure)
             key = f"{plot_rec.experiment_id}/{plot_rec.id}/p"
             name = f"Plot {key[:-2]}"
@@ -209,12 +210,6 @@ def build_dashboard_app(proj_path):
             key = f"{figure_rec.experiment_id}/{figure_rec.id}/f"
             name = f"Figure {key[:-2]}"
             figure = figure_rec.figure
-            # TODO: What if there is >1 trace? Right now we change color for all traces
-            for trace in figure.data:
-                if "line" in trace:
-                    trace["line"]["color"] = color
-                if trace["marker"]:
-                    trace["marker"]["color"] = color
         figure.update_layout(dark_plot_layout)
         figures_by_key[key] = dict(figure=figure, color=color)
         return build_plot_tab(figure, name, key), figures_by_key

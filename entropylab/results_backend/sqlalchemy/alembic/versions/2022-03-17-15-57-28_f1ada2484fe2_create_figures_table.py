@@ -12,8 +12,8 @@ import sqlalchemy as sa
 # revision identifiers, used by Alembic.
 from sqlalchemy.engine import Inspector
 
-revision = 'f1ada2484fe2'
-down_revision = '04ae19b32c08'
+revision = "f1ada2484fe2"
+down_revision = "04ae19b32c08"
 branch_labels = None
 depends_on = None
 
@@ -41,4 +41,3 @@ def upgrade():
 
 def downgrade():
     op.drop_table("Figures")
-

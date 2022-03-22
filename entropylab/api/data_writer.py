@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional, Type
+from warnings import warn
 
 from bokeh.models import Renderer
 from bokeh.plotting import Figure
@@ -199,6 +200,11 @@ class DataWriter(ABC):
         :param plot: plotting instructions
         :param data: the data of the plot
         """
+        warn(
+            "This method will soon be deprecated. Please use save_figure() instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         pass
 
     def save_figure(self, experiment_id: int, figure: FigureSpec) -> None:

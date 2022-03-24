@@ -7,6 +7,7 @@ from warnings import warn
 import jsonpickle
 import pandas as pd
 from pandas import DataFrame
+from plotly import graph_objects as go
 from sqlalchemy import desc
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import sessionmaker, Session
@@ -31,7 +32,6 @@ from entropylab.api.data_writer import (
     Debug,
     PlotSpec,
     NodeData,
-    FigureSpec,
 )
 from entropylab.config import settings
 from entropylab.instruments.instrument_driver import Function, Parameter
@@ -150,8 +150,8 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         transaction = PlotTable.from_model(experiment_id, plot, data)
         return self._execute_transaction(transaction)
 
-    def save_figure(self, experiment_id: int, figure_spec: FigureSpec) -> None:
-        transaction = FigureTable.from_model(experiment_id, figure_spec)
+    def save_figure(self, experiment_id: int, figure: go.Figure) -> None:
+        transaction = FigureTable.from_model(experiment_id, figure)
         return self._execute_transaction(transaction)
 
     def save_node(self, experiment_id: int, node_data: NodeData):

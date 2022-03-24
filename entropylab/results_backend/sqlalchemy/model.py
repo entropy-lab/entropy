@@ -6,6 +6,7 @@ from io import BytesIO
 from typing import Any
 
 import numpy as np
+from plotly import graph_objects as go
 from plotly.io import from_json, to_json
 from sqlalchemy import (
     Column,
@@ -36,7 +37,6 @@ from entropylab.api.data_writer import (
     Debug,
     PlotSpec,
     NodeData,
-    FigureSpec,
 )
 from entropylab.api.errors import EntropyError
 from entropylab.logger import logger
@@ -288,8 +288,6 @@ class FigureTable(Base):
     experiment_id = Column(Integer, ForeignKey("Experiments.id", ondelete="CASCADE"))
     figure = Column(String)
     time = Column(DATETIME)
-    label = Column(String)
-    story = Column(String)
 
     def __repr__(self):
         return f"<FigureTable(id='{self.id}')>"
@@ -300,18 +298,14 @@ class FigureTable(Base):
             id=self.id,
             figure=from_json(self.figure),
             time=self.time,
-            label=self.label,
-            story=self.story,
         )
 
     @staticmethod
-    def from_model(experiment_id: int, figure_spec: FigureSpec):
+    def from_model(experiment_id: int, figure: go.Figure):
         return FigureTable(
             experiment_id=experiment_id,
-            figure=to_json(figure_spec.figure),
+            figure=to_json(figure),
             time=datetime.now(),
-            label=figure_spec.label,
-            story=figure_spec.story,
         )
 
 

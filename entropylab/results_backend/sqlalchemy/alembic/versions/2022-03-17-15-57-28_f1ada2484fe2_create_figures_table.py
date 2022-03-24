@@ -5,9 +5,8 @@ Revises: 04ae19b32c08
 Create Date: 2022-03-17 15:57:28.225697+00:00
 
 """
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 from sqlalchemy.engine import Inspector
@@ -30,8 +29,6 @@ def upgrade():
             sa.Column("experiment_id", sa.Integer(), nullable=False),
             sa.Column("figure", sa.String(), nullable=False),
             sa.Column("time", sa.DATETIME(), nullable=False),
-            sa.Column("label", sa.String(), nullable=True),
-            sa.Column("story", sa.String(), nullable=True),
             sa.ForeignKeyConstraint(
                 ["experiment_id"], ["Experiments.id"], ondelete="CASCADE"
             ),

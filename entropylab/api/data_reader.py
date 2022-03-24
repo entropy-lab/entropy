@@ -108,8 +108,6 @@ class FigureRecord:
     id: int
     figure: go.Figure
     time: datetime
-    label: Optional[str] = None
-    story: Optional[str] = None
 
 
 @dataclass

@@ -4,6 +4,7 @@ from time import time_ns
 from typing import List, Optional, Iterable, Any, Dict, Tuple
 
 from pandas import DataFrame
+from plotly import graph_objects as go
 
 from entropylab.api.data_reader import (
     DataReader,
@@ -15,7 +16,7 @@ from entropylab.api.data_reader import (
     PlotRecord,
     FigureRecord,
 )
-from entropylab.api.data_writer import DataWriter, PlotSpec, NodeData, FigureSpec
+from entropylab.api.data_writer import DataWriter, PlotSpec, NodeData
 from entropylab.api.data_writer import (
     ExperimentInitialData,
     ExperimentEndData,
@@ -63,14 +64,12 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
     def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
         self._plot[plot] = data
 
-    def save_figure(self, experiment_id: int, figure: FigureSpec) -> None:
+    def save_figure(self, experiment_id: int, figure: go.Figure) -> None:
         figure_record = FigureRecord(
             experiment_id=experiment_id,
             id=random.randint(0, 2 ** 31 - 1),
-            figure=figure.figure,
+            figure=figure,
             time=datetime.now(),
-            label=figure.label,
-            story=figure.story,
         )
         if experiment_id in self._figure:
             self._figure[experiment_id].append(figure_record)
@@ -119,7 +118,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         return list(
             ResultRecord(
                 experiment_id,
-                self._results.index(x),
+                str(self._results.index(x)),
                 x[0].label,
                 x[0].story,
                 x[0].stage,
@@ -140,7 +139,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         return list(
             MetadataRecord(
                 experiment_id,
-                self._metadata.index(x),
+                str(self._metadata.index(x)),
                 x[0].label,
                 x[0].stage,
                 x[0].data,
@@ -194,7 +193,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
                 index = self._results.index(raw_result)
                 return ResultRecord(
                     experiment_id,
-                    index,
+                    str(index),
                     raw_result[0].label,
                     raw_result[0].story,
                     raw_result[0].stage,

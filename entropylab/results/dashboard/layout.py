@@ -100,6 +100,17 @@ def layout(path: str, records: List[Dict]):
                 dbc.Col(
                     [
                         html.H5("Experiments", id="experiments-title"),
+                        dcc.Checklist(
+                            [
+                                {"label": "✔️", "value": True},
+                                {"label": "❌", "value": False},
+                            ],
+                            [True, False],
+                            inline=True,
+                            inputClassName="success-filter-input",
+                            labelClassName="success-filter-label",
+                            id="success-filter",
+                        ),
                         (table(records)),
                         html.Div(id="no-paging-spacer"),
                     ],

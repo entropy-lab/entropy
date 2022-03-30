@@ -53,12 +53,17 @@ def build_dashboard_app(proj_path):
         Output("experiments-table", "data"),
         Output("empty-project-modal", "is_open"),
         Input("interval", "n_intervals"),
+        Input("success-filter", "value"),
     )
-    def refresh_experiments_table(_):
+    def refresh_experiments_table(_, success_filter_value):
         """{Periodically refresh the experiments table.
         See https://dash.plotly.com/live-updates}"""
-        records = _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
-        open_empty_project_modal = len(records) == 0
+        records = _dashboard_data_reader.get_last_experiments(
+            MAX_EXPERIMENTS_NUM, success_filter_value
+        )
+        open_empty_project_modal = (
+            len(records) == 0
+        ) and not callback_triggered_by_success_filter(dash.callback_context)
         return records, open_empty_project_modal
 
     @_app.callback(
@@ -67,6 +72,12 @@ def build_dashboard_app(proj_path):
     )
     def open_failed_plotting_alert_when_its_not_empty(children):
         return children != ""
+
+    def callback_triggered_by_success_filter(callback_context) -> bool:
+        return any(
+            inputs["prop_id"] == "success-filter.value"
+            for inputs in callback_context.triggered
+        )
 
     @_app.callback(
         Output("plot-tabs", "children"),

@@ -12,7 +12,9 @@ from entropylab.results.dashboard.auto_plot import auto_plot
 
 class DashboardDataReader(abc.ABC):
     @abc.abstractmethod
-    def get_last_experiments(self, number) -> DataFrame:
+    def get_last_experiments(
+        self, max_num_of_experiments: int, success_filter_value: List[bool]
+    ) -> DataFrame:
         pass
 
     @abc.abstractmethod
@@ -25,8 +27,17 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
         super().__init__()
         self._db: SqlAlchemyDB = connector
 
-    def get_last_experiments(self, max_num_of_experiments: int) -> List[Dict]:
+    def get_last_experiments(
+        self,
+        max_num_of_experiments: int,
+        success_filter_value=None,
+    ) -> List[Dict]:
+        if success_filter_value is None:
+            success_filter_value = [True, True]
         experiments = self._db.get_last_experiments(max_num_of_experiments)
+        experiments = self.filter_experiments_by_success(
+            experiments, success_filter_value
+        )
         experiments["success"] = experiments["success"].apply(
             lambda x: "✔️" if x else "❌"
         )
@@ -38,6 +49,20 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
         )
         records = experiments.to_dict("records")
         return records
+
+    def filter_experiments_by_success(self, df, success_filter_value):
+        show_success = True in success_filter_value
+        show_failure = False in success_filter_value
+        print(show_success)
+        print(show_failure)
+        if show_success and show_failure:
+            return df
+        if show_success:
+            return df[df.success]
+        elif show_failure:
+            return df[~df.success]
+        else:
+            return df.iloc[0:0]
 
     def get_last_result_of_experiment(self, experiment_id):
         return self._db.get_last_result_of_experiment(experiment_id)

@@ -30,6 +30,29 @@ html,body {
   margin-top:20px;
 }
 
+#success-filter {
+  box-sizing: border-box;
+  flex-direction: row;
+  display: inline-block;
+}
+/*
+#success-filter input {
+  margin-right: 5px;
+}
+*/
+
+.success-filter-input {
+  border: solid 1px red;
+}
+
+.success-filter-label {
+  border: solid 1px green;
+}
+
+.dash-filter .column-5 {
+}
+
+
 /* Dash DataTable - Dark theme */
 
 .dash-cell {

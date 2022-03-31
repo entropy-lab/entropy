@@ -116,19 +116,32 @@ class DataReader(ABC):
     def __init__(self):
         super().__init__()
 
-    def get_last_experiments(self, count: int) -> DataFrame:
+    def get_last_experiments(
+        self, count: int, success_filter: [bool] = None
+    ) -> DataFrame:
         """
             read n number of last experiments to a pandas dataframe
         :param count: number of experiments
+        :param success_filter: A list of bool values. Only records with their success
+         value present in the list will be included in the returned DataFrame. A None
+         value disabled the filter and returns all experiments regardless of their
+         success value.
         """
-        return self.get_experiments_range(0, count)
+        return self.get_experiments_range(0, count, success_filter)
 
     @abstractmethod
-    def get_experiments_range(self, starting_from_index: int, count: int) -> DataFrame:
+    def get_experiments_range(
+        self, starting_from_index: int, count: int, success_filter: [bool] = None
+    ) -> DataFrame:
         """
             read a range of experiments to a pandas dataframe
         :param starting_from_index: experiment index to start from (sorted desc by time)
         :param count: number of experiments
+        :param success_filter: A list of bool values. Only records with their success
+         value present in the list will be included in the returned DataFrame. A None
+         value disabled the filter and returns all experiments regardless of their
+         success value.
+        :return: A DataFrame containing one row per Experiment
         """
         pass
 

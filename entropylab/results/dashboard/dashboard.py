@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import dash
 import dash_bootstrap_components as dbc
@@ -52,19 +52,36 @@ def build_dashboard_app(proj_path):
     @_app.callback(
         Output("experiments-table", "data"),
         Output("empty-project-modal", "is_open"),
+        Output("success-filter-checklist", "value"),
         Input("interval", "n_intervals"),
-        Input("success-filter", "value"),
+        Input("success-filter-checklist", "value"),
     )
-    def refresh_experiments_table(_, success_filter_value):
-        """{Periodically refresh the experiments table.
-        See https://dash.plotly.com/live-updates}"""
+    def refresh_experiments_table(_, success_filter_checklist_value):
+        """Periodically refresh the experiments table (See
+        https://dash.plotly.com/live-updates), or when the filter on the success
+        column is changed"""
+        if not success_filter_checklist_value or success_filter_checklist_value == []:
+            success_filter_checklist_value = [True, False]
+        success = checklist_value_to_bool(success_filter_checklist_value)
         records = _dashboard_data_reader.get_last_experiments(
-            MAX_EXPERIMENTS_NUM, success_filter_value
+            MAX_EXPERIMENTS_NUM, success
         )
         open_empty_project_modal = (
             len(records) == 0
         ) and not callback_triggered_by_success_filter(dash.callback_context)
-        return records, open_empty_project_modal
+        return records, open_empty_project_modal, success_filter_checklist_value
+
+    def checklist_value_to_bool(checklist_value: [bool]) -> Optional[bool]:
+        if True in checklist_value and False in checklist_value:
+            return None
+        elif True in checklist_value:
+            return True
+        elif False in checklist_value:
+            return False
+        else:
+            raise EntropyError(
+                f"Invalid 'success-filter-checklist' value: {checklist_value}"
+            )
 
     @_app.callback(
         Output("failed-plotting-alert", "is_open"),
@@ -75,7 +92,7 @@ def build_dashboard_app(proj_path):
 
     def callback_triggered_by_success_filter(callback_context) -> bool:
         return any(
-            inputs["prop_id"] == "success-filter.value"
+            inputs["prop_id"] == "success-filter-checklist.value"
             for inputs in callback_context.triggered
         )
 

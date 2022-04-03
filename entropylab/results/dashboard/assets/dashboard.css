@@ -33,7 +33,7 @@ html,body {
 #success-filter {
   box-sizing: border-box;
   flex-direction: row;
-  display: inline-block;
+/*  display: inline-block;*/
 }
 /*
 #success-filter input {

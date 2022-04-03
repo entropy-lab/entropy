@@ -7,7 +7,7 @@ from entropylab.results.dashboard.table import table
 from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 
 
-def layout(path: str, records: List[Dict]):
+def layout(path: str, records: List[Dict], refresh_interval_in_millis: int):
     return dbc.Container(
         fluid=True,
         className="main",
@@ -16,7 +16,7 @@ def layout(path: str, records: List[Dict]):
             dcc.Store(id="plot-keys-to-combine", storage_type="session"),
             dcc.Store(id="prev-selected-rows", storage_type="session"),
             dcc.Interval(
-                id="interval", interval=3 * 1000, n_intervals=0  # in milliseconds
+                id="interval", interval=refresh_interval_in_millis, n_intervals=0
             ),
             dbc.Alert(
                 "",
@@ -100,17 +100,6 @@ def layout(path: str, records: List[Dict]):
                 dbc.Col(
                     [
                         html.H5("Experiments", id="experiments-title"),
-                        dcc.Checklist(
-                            [
-                                {"label": "✔️", "value": True},
-                                {"label": "❌", "value": False},
-                            ],
-                            [True, False],
-                            inline=True,
-                            inputClassName="success-filter-checklist-input",
-                            labelClassName="success-filter-checklist-label",
-                            id="success-filter-checklist",
-                        ),
                         (table(records)),
                         html.Div(id="no-paging-spacer"),
                     ],
@@ -176,6 +165,18 @@ def layout(path: str, records: List[Dict]):
                         width="1",
                     ),
                 ]
+            ),
+            dcc.Checklist(
+                [
+                    {"label": "✔️", "value": True},
+                    {"label": "❌", "value": False},
+                ],
+                [True, False],
+                inline=False,
+                inputClassName="success-filter-checklist-input",
+                labelClassName="success-filter-checklist-label",
+                labelStyle={"display": "flex"},
+                id="success-filter-checklist",
             ),
         ],
     )

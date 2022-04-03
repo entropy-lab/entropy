@@ -30,26 +30,21 @@ html,body {
   margin-top:20px;
 }
 
-#success-filter {
-  box-sizing: border-box;
+/* "success" column filter */
+
+#success-filter-checklist {
   flex-direction: row;
-/*  display: inline-block;*/
-}
-/*
-#success-filter input {
-  margin-right: 5px;
-}
-*/
-
-.success-filter-input {
-  border: solid 1px red;
+  justify-content: center;
 }
 
-.success-filter-label {
-  border: solid 1px green;
+.success-filter-checklist-label {
+  margin-left: 6px;
+  margin-right: 6px;
+  display: flex; !important
 }
 
-.dash-filter .column-5 {
+.success-filter-checklist-input {
+    width: auto !important;
 }
 
 

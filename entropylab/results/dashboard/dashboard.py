@@ -21,6 +21,7 @@ from entropylab.results.dashboard.theme import (
 )
 from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 
+REFRESH_INTERVAL_IN_MILLIS = 3000
 MAX_EXPERIMENTS_NUM = 10000
 EXPERIMENTS_PAGE_SIZE = 6
 
@@ -36,7 +37,7 @@ def build_dashboard_app(proj_path):
 
     def _build_layout():
         records = _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
-        return layout(proj_path, records)
+        return layout(proj_path, records, REFRESH_INTERVAL_IN_MILLIS)
 
     _app = dash.Dash(
         __name__,
@@ -58,10 +59,8 @@ def build_dashboard_app(proj_path):
     )
     def refresh_experiments_table(_, success_filter_checklist_value):
         """Periodically refresh the experiments table (See
-        https://dash.plotly.com/live-updates), or when the filter on the success
+        https://dash.plotly.com/live-updates), or when the filter on the 'success'
         column is changed"""
-        if not success_filter_checklist_value or success_filter_checklist_value == []:
-            success_filter_checklist_value = [True, False]
         success = checklist_value_to_bool(success_filter_checklist_value)
         records = _dashboard_data_reader.get_last_experiments(
             MAX_EXPERIMENTS_NUM, success
@@ -72,16 +71,16 @@ def build_dashboard_app(proj_path):
         return records, open_empty_project_modal, success_filter_checklist_value
 
     def checklist_value_to_bool(checklist_value: [bool]) -> Optional[bool]:
+        """Translate the value of the success-filter Checklist component to a
+        value understood by the data access API"""
         if True in checklist_value and False in checklist_value:
-            return None
+            return None  # None = Both True and False
         elif True in checklist_value:
             return True
         elif False in checklist_value:
             return False
         else:
-            raise EntropyError(
-                f"Invalid 'success-filter-checklist' value: {checklist_value}"
-            )
+            return None
 
     @_app.callback(
         Output("failed-plotting-alert", "is_open"),

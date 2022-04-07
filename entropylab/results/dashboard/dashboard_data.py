@@ -12,7 +12,9 @@ from entropylab.results.dashboard.auto_plot import auto_plot
 
 class DashboardDataReader(abc.ABC):
     @abc.abstractmethod
-    def get_last_experiments(self, number) -> DataFrame:
+    def get_last_experiments(
+        self, max_num_of_experiments: int, success_filter_value: List[bool]
+    ) -> DataFrame:
         pass
 
     @abc.abstractmethod
@@ -25,8 +27,12 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
         super().__init__()
         self._db: SqlAlchemyDB = connector
 
-    def get_last_experiments(self, max_num_of_experiments: int) -> List[Dict]:
-        experiments = self._db.get_last_experiments(max_num_of_experiments)
+    def get_last_experiments(
+        self,
+        max_num_of_experiments: int,
+        success: bool = None,
+    ) -> List[Dict]:
+        experiments = self._db.get_last_experiments(max_num_of_experiments, success)
         experiments["success"] = experiments["success"].apply(
             lambda x: "✔️" if x else "❌"
         )
@@ -39,7 +45,10 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
         records = experiments.to_dict("records")
         return records
 
-    def get_last_result_of_experiment(self, experiment_id):
+    def get_last_result_of_experiment(
+        self,
+        experiment_id,
+    ):
         return self._db.get_last_result_of_experiment(experiment_id)
 
     def get_plot_data(self, exp_id: int) -> List[PlotRecord]:

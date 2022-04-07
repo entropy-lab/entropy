@@ -30,6 +30,24 @@ html,body {
   margin-top:20px;
 }
 
+/* "success" column filter */
+
+#success-filter-checklist {
+  flex-direction: row;
+  justify-content: center;
+}
+
+.success-filter-checklist-label {
+  margin-left: 6px;
+  margin-right: 6px;
+  display: flex; !important
+}
+
+.success-filter-checklist-input {
+    width: auto !important;
+}
+
+
 /* Dash DataTable - Dark theme */
 
 .dash-cell {

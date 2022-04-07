@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import dash
 import dash_bootstrap_components as dbc
@@ -21,6 +21,7 @@ from entropylab.results.dashboard.theme import (
 )
 from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 
+REFRESH_INTERVAL_IN_MILLIS = 3000
 MAX_EXPERIMENTS_NUM = 10000
 EXPERIMENTS_PAGE_SIZE = 6
 
@@ -36,7 +37,7 @@ def build_dashboard_app(proj_path):
 
     def _build_layout():
         records = _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
-        return layout(proj_path, records)
+        return layout(proj_path, records, REFRESH_INTERVAL_IN_MILLIS)
 
     _app = dash.Dash(
         __name__,
@@ -52,14 +53,34 @@ def build_dashboard_app(proj_path):
     @_app.callback(
         Output("experiments-table", "data"),
         Output("empty-project-modal", "is_open"),
+        Output("success-filter-checklist", "value"),
         Input("interval", "n_intervals"),
+        Input("success-filter-checklist", "value"),
     )
-    def refresh_experiments_table(_):
-        """{Periodically refresh the experiments table.
-        See https://dash.plotly.com/live-updates}"""
-        records = _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
-        open_empty_project_modal = len(records) == 0
-        return records, open_empty_project_modal
+    def refresh_experiments_table(_, success_filter_checklist_value):
+        """Periodically refresh the experiments table (See
+        https://dash.plotly.com/live-updates), or when the filter on the 'success'
+        column is changed"""
+        success = checklist_value_to_bool(success_filter_checklist_value)
+        records = _dashboard_data_reader.get_last_experiments(
+            MAX_EXPERIMENTS_NUM, success
+        )
+        open_empty_project_modal = (
+            len(records) == 0
+        ) and not callback_triggered_by_success_filter(dash.callback_context)
+        return records, open_empty_project_modal, success_filter_checklist_value
+
+    def checklist_value_to_bool(checklist_value: [bool]) -> Optional[bool]:
+        """Translate the value of the success-filter Checklist component to a
+        value understood by the data access API"""
+        if True in checklist_value and False in checklist_value:
+            return None  # None = Both True and False
+        elif True in checklist_value:
+            return True
+        elif False in checklist_value:
+            return False
+        else:
+            return None
 
     @_app.callback(
         Output("failed-plotting-alert", "is_open"),
@@ -67,6 +88,12 @@ def build_dashboard_app(proj_path):
     )
     def open_failed_plotting_alert_when_its_not_empty(children):
         return children != ""
+
+    def callback_triggered_by_success_filter(callback_context) -> bool:
+        return any(
+            inputs["prop_id"] == "success-filter-checklist.value"
+            for inputs in callback_context.triggered
+        )
 
     @_app.callback(
         Output("plot-tabs", "children"),

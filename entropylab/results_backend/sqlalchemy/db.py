@@ -145,20 +145,21 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         transaction = NodeTable.from_model(experiment_id, node_data)
         return self._execute_transaction(transaction)
 
-    def get_experiments_range(self, starting_from_index: int, count: int) -> DataFrame:
+    def get_experiments_range(
+        self, starting_from_index: int, count: int, success: bool = None
+    ) -> DataFrame:
         with self._session_maker() as sess:
-            query = (
-                sess.query(ExperimentTable)
-                .with_entities(
-                    ExperimentTable.id,
-                    ExperimentTable.label,
-                    ExperimentTable.start_time,
-                    ExperimentTable.end_time,
-                    ExperimentTable.user,
-                    ExperimentTable.success,
-                )
-                .slice(starting_from_index, starting_from_index + count)
+            query = sess.query(ExperimentTable).with_entities(
+                ExperimentTable.id,
+                ExperimentTable.label,
+                ExperimentTable.start_time,
+                ExperimentTable.end_time,
+                ExperimentTable.user,
+                ExperimentTable.success,
             )
+            if success is not None:
+                query = query.filter(ExperimentTable.success == success)
+            query = query.slice(starting_from_index, starting_from_index + count)
             return self._query_pandas(query)
 
     def get_experiment_record(self, experiment_id: int) -> Optional[ExperimentRecord]:

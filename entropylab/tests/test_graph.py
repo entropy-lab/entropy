@@ -147,6 +147,7 @@ def test_sync_graph():
 
     results = Graph(None, g, "run_a").run().results
     print(results.get_experiment_info())
+    # TODO: Use figures instead of plots here
     plots = results.get_plots()
     for plot in plots:
         figure = Figure()

@@ -2,6 +2,8 @@ import abc
 from itertools import count
 from typing import Any
 
+from plotly import graph_objects as go
+
 from entropylab.api.data_writer import (
     DataWriter,
     RawResultData,
@@ -61,10 +63,19 @@ class EntropyContext:
     def add_plot(self, plot: PlotSpec, data: Any):
         """
             saves a new plot from this experiment in the database
+
         :param plot: description and plotting instructions
         :param data: the data for plotting
         """
         self._data_writer.save_plot(self._exp_id, plot, data)
+
+    def add_figure(self, figure: go.Figure) -> None:
+        """
+            saves a new figure from this experiment in the database
+
+        :param figure: a Plotly Figure object to be saved
+        """
+        self._data_writer.save_figure(self._exp_id, figure)
 
     def get_resource(self, name):
         """

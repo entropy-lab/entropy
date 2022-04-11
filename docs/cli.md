@@ -53,7 +53,7 @@ Initializes a new project in the given directory (as described above)
 ### `upgrade`
 
 ```shell
-entropy upgrade <path to sqlite db file>
+entropy upgrade <path to entropy project directory>
 ```
 Takes an entropy db that predates the project structure (before version 0.3.0) and updates it as needed.
 

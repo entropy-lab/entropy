@@ -10,7 +10,7 @@ colors = [
     "#f39c12",
     "#e74c3c",
     "#3498db",
-    "#adb5bd",
+    "#ad05bd",
 ]
 plot_font_color = "#fff"
 plot_legend_font_color = "#fff"
@@ -22,6 +22,5 @@ dark_plot_layout = dict(
     legend_font_color=plot_legend_font_color,
     paper_bgcolor=plot_paper_bgcolor,
     plot_bgcolor=plot_plot_bgcolor,
-    showlegend=False,
     margin=dict(b=40, t=40, l=40, r=40),
 )

@@ -6,6 +6,8 @@ from io import BytesIO
 from typing import Any
 
 import numpy as np
+from plotly import graph_objects as go
+from plotly.io import from_json, to_json
 from sqlalchemy import (
     Column,
     Integer,
@@ -26,6 +28,7 @@ from entropylab.api.data_reader import (
     MetadataRecord,
     DebugRecord,
     PlotRecord,
+    FigureRecord,
 )
 from entropylab.api.data_writer import (
     ExperimentInitialData,
@@ -51,6 +54,7 @@ def _get_class(module_name, class_name):
 def _encode_serialized_data(data):
     if isinstance(data, (np.ndarray, np.generic)):
         bio = BytesIO()
+        # noinspection PyTypeChecker
         np.save(bio, data)
         bio.seek(0)
         serialized_data = bio.read()
@@ -70,6 +74,7 @@ def _decode_serialized_data(serialized_data, data_type):
         data = pickle.loads(serialized_data)
     elif data_type == ResultDataType.Npy:
         bio = BytesIO(serialized_data)
+        # noinspection PyTypeChecker
         data = np.load(bio)
     else:
         data = serialized_data.decode()
@@ -274,6 +279,33 @@ class PlotTable(Base):
             time=datetime.now(),
             label=plot.label,
             story=plot.story,
+        )
+
+
+class FigureTable(Base):
+    __tablename__ = "Figures"
+    id = Column(Integer, primary_key=True)
+    experiment_id = Column(Integer, ForeignKey("Experiments.id", ondelete="CASCADE"))
+    figure = Column(String)
+    time = Column(DATETIME)
+
+    def __repr__(self):
+        return f"<FigureTable(id='{self.id}')>"
+
+    def to_record(self) -> FigureRecord:
+        return FigureRecord(
+            experiment_id=self.experiment_id,
+            id=self.id,
+            figure=from_json(self.figure),
+            time=self.time,
+        )
+
+    @staticmethod
+    def from_model(experiment_id: int, figure: go.Figure):
+        return FigureTable(
+            experiment_id=experiment_id,
+            figure=to_json(figure),
+            time=datetime.now(),
         )
 
 

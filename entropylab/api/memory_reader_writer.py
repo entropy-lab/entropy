@@ -1,8 +1,10 @@
+import random
 from datetime import datetime
 from time import time_ns
 from typing import List, Optional, Iterable, Any, Dict, Tuple
 
 from pandas import DataFrame
+from plotly import graph_objects as go
 
 from entropylab.api.data_reader import (
     DataReader,
@@ -12,6 +14,7 @@ from entropylab.api.data_reader import (
     ExperimentRecord,
     ScriptViewer,
     PlotRecord,
+    FigureRecord,
 )
 from entropylab.api.data_writer import DataWriter, PlotSpec, NodeData
 from entropylab.api.data_writer import (
@@ -39,6 +42,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         self._metadata: List[Tuple[Metadata, datetime]] = []
         self._debug: Optional[Debug] = None
         self._plot: Dict[PlotSpec, Any] = {}
+        self._figure: Dict[int, List[FigureRecord]] = {}
         self._nodes: List[NodeData] = []
 
     def save_experiment_initial_data(self, initial_data: ExperimentInitialData) -> int:
@@ -59,6 +63,18 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
 
     def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
         self._plot[plot] = data
+
+    def save_figure(self, experiment_id: int, figure: go.Figure) -> None:
+        figure_record = FigureRecord(
+            experiment_id=experiment_id,
+            id=random.randint(0, 2 ** 31 - 1),
+            figure=figure,
+            time=datetime.now(),
+        )
+        if experiment_id in self._figure:
+            self._figure[experiment_id].append(figure_record)
+        else:
+            self._figure[experiment_id] = [figure_record]
 
     def save_node(self, experiment_id: int, node_data: NodeData):
         self._nodes.append(node_data)
@@ -102,7 +118,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         return list(
             ResultRecord(
                 experiment_id,
-                self._results.index(x),
+                str(self._results.index(x)),
                 x[0].label,
                 x[0].story,
                 x[0].stage,
@@ -123,7 +139,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         return list(
             MetadataRecord(
                 experiment_id,
-                self._metadata.index(x),
+                str(self._metadata.index(x)),
                 x[0].label,
                 x[0].stage,
                 x[0].data,
@@ -160,6 +176,9 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
             for plot in self._plot
         ]
 
+    def get_figures(self, experiment_id: int) -> List[FigureRecord]:
+        return self._figure[experiment_id]
+
     def get_nodes_id_by_label(
         self, label: str, experiment_id: Optional[int] = None
     ) -> List[int]:
@@ -174,7 +193,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
                 index = self._results.index(raw_result)
                 return ResultRecord(
                     experiment_id,
-                    index,
+                    str(index),
                     raw_result[0].label,
                     raw_result[0].story,
                     raw_result[0].stage,

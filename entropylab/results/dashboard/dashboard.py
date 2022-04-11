@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, cast
 
 import dash
 import dash_bootstrap_components as dbc
@@ -9,7 +11,7 @@ from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 
 from entropylab import SqlAlchemyDB
-from entropylab.api.data_reader import PlotRecord
+from entropylab.api.data_reader import PlotRecord, FigureRecord
 from entropylab.api.errors import EntropyError
 from entropylab.logger import logger
 from entropylab.results.dashboard.dashboard_data import SqlalchemyDashboardDataReader
@@ -97,20 +99,20 @@ def build_dashboard_app(proj_path):
 
     @_app.callback(
         Output("plot-tabs", "children"),
-        Output("plot-figures", "data"),
+        Output("figures-by-key", "data"),
         Output("prev-selected-rows", "data"),
         Output("failed-plotting-alert", "children"),
         Output("no-paging-spacer", "hidden"),
         Input("experiments-table", "selected_rows"),
         State("experiments-table", "data"),
-        State("plot-figures", "data"),
+        State("figures-by-key", "data"),
         State("prev-selected-rows", "data"),
     )
     def render_plot_tabs_from_selected_experiments_table_rows(
-        selected_rows, data, plot_figures, prev_selected_rows
+        selected_rows, data, figures_by_key, prev_selected_rows
     ):
         result = []
-        plot_figures = plot_figures or {}
+        figures_by_key = figures_by_key or {}
         selected_rows = selected_rows or {}
         prev_selected_rows = prev_selected_rows or {}
         alert_text = ""
@@ -121,21 +123,27 @@ def build_dashboard_app(proj_path):
                 alert_on_fail = row_num == added_row
                 exp_id = data[row_num]["id"]
                 try:
-                    plots = _dashboard_data_reader.get_plot_data(exp_id)
+                    plots_and_figures = _dashboard_data_reader.get_plot_and_figure_data(
+                        exp_id
+                    )
                 except EntropyError:
                     logger.exception(
-                        f"Exception when getting plot data for exp_id={exp_id}"
+                        f"Exception when getting plot/figure data for exp_id={exp_id}"
                     )
                     if alert_on_fail:
                         alert_text = (
-                            f"⚠ Error when reading plot data for this "
+                            f"⚠ Error when reading plot/figure data for this "
                             f"experiment. (id: {exp_id})"
                         )
-                    plots = None
-                if plots and len(plots) > 0:
+                    plots_and_figures = None
+                if plots_and_figures and len(plots_and_figures) > 0:
                     failed_plot_ids = []
-                    plot_figures = build_plot_tabs(
-                        alert_on_fail, failed_plot_ids, plot_figures, plots, result
+                    figures_by_key = build_plot_tabs(
+                        alert_on_fail,
+                        failed_plot_ids,
+                        figures_by_key,
+                        plots_and_figures,
+                        result,
                     )
                     if len(failed_plot_ids) > 0:
                         alert_text = (
@@ -149,22 +157,24 @@ def build_dashboard_app(proj_path):
                         )
         if len(result) == 0:
             result = [build_plot_tabs_placeholder()]
-        return result, plot_figures, selected_rows, alert_text, spacer_hidden
+        return result, figures_by_key, selected_rows, alert_text, spacer_hidden
 
-    def build_plot_tabs(alert_on_fail, failed_plot_ids, plot_figures, plots, result):
-        for plot in plots:
+    def build_plot_tabs(
+        alert_on_fail, failed_plot_ids, figures_by_key, plots_and_figures, result
+    ):
+        for plot_or_figure in plots_and_figures:
             try:
                 color = colors[len(result) % len(colors)]
-                plot_tab, plot_figures = build_plot_tab_from_plot(
-                    plot_figures, plot, color
+                plot_tab, figures_by_key = build_plot_tab_from_plot_or_figure(
+                    figures_by_key, plot_or_figure, color
                 )
                 result.append(plot_tab)
             except (EntropyError, TypeError):
-                logger.exception(f"Failed to render plot id [{plot.id}]")
+                logger.exception(f"Failed to render plot id [{plot_or_figure.id}]")
                 if alert_on_fail:
-                    plot_key = f"{plot.experiment_id}/{plot.id}"
+                    plot_key = f"{plot_or_figure.experiment_id}/{plot_or_figure.id}"
                     failed_plot_ids.append(plot_key)
-        return plot_figures
+        return figures_by_key
 
     def build_plot_tabs_placeholder():
         return dbc.Tab(
@@ -179,22 +189,30 @@ def build_dashboard_app(proj_path):
             tab_id="plot-tab-placeholder",
         )
 
-    def build_plot_tab_from_plot(
-        plot_figures, plot: PlotRecord, color: str
+    def build_plot_tab_from_plot_or_figure(
+        figures_by_key, plot_or_figure: PlotRecord | FigureRecord, color: str
     ) -> (dbc.Tab, Dict):
-        plot_key = f"{plot.experiment_id}/{plot.id}"
-        plot_name = f"Plot {plot_key}"
-        plot_figure = go.Figure()
-        plot.generator.plot_plotly(
-            plot_figure,
-            plot.plot_data,
-            name=plot_name,
-            color=color,
-            showlegend=False,
-        )
-        plot_figure.update_layout(dark_plot_layout)
-        plot_figures[plot_key] = dict(figure=plot_figure, color=color)
-        return build_plot_tab(plot_figure, plot_name, plot_key), plot_figures
+        if isinstance(plot_or_figure, PlotRecord):
+            # For backwards compatibility with soon to be deprecated Plots API:
+            plot_rec = cast(PlotRecord, plot_or_figure)
+            key = f"{plot_rec.experiment_id}/{plot_rec.id}/p"
+            name = f"Plot {key[:-2]}"
+            figure = go.Figure()
+            plot_or_figure.generator.plot_plotly(
+                figure,
+                plot_or_figure.plot_data,
+                name=name,
+                color=color,
+                showlegend=False,
+            )
+        else:
+            figure_rec = cast(FigureRecord, plot_or_figure)
+            key = f"{figure_rec.experiment_id}/{figure_rec.id}/f"
+            name = f"Figure {key[:-2]}"
+            figure = figure_rec.figure
+        figure.update_layout(dark_plot_layout)
+        figures_by_key[key] = dict(figure=figure, color=color)
+        return build_plot_tab(figure, name, key), figures_by_key
 
     def build_plot_tab(
         plot_figure: go.Figure, plot_name: str, plot_key: str
@@ -233,7 +251,7 @@ def build_dashboard_app(proj_path):
         Output("aggregate-tab", "children"),
         Output("remove-buttons", "children"),
         Input("plot-keys-to-combine", "data"),
-        State("plot-figures", "data"),
+        State("figures-by-key", "data"),
     )
     def build_combined_plot_from_plot_keys(plot_keys_to_combine, plot_figures):
         if plot_keys_to_combine and len(plot_keys_to_combine) > 0:

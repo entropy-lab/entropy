@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Optional, Type
+from warnings import warn
 
 from bokeh.models import Renderer
 from bokeh.plotting import Figure
@@ -187,6 +188,20 @@ class DataWriter(ABC):
         :param experiment_id: the experiment id
         :param plot: plotting instructions
         :param data: the data of the plot
+        """
+        warn(
+            "This method will soon be deprecated. Please use save_figure() instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+        pass
+
+    def save_figure(self, experiment_id: int, figure: go.Figure) -> None:
+        """
+            save a new plotly figure to the db and associates it with an experiment
+
+        :param experiment_id: the id of the experiment to associate the figure to
+        :param figure: the figure to save to the database
         """
         pass
 

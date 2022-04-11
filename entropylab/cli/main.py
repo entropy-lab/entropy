@@ -39,7 +39,7 @@ def init(args: argparse.Namespace):
 
 
 @command
-def update(args: argparse.Namespace):
+def upgrade(args: argparse.Namespace):
     upgrade_db(args.directory)
 
 
@@ -75,12 +75,12 @@ def _build_parser():
     init_parser.add_argument("directory", **directory_arg)
     init_parser.set_defaults(func=init)
 
-    # update
-    update_parser = subparsers.add_parser(
-        "update", help="update an Entropy project to the latest version"
+    # upgrade
+    upgrade_parser = subparsers.add_parser(
+        "upgrade", help="upgrade an Entropy project to the latest version"
     )
-    update_parser.add_argument("directory", **directory_arg)
-    update_parser.set_defaults(func=update)
+    upgrade_parser.add_argument("directory", **directory_arg)
+    upgrade_parser.set_defaults(func=upgrade)
 
     # serve
     serve_parser = subparsers.add_parser(

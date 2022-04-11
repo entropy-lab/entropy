@@ -19,7 +19,7 @@ def test_ctor_creates_up_to_date_schema_when_in_memory(path: str):
     [
         None,  # new db
         "./db_templates/empty.db",  # existing but empty
-        "./db_templates/with_saved_in_hdf5_col.db",  # latest revision: 04ae19b32c08
+        "./db_templates/with_figures_table.db",  # latest revision: 04ae19b32c08
     ],
     indirect=True,
 )

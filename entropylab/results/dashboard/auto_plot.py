@@ -1,13 +1,14 @@
+from datetime import datetime
 from typing import List, Dict
 
 import numpy as np
+from plotly import express as px
 
-from entropylab.api.data_reader import PlotRecord
+from entropylab.api.data_reader import FigureRecord
 from entropylab.api.errors import EntropyError
-from entropylab.api.plot import CirclePlotGenerator, ImShowPlotGenerator
 
 
-def auto_plot(experiment_id: int, data):
+def auto_plot(experiment_id: int, data) -> FigureRecord:
     if isinstance(data, dict):
         return _auto_plot_from_dict(experiment_id, data)
     elif isinstance(data, list):
@@ -25,7 +26,7 @@ def auto_plot(experiment_id: int, data):
     return plot
 
 
-def _auto_plot_from_dict(experiment_id: int, data: Dict) -> PlotRecord:
+def _auto_plot_from_dict(experiment_id: int, data: Dict) -> FigureRecord:
     if len(data) > 0:
         first = list(data.values())[0]  # arbitrarily plot "first" value
         return auto_plot(experiment_id, first)
@@ -33,7 +34,7 @@ def _auto_plot_from_dict(experiment_id: int, data: Dict) -> PlotRecord:
         raise EntropyError("Cannot auto-plot an empty dict")
 
 
-def _auto_plot_from_list(data: List) -> PlotRecord:
+def _auto_plot_from_list(data: List) -> FigureRecord:
     if not data:
         raise EntropyError("Cannot auto-plot None")
     if len(data) == 0:
@@ -44,11 +45,11 @@ def _auto_plot_from_list(data: List) -> PlotRecord:
         return _circle_from_list(data[0])
     elif _list_contains_two_lists_of_equal_lengths(data):
         return _circle_from_xy(data[0], data[1])
-    elif _list_is_2d_equal_dims(data):
+    else:
         return _imshow_from_2d(data)
 
 
-def _auto_plot_from_ndarray(data: np.ndarray) -> PlotRecord:
+def _auto_plot_from_ndarray(data: np.ndarray) -> FigureRecord:
     array: np.ndarray = data
     if not array.any():
         raise EntropyError("Cannot auto-plot an empty ndarray")
@@ -60,8 +61,8 @@ def _auto_plot_from_ndarray(data: np.ndarray) -> PlotRecord:
         return _circle_from_list(array[0].tolist())
     elif _ndarray_contains_two_lists_of_equal_lengths(array):
         return _circle_from_xy(array[0], array[1])
-    elif _ndarray_is_2d(array):
-        return _imshow_from_2d(array)
+    else:
+        return _imshow_from_2d(data)
 
 
 # List helper functions
@@ -97,19 +98,6 @@ def _list_contains_one_list_of_scalars(data):
     )
 
 
-def _list_is_2d_equal_dims(lst):
-    if any(len(sublist) == 0 for sublist in lst):
-        raise EntropyError("Cannot auto-plot empty list or lists")
-    types = map(type, lst)
-    if not all(t == list for t in list(types)):
-        raise EntropyError(f"Cannot auto-plot list of these types: {list(types)}")
-
-    sublist_len = len(lst[0])
-    return all(
-        len(sublist) == sublist_len and _list_is_all_numeric(sublist) for sublist in lst
-    )
-
-
 # ndarray helper functions
 
 
@@ -131,15 +119,19 @@ def _ndarray_contains_two_lists_of_equal_lengths(array):
 
 
 def _ndarray_is_2d(array):
-    return array.ndim == 2 and array.shape[0] == array.shape[1]
+    return array.ndim == 2
+
+
+def _ndarray_is_3d_rgb(array):
+    return array.ndim == 3 and array.shape[2] == 3  # Last dim is rgb triples
 
 
 # helper functions for plotting
 
 
 def _circle_from_xy(x, y):
-    return PlotRecord(
-        experiment_id=0, id=0, plot_data=[x, y], generator=CirclePlotGenerator()
+    return FigureRecord(
+        experiment_id=0, id=0, figure=px.scatter(x=x, y=y), time=datetime.now()
     )
 
 
@@ -154,6 +146,6 @@ def _circle_from_list(lst):
 
 
 def _imshow_from_2d(data):
-    return PlotRecord(
-        experiment_id=0, id=0, plot_data=data, generator=ImShowPlotGenerator()
+    return FigureRecord(
+        experiment_id=0, id=0, figure=px.imshow(data), time=datetime.now()
     )

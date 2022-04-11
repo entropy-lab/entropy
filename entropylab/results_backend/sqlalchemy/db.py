@@ -2,10 +2,12 @@ import logging
 from datetime import datetime
 from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
 from typing import Set
+from warnings import warn
 
 import jsonpickle
 import pandas as pd
 from pandas import DataFrame
+from plotly import graph_objects as go
 from sqlalchemy import desc
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import sessionmaker, Session
@@ -19,6 +21,7 @@ from entropylab.api.data_reader import (
     MetadataRecord,
     DebugRecord,
     PlotRecord,
+    FigureRecord,
 )
 from entropylab.api.data_writer import (
     DataWriter,
@@ -49,6 +52,7 @@ from entropylab.results_backend.sqlalchemy.model import (
     DebugTable,
     MetadataTable,
     NodeTable,
+    FigureTable,
 )
 
 T = TypeVar(
@@ -138,7 +142,16 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         return self._execute_transaction(transaction)
 
     def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
+        warn(
+            "This method will soon be deprecated. Please use save_figure() instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         transaction = PlotTable.from_model(experiment_id, plot, data)
+        return self._execute_transaction(transaction)
+
+    def save_figure(self, experiment_id: int, figure: go.Figure) -> None:
+        transaction = FigureTable.from_model(experiment_id, figure)
         return self._execute_transaction(transaction)
 
     def save_node(self, experiment_id: int, node_data: NodeData):
@@ -259,6 +272,11 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
             return self._query_pandas(query)
 
     def get_plots(self, experiment_id: int) -> List[PlotRecord]:
+        warn(
+            "This method will soon be deprecated. Please use get_figures() instead",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         with self._session_maker() as sess:
             query = (
                 sess.query(PlotTable)
@@ -267,6 +285,17 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
             )
             if query:
                 return [plot.to_record() for plot in query]
+        return []
+
+    def get_figures(self, experiment_id: int) -> List[FigureRecord]:
+        with self._session_maker() as sess:
+            query = (
+                sess.query(FigureTable)
+                .filter(FigureTable.experiment_id == int(experiment_id))
+                .all()
+            )
+            if query:
+                return [figure.to_record() for figure in query]
         return []
 
     def get_nodes_id_by_label(

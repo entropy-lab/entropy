@@ -179,10 +179,10 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
     def get_figures(self, experiment_id: int) -> List[FigureRecord]:
         return self._figure[experiment_id]
 
-    def get_nodes_id_by_label(
+    def get_node_stage_ids_by_label(
         self, label: str, experiment_id: Optional[int] = None
     ) -> List[int]:
-        return list(x.node_id for x in self._nodes if (not label or x.label == label))
+        return list(x.stage_id for x in self._nodes if (not label or x.label == label))
 
     def get_last_result_of_experiment(
         self, experiment_id: int

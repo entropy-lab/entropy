@@ -8,13 +8,13 @@ from entropylab import SqlAlchemyDB, RawResultData
 from entropylab.api.data_writer import Metadata
 from entropylab.api.errors import EntropyError
 from entropylab.logger import logger
-from entropylab.results_backend.sqlalchemy.storage import HDF5Storage
 from entropylab.results_backend.sqlalchemy.db_initializer import (
     _ENTROPY_DIRNAME,
     _DB_FILENAME,
     _HDF5_FILENAME,
     _DbUpgrader,
 )
+from entropylab.results_backend.sqlalchemy.storage import HDF5Storage
 
 
 def test_upgrade_db_when_path_to_project_does_not_exist(project_dir_path):
@@ -38,8 +38,12 @@ def test_upgrade_db_assert_db_file_is_converted_to_project_dir(
 ):
     # arrange
     test_db_file_path = project_dir_path + ".db"
-    db_template = "db_templates/with_saved_in_hdf5_col.db"
-    db_template_path = os.path.join(request.fspath.dirname, db_template)
+    db_template = (
+        "empty_after_2021-08-01-14-18-43_04ae19b32c08_add_col_saved_in_hdf5.db"
+    )
+    db_template_path = os.path.join(
+        request.fspath.dirname, "./db_templates/", db_template
+    )
     shutil.copyfile(db_template_path, test_db_file_path)
     try:
         target = _DbUpgrader(test_db_file_path)
@@ -57,7 +61,7 @@ def test_upgrade_db_assert_db_file_is_converted_to_project_dir(
 
 @pytest.mark.parametrize(
     "initialized_project_dir_path",
-    ["./db_templates/initial.db"],
+    ["empty_after_2021-08-01-13-45-43_1318a586f31d_initial_migration.db"],
     indirect=True,
 )
 def test_upgrade_db_when_initial_db_is_empty(initialized_project_dir_path):
@@ -133,3 +137,22 @@ def test__migrate_metadata_to_hdf5(initialized_project_dir_path):
     )
     res = cur.all()
     assert len(res) == 5
+
+
+@pytest.mark.parametrize(
+    "initialized_project_dir_path",
+    [
+        "empty.db",
+        "empty_after_2021-08-01-13-45-43_1318a586f31d_initial_migration.db",
+        "empty_after_2021-08-01-14-18-43_04ae19b32c08_add_col_saved_in_hdf5.db",
+        "empty_after_2022-03-17-15-57-28_f1ada2484fe2_create_figures_table.db",
+        "empty_after_2022-04-10-08-26-35_9ffd2ba0d5bf_simplifying_node_id.db",
+    ],
+    indirect=True,
+)
+def test_upgrade_db_from_all_revisions(initialized_project_dir_path):
+    # arrange
+    target = _DbUpgrader(initialized_project_dir_path)
+    # act
+    target.upgrade_db()
+    # assert - all good if we didn't throw

@@ -131,7 +131,7 @@ class NodeData:
     information about a specific node
     """
 
-    node_id: int
+    stage_id: int
     start_time: datetime
     label: str
     is_key_node: bool

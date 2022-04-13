@@ -298,7 +298,7 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 return [figure.to_record() for figure in query]
         return []
 
-    def get_nodes_id_by_label(
+    def get_node_stage_ids_by_label(
         self, label: str, experiment_id: Optional[int] = None
     ) -> List[int]:
         with self._session_maker() as sess:
@@ -308,7 +308,7 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
 
             result = query.all()
             if result:
-                return [node.id for node in result]
+                return [node.stage_id for node in result]
         return []
 
     def get_last_result_of_experiment(

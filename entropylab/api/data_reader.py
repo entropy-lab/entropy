@@ -248,11 +248,12 @@ class DataReader(ABC):
         pass
 
     @abstractmethod
-    def get_nodes_id_by_label(
+    def get_node_stage_ids_by_label(
         self, label: str, experiment_id: Optional[int] = None
     ) -> List[int]:
         """
-            returns a list of all nodes with the given label
+            returns a list of the stage_id property values of all nodes with the
+            given label
         :param label: results label
         :param experiment_id: optional to specify an experiment id, so
                 only results from this experiment will be returned
@@ -274,18 +275,18 @@ class DataReader(ABC):
                 only results from this experiment will be returned
         :param result_label: optional to specify a label of the results
         """
-        nodes = self.get_nodes_id_by_label(node_label, experiment_id)
-        if not nodes:
+        node_stage_ids = self.get_node_stage_ids_by_label(node_label, experiment_id)
+        if not node_stage_ids:
             raise KeyError(f"node {node_label} not found")
         nodes_results = []
-        for node_id in nodes:
+        for stage_id in node_stage_ids:
             nodes_results.append(
                 NodeResults(
-                    node_id,
+                    stage_id,
                     self.get_results(
                         experiment_id,
                         label=result_label,
-                        stage=node_id,
+                        stage=stage_id,
                     ),
                 )
             )

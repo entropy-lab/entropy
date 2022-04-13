@@ -18,8 +18,8 @@ def test_ctor_creates_up_to_date_schema_when_in_memory(path: str):
     "initialized_project_dir_path",
     [
         None,  # new db
-        "./db_templates/empty.db",  # existing but empty
-        "./db_templates/with_figures_table.db",  # latest revision: 04ae19b32c08
+        "empty.db",  # existing but empty
+        "empty_after_2022-04-10-08-26-35_9ffd2ba0d5bf_simplifying_node_id.db",
     ],
     indirect=True,
 )
@@ -31,7 +31,7 @@ def test_ctor_ensures_latest_migration(
 
 @pytest.mark.parametrize(
     "initialized_project_dir_path",
-    ["./db_templates/initial.db"],  # revision 1318a586f31d
+    ["empty_after_2021-08-01-13-45-43_1318a586f31d_initial_migration.db"],
     indirect=True,
 )
 def test_ctor_throws_when_db_is_not_up_to_date(

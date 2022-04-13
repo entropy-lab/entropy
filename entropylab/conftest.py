@@ -55,8 +55,11 @@ def initialized_project_dir_path(request, project_dir_path) -> str:
     The directory will be removed recursively on tear down"""
     entropy_dir = os.path.join(project_dir_path, _ENTROPY_DIRNAME)
     os.makedirs(entropy_dir)
+    # if used in a parametrized test, consider the parameter as a db_template
+    # and use a copy of it as the db:
     if hasattr(request, "param") and request.param is not None:
-        db_template = str(request.param)  # param input from test annotation
+        # param input from test annotation is the db_template file name:
+        db_template = os.path.join("./db_templates", str(request.param))
         db_file = os.path.join(entropy_dir, _DB_FILENAME)
         _copy_db_template(db_template, db_file, request)
     return project_dir_path

@@ -216,23 +216,21 @@ class MetadataTable(Base):
 
 class NodeTable(Base):
     __tablename__ = "Nodes"
-
-    experiment_id = Column(
-        Integer, ForeignKey("Experiments.id", ondelete="CASCADE"), primary_key=True
-    )
     id = Column(Integer, primary_key=True)
+    experiment_id = Column(Integer, ForeignKey("Experiments.id", ondelete="CASCADE"))
+    stage_id = Column(Integer)
     label = Column(String)
     start = Column(DATETIME, nullable=False)
     is_key_node = Column(Boolean)
 
     def __repr__(self):
-        return f"<Node(exp_id='{self.experiment_id}', id='{self.id}')>"
+        return f"<Node(id='{self.id}')>"
 
     @staticmethod
     def from_model(experiment_id: int, node_data: NodeData):
         return NodeTable(
             experiment_id=experiment_id,
-            id=node_data.node_id,
+            stage_id=node_data.stage_id,
             start=node_data.start_time,
             label=node_data.label,
             is_key_node=node_data.is_key_node,
@@ -253,7 +251,7 @@ class PlotTable(Base):
     story = Column(String)
 
     def __repr__(self):
-        return f"<PlotSpec(id='{self.id}')>"
+        return f"<Plot(id='{self.id}')>"
 
     def to_record(self) -> PlotRecord:
         data = _decode_serialized_data(self.plot_data, self.data_type)

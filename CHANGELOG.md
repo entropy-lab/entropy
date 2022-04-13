@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2022-04-13
+### Changed
+* Dashboard: changed plotting interface 
+* DB: retrieving data based on node ID is fixed
 
 ## [0.5.0] - 2022-03-01
 ### Added

@@ -131,7 +131,7 @@ def test_get_when_commit_id_is_none_then_value_is_returned():
     assert actual == "bar"
 
 
-def test_get_when_commit_id_is_not_one_then_value_is_returned():
+def test_get_when_commit_id_is_not_none_then_value_is_returned():
     # arrange
     target = InProcessParamStore()
     target["foo"] = "bar"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import threading
@@ -17,8 +18,7 @@ from entropylab.api.errors import EntropyError
 from entropylab.api.param_store import ParamStore, MergeStrategy
 
 
-class InProcessParamStore(ParamStore, Munch):
-
+class InProcessParamStore(ParamStore):
     """Naive implementation of ParamStore based on tinydb
 
     Important:
@@ -37,6 +37,7 @@ class InProcessParamStore(ParamStore, Munch):
         self.__lock = threading.RLock()
         self.__base_commit_id: Optional[str] = None  # last commit checked out/committed
         self.__base_doc_id: Optional[int] = None  # tinydb document id of last commit...
+        self.__params: Dict[str, Param] = dict()  # where current params are stored
         self.__tags: Dict[str, List[str]] = dict()  # tags that are mapped to keys
         self.__is_dirty: bool = True  # can the store be committed at this time?
 
@@ -80,27 +81,56 @@ class InProcessParamStore(ParamStore, Munch):
             object.__setattr__(self, key, value)
         else:
             with self.__lock:
-                super().__setitem__(key, value)
+                self.__params.__setitem__(key, value)
                 self.__is_dirty = True
 
     def __getitem__(self, key: str) -> Any:
         with self.__lock:
-            return super().__getitem__(key)
+            return self.__params.__getitem__(key)
 
     def __delitem__(self, *args, **kwargs):
         with self.__lock:
-            super().__delitem__(*args, **kwargs)
+            self.__params.__delitem__(*args, **kwargs)
             self.__remove_key_from_tags(args[0])
             self.__is_dirty = True
 
+    def __getattr__(self, k):
+        try:
+            return object.__getattribute__(self, k)
+        except AttributeError:
+            try:
+                return self[k]
+            except KeyError:
+                raise AttributeError(k)
+
+    def __setattr__(self, k, v):
+        try:
+            object.__getattribute__(self, k)
+        except AttributeError:
+            try:
+                self[k] = v
+            except BaseException:
+                raise AttributeError(k)
+        else:
+            object.__setattr__(self, k, v)
+
+    def __iter__(self):
+        return self.__params.__iter__()
+
+    def __len__(self):
+        return self.__params.__len__()
+
+    def __contains__(self, key):
+        return self.__params.__contains__(key)
+
     def to_dict(self) -> Dict:
         with self.__lock:
-            return super().toDict()
+            return copy.deepcopy(self.__params)
 
     def get(self, key: str, commit_id: Optional[str] = None):
         with self.__lock:
             if commit_id is None:
-                return super().__getitem__(key)
+                return self.__params.__getitem__(key)
             else:
                 commit = self.__get_commit(commit_id)
                 return commit["params"][key]
@@ -144,13 +174,16 @@ class InProcessParamStore(ParamStore, Munch):
 
     def __build_document(self, label: Optional[str] = None) -> dict:
         metadata = self.__build_metadata(label)
-        params = self.toDict()
+        if self.__is_in_memory_mode:
+            params = copy.deepcopy(self.__params)
+        else:
+            params = self.__params
         return Munch(metadata=metadata.__dict__, params=params, tags=self.__tags)
 
     def __build_metadata(self, label: Optional[str] = None) -> Metadata:
         metadata = Metadata()
         metadata.ns = time.time_ns()
-        params_json = json.dumps(self.toDict(), sort_keys=True, ensure_ascii=True)
+        params_json = json.dumps(self.__params, sort_keys=True, ensure_ascii=True)
         commit_encoded = (params_json + str(metadata.ns)).encode("utf-8")
         metadata.id = hashlib.sha1(commit_encoded).hexdigest()
         metadata.label = label
@@ -164,8 +197,8 @@ class InProcessParamStore(ParamStore, Munch):
     ) -> None:
         with self.__lock:
             commit = self.__get_commit(commit_id, commit_num, move_by)
-            self.clear()
-            self.update(commit["params"])
+            self.__params.clear()
+            self.__params.update(commit["params"])
             self.__tags = commit["tags"]
             self.__base_commit_id = commit_id
             self.__base_doc_id = commit.doc_id
@@ -230,13 +263,11 @@ class InProcessParamStore(ParamStore, Munch):
         if issubclass(type(theirs), ParamStore):
             theirs = theirs.to_dict()
         with self.__lock:
-            ours = self.toDict()
-            merged = self.__merge_trees(ours, theirs, merge_strategy)
-            self.clear()
-            self.update(merged)
+            ours = self.__params
+            self.__merge_trees(ours, theirs, merge_strategy)
 
     def __merge_trees(self, a: Dict, b: Dict, merge_strategy: MergeStrategy) -> Dict:
-        """Merges dict b into dict a using the given strategy"""
+        """Merges dict `b` into dict `a`, *in-place*, using the given strategy"""
         for key in b:
             if key in a:
                 if isinstance(a[key], dict) and isinstance(b[key], dict):
@@ -274,8 +305,8 @@ class InProcessParamStore(ParamStore, Munch):
                     values.append(value)
                 except KeyError:
                     pass
-            if key in self.keys():
-                values.append((self.__getitem__(key), None, None, None))
+            if key in self.__params.keys():
+                values.append((self.__params.__getitem__(key), None, None, None))
             df = pd.DataFrame(values)
             if not df.empty:
                 df.columns = ["value", "time", "commit_id", "label"]
@@ -285,7 +316,7 @@ class InProcessParamStore(ParamStore, Munch):
 
     def add_tag(self, tag: str, key: str) -> None:
         with self.__lock:
-            if key not in self.keys():
+            if key not in self.__params.keys():
                 raise KeyError(f"key '{key}' is not in store")
             if tag not in self.__tags:
                 self.__tags[tag] = []
@@ -336,10 +367,10 @@ class InProcessParamStore(ParamStore, Munch):
             doc = table.get(doc_id=1)
             if not doc:
                 raise EntropyError(
-                    "Temp location is empty. Call save_temp() before calling load_temp()"
+                    "Temp is empty. Call save_temp() before calling load_temp()"
                 )
-            self.clear()
-            self.update(doc["params"])
+            self.__params.clear()
+            self.__params.update(doc["params"])
             self.__tags = doc["tags"]
 
 

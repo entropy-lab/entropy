@@ -118,6 +118,40 @@ def test___delitem___when_key_is_deleted_then_it_is_removed_from_tags_too():
     assert target.list_keys("tag") == ["goo"]
 
 
+""" get() """
+
+
+def test_get_when_commit_id_is_none_then_value_is_returned():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    # act
+    actual = target.get("foo")
+    # assert
+    assert actual == "bar"
+
+
+def test_get_when_commit_id_is_not_one_then_value_is_returned():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    commit_id = target.commit()
+    target["foo"] = "baz"
+    # act
+    actual = target.get("foo", commit_id)
+    # assert
+    assert actual == "bar"
+
+
+def test_get_when_commit_id_is_bad_then_entropy_error_is_raised():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    # act
+    with pytest.raises(EntropyError):
+        target.get("foo", "oops")
+
+
 """ commit() """
 
 
@@ -493,7 +527,7 @@ def test_merge_strategy_theirs_when_ours_is_leaf_theirs_is_dict_then_theirs_is_c
     assert target["foo"] == {"baz": 1}
 
 
-def test_merge_strategy_theirs_when_ours_is_dict_theirs_is_leaf_then_theirs_overwrites():
+def test_merge_strategy_theirs_when_ours_is_dict_theirs_is_leaf_then_their_overwrites():
     target = InProcessParamStore()
     target["foo"] = {"bar": 1}
     theirs = InProcessParamStore()
@@ -706,7 +740,8 @@ def test_demo(tinydb_file_path):
 
     print(f"second commit freq: {target['qubit1.flux_capacitor.freq']}")
     print(
-        f"first commit freq from history: {target.get('qubit1.flux_capacitor.freq', commit_id)}"
+        f"first commit freq from history: "
+        f"{target.get('qubit1.flux_capacitor.freq', commit_id)}"
     )
 
     target.commit("warm-up")

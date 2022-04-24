@@ -100,7 +100,7 @@ class InProcessParamStore(ParamStore, Munch):
     def get(self, key: str, commit_id: Optional[str] = None):
         with self.__lock:
             if commit_id is None:
-                super().__getitem__(key)
+                return super().__getitem__(key)
             else:
                 commit = self.__get_commit(commit_id)
                 return commit["params"][key]

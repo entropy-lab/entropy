@@ -115,25 +115,21 @@ class _HDF5Reader:
         self,
         entity_type: EntityType,
         convert_from_dset: Callable,
-        experiment_id: Optional[int] = None,
+        experiment_id: int,
         stage: Optional[int] = None,
         label: Optional[str] = None,
     ) -> Iterable[T]:
         dsets = []
         try:
             # noinspection PyUnresolvedReferences
-            with self._open_hdf5("r") as file:
-                if "experiments" in file:
-                    top_group = file["experiments"]
-                    exp_groups = _get_all_or_single(top_group, experiment_id)
-                    for exp_group in exp_groups:
-                        stage_groups = _get_all_or_single(exp_group, stage)
-                        for stage_group in stage_groups:
-                            label_groups = _get_all_or_single(stage_group, label)
-                            for label_group in label_groups:
-                                dset_name = entity_type.name.lower()
-                                dset = label_group[dset_name]
-                                dsets.append(convert_from_dset(dset))
+            with self._open_hdf5(experiment_id, "r") as file:
+                stage_groups = _get_all_or_single(file, stage)
+                for stage_group in stage_groups:
+                    label_groups = _get_all_or_single(stage_group, label)
+                    for label_group in label_groups:
+                        dset_name = entity_type.name.lower()
+                        dset = label_group[dset_name]
+                        dsets.append(convert_from_dset(dset))
             return dsets
         except FileNotFoundError:
             logger.exception("FileNotFoundError in get_experiment_entities()")

@@ -1,4 +1,5 @@
 import os
+import shutil
 from random import randrange
 from typing import Any
 
@@ -60,7 +61,8 @@ def test_ctor_in_memory():
 )
 def test_write_and_read_single_result(data: Any, request):
     path = f"./tests_cache/{request.node.name}"
-    os.mkdir(path)
+    if not os.path.exists(path):
+        os.mkdir(path)
     target = HDF5Storage(path)
     try:
         # arrange
@@ -89,7 +91,7 @@ def test_write_and_read_single_result(data: Any, request):
 
     finally:
         # clean up
-        os.remove(path)
+        shutil.rmtree(path)
 
 
 @pytest.mark.parametrize(
@@ -115,7 +117,9 @@ def test_write_and_read_single_result(data: Any, request):
     ],
 )
 def test_write_and_read_single_metadata(data: Any, request):
-    path = f"./tests_cache/{request.node.name}.hdf5"
+    path = f"./tests_cache/{request.node.name}"
+    if not os.path.exists(path):
+        os.mkdir(path)
     target = HDF5Storage(path)
     try:
         # arrange
@@ -143,11 +147,13 @@ def test_write_and_read_single_metadata(data: Any, request):
 
     finally:
         # clean up
-        os.remove(path)
+        shutil.rmtree(path)
 
 
 def test_get_results_two_items(request):
-    path = f"./tests_cache/{request.node.name}.hdf5"
+    path = f"./tests_cache/{request.node.name}"
+    if not os.path.exists(path):
+        os.mkdir(path)
     target = HDF5Storage(path)
     try:
         # arrange
@@ -169,11 +175,13 @@ def test_get_results_two_items(request):
 
     finally:
         # clean up
-        os.remove(path)
+        shutil.rmtree(path)
 
 
 def test_get_metadata_two_items(request):
-    path = f"./tests_cache/{request.node.name}.hdf5"
+    path = f"./tests_cache/{request.node.name}"
+    if not os.path.exists(path):
+        os.mkdir(path)
     target = HDF5Storage(path)
     try:
         # arrange
@@ -193,11 +201,13 @@ def test_get_metadata_two_items(request):
 
     finally:
         # clean up
-        os.remove(path)
+        shutil.rmtree(path)
 
 
 def test_get_last_result_of_experiment(request):
-    path = f"./tests_cache/{request.node.name}.hdf5"
+    path = f"./tests_cache/{request.node.name}"
+    if not os.path.exists(path):
+        os.mkdir(path)
     target = HDF5Storage(path)
     try:
         # arrange
@@ -220,11 +230,13 @@ def test_get_last_result_of_experiment(request):
         assert actual.label == "bar"
     finally:
         # clean up
-        os.remove(path)
+        shutil.rmtree(path)
 
 
 def test_get_last_result_of_experiment_when_not_in_file(request):
-    path = f"./tests_cache/{request.node.name}.hdf5"
+    path = f"./tests_cache/{request.node.name}"
+    if not os.path.exists(path):
+        os.mkdir(path)
     target = HDF5Storage(path)
     try:
         # arrange
@@ -239,11 +251,13 @@ def test_get_last_result_of_experiment_when_not_in_file(request):
         assert actual is None
     finally:
         # clean up
-        os.remove(path)
+        shutil.rmtree(path)
 
 
 def test_get_last_result_of_experiment_when_no_experiment(request):
-    path = f"./tests_cache/{request.node.name}.hdf5"
+    path = f"./tests_cache/{request.node.name}"
+    if not os.path.exists(path):
+        os.mkdir(path)
     target = HDF5Storage(path)
     try:
         # arrange
@@ -254,7 +268,7 @@ def test_get_last_result_of_experiment_when_no_experiment(request):
         assert actual is None
     finally:
         # clean up
-        os.remove(path)
+        shutil.rmtree(path)
 
 
 def test_get_all_or_single_when_label_is_not_specified(request):

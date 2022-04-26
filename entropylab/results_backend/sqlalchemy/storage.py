@@ -1,3 +1,4 @@
+import os.path
 import pickle
 from datetime import datetime
 from enum import Enum
@@ -120,6 +121,7 @@ class _HDF5Reader:
     ) -> Iterable[T]:
         dsets = []
         try:
+            # noinspection PyUnresolvedReferences
             with self._open_hdf5("r") as file:
                 if "experiments" in file:
                     top_group = file["experiments"]
@@ -172,7 +174,8 @@ class _HDF5Reader:
 
 class _HDF5Writer:
     def save_result(self, experiment_id: int, result: RawResultData) -> str:
-        with self._open_hdf5("a") as file:
+        # noinspection PyUnresolvedReferences
+        with self._open_hdf5(experiment_id, "a") as file:
             return self._save_entity_to_file(
                 file,
                 EntityType.RESULT,
@@ -185,7 +188,8 @@ class _HDF5Writer:
             )
 
     def save_metadata(self, experiment_id: int, metadata: Metadata):
-        with self._open_hdf5("a") as file:
+        # noinspection PyUnresolvedReferences
+        with self._open_hdf5(experiment_id, "a") as file:
             return self._save_entity_to_file(
                 file,
                 EntityType.METADATA,
@@ -208,9 +212,9 @@ class _HDF5Writer:
         story: Optional[str] = None,
         migrated_id: Optional[str] = None,
     ) -> str:
-        path = f"/experiments/{experiment_id}/{stage}/{label}"
-        group = file.require_group(path)
-        dset = self._create_dataset(group, entity_type, data)
+        path = f"/{stage}/{label}"
+        label_group = file.require_group(path)
+        dset = self._create_dataset(label_group, entity_type, data)
         dset.attrs.create("experiment_id", experiment_id)
         dset.attrs.create("stage", stage)
         dset.attrs.create("label", label)
@@ -255,6 +259,7 @@ class _HDF5Migrator(_HDF5Writer):
 
     def migrate_rows(self, entity_type: EntityType, rows: Iterable[T]) -> None:
         if rows is not None and len(list(rows)) > 0:
+            # noinspection PyUnresolvedReferences
             with self._open_hdf5("a") as file:
                 for row in rows:
                     if not row.saved_in_hdf5:
@@ -302,25 +307,32 @@ class HDF5Storage(_HDF5Reader, _HDF5Migrator, _HDF5Writer):
                  and metadata.
 
         :param path: filesystem path to the HDF5 file. If no path is given or the
-                 path is empty, an in-memory-only HDF5 file is used.
+                 path is empty, HDF5 files are stored in memory only.
         """
-        if path is None or path == "":
+        if path is None or path == "":  # memory files
             self._path = "./entropy.temp.hdf5"
             self._open_hdf5 = self._open_in_memory
-        else:
+            self._memory_files = dict()
+        else:  # filesystem
             self._path = path
             self._open_hdf5 = self._open_in_fs
-        self._check_file_permissions()
+        # self._check_file_permissions()  # TODO: Modify check to file-per-exp?
 
-    def _check_file_permissions(self):
-        file = self._open_hdf5("a")
-        file.close()
+    # def _check_file_permissions(self):
+    #     file = self._open_hdf5("a")
+    #     file.close()
 
-    def _open_in_memory(self, mode: str) -> h5py.File:
+    def _open_in_memory(self, experiment_id: int, mode: str) -> h5py.File:
         """Note that because backing_store=False, self._path is ignored & no file is
         saved on disk. See https://docs.h5py.org/en/stable/high/file.html#file-drivers
         """
-        return h5py.File(self._path, mode, driver="core", backing_store=False)
+        if experiment_id in self._memory_files:
+            return self._memory_files[experiment_id]
+        else:
+            file = h5py.File(self._path, mode, driver="core", backing_store=False)
+            self._memory_files[experiment_id] = file
+            return file
 
-    def _open_in_fs(self, mode: str) -> h5py.File:
-        return h5py.File(self._path, mode)
+    def _open_in_fs(self, experiment_id: int, mode: str) -> h5py.File:
+        path = os.path.join(self._path, f"{experiment_id}.hdf5")
+        return h5py.File(path, mode)

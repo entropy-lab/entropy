@@ -8,11 +8,11 @@ import pytest
 
 from entropylab import RawResultData
 from entropylab.api.data_writer import Metadata
+from entropylab.results_backend.sqlalchemy.model import ResultDataType
 from entropylab.results_backend.sqlalchemy.storage import (
     HDF5Storage,
     _get_all_or_single,
 )
-from entropylab.results_backend.sqlalchemy.model import ResultDataType
 
 
 class Picklable(object):
@@ -59,7 +59,8 @@ def test_ctor_in_memory():
     ],
 )
 def test_write_and_read_single_result(data: Any, request):
-    path = f"./tests_cache/{request.node.name}.hdf5"
+    path = f"./tests_cache/{request.node.name}"
+    os.mkdir(path)
     target = HDF5Storage(path)
     try:
         # arrange

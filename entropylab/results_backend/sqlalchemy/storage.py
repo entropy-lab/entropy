@@ -2,7 +2,7 @@ import os.path
 import pickle
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Any, Iterable, TypeVar, Callable
+from typing import Optional, Any, Iterable, TypeVar, Callable, List
 
 import h5py
 import numpy as np
@@ -111,6 +111,53 @@ class EntityType(Enum):
 
 
 class _HDF5Reader:
+    def get_result_records(
+        self,
+        experiment_id: Optional[int] = None,
+        stage: Optional[int] = None,
+        label: Optional[str] = None,
+    ) -> Iterable[ResultRecord]:
+        return self._get_records(
+            EntityType.RESULT, _build_result_record, experiment_id, stage, label
+        )
+
+    def get_metadata_records(
+        self,
+        experiment_id: Optional[int] = None,
+        stage: Optional[int] = None,
+        label: Optional[str] = None,
+    ) -> Iterable[ResultRecord]:
+        return self._get_records(
+            EntityType.METADATA, _build_metadata_record, experiment_id, stage, label
+        )
+
+    def _get_records(
+        self,
+        entity_type: EntityType,
+        record_build_func: Callable,
+        experiment_id: Optional[int] = None,
+        stage: Optional[int] = None,
+        label: Optional[str] = None,
+    ) -> Iterable[ResultRecord]:
+        entities = []
+        if experiment_id:
+            experiment_ids = [experiment_id]
+        else:
+            experiment_ids = self._list_experiment_ids_in_fs()
+        for experiment_id in experiment_ids:
+            entities += self._get_experiment_entities(
+                entity_type, record_build_func, experiment_id, stage, label
+            )
+        return sorted(entities, key=lambda entity: entity.experiment_id)
+
+    def _list_experiment_ids_in_fs(self) -> List[int]:
+        # noinspection PyUnresolvedReferences
+        dir_list = os.listdir(self._path)
+        # TODO: Better validation of experiment ids
+        exp_files = filter(lambda f: f.endswith(".hdf5"), dir_list)
+        experiment_ids = list(map(lambda f: f[:-5], exp_files))
+        return experiment_ids
+
     def _get_experiment_entities(
         self,
         entity_type: EntityType,
@@ -122,7 +169,11 @@ class _HDF5Reader:
         dsets = []
         try:
             # noinspection PyUnresolvedReferences
-            with self._open_hdf5(experiment_id, "r") as file:
+            file = self._open_hdf5(experiment_id, "r")
+        except FileNotFoundError:
+            logger.error(f"HDF5 file for experiment_id [{experiment_id}] was not found")
+        else:
+            with file:
                 stage_groups = _get_all_or_single(file, stage)
                 for stage_group in stage_groups:
                     label_groups = _get_all_or_single(stage_group, label)
@@ -130,32 +181,7 @@ class _HDF5Reader:
                         dset_name = entity_type.name.lower()
                         dset = label_group[dset_name]
                         dsets.append(convert_from_dset(dset))
-            return dsets
-        except FileNotFoundError:
-            logger.exception("FileNotFoundError in get_experiment_entities()")
-            return dsets
-
-    def get_result_records(
-        self,
-        experiment_id: Optional[int] = None,
-        stage: Optional[int] = None,
-        label: Optional[str] = None,
-    ) -> Iterable[ResultRecord]:
-        entities = self._get_experiment_entities(
-            EntityType.RESULT, _build_result_record, experiment_id, stage, label
-        )
-        return entities
-
-    def get_metadata_records(
-        self,
-        experiment_id: Optional[int] = None,
-        stage: Optional[int] = None,
-        label: Optional[str] = None,
-    ) -> Iterable[MetadataRecord]:
-        entities = self._get_experiment_entities(
-            EntityType.METADATA, _build_metadata_record, experiment_id, stage, label
-        )
-        return entities
+        return dsets
 
     def get_last_result_of_experiment(
         self, experiment_id: int
@@ -331,4 +357,8 @@ class HDF5Storage(_HDF5Reader, _HDF5Migrator, _HDF5Writer):
 
     def _open_in_fs(self, experiment_id: int, mode: str) -> h5py.File:
         path = os.path.join(self._path, f"{experiment_id}.hdf5")
-        return h5py.File(path, mode)
+        try:
+            return h5py.File(path, mode)
+        except FileNotFoundError:
+            logger.exception(f"HDF5 file not found at '{path}'")
+            raise

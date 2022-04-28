@@ -34,7 +34,7 @@ class UnPicklable(object):
 
 
 def test_ctor_in_memory():
-    target = HDF5Storage()
+    HDF5Storage()
 
 
 @pytest.mark.parametrize(
@@ -198,6 +198,37 @@ def test_get_metadata_two_items(request):
         assert len(actual) == 2
         assert actual[0].label == "bar"
         assert actual[1].label == "foo"
+
+    finally:
+        # clean up
+        shutil.rmtree(path)
+
+
+def test_write_and_read_results_from_multiple_experiments(request):
+    path = f"./tests_cache/{request.node.name}"
+    if not os.path.exists(path):
+        os.mkdir(path)
+    target = HDF5Storage(path)
+    try:
+        # arrange
+        experiment1_id = randrange(10000000)
+        result1 = RawResultData(label="foo", data=42)
+        result1.stage = randrange(1000)
+        result1.story = "A long time ago in a galaxy far, far away..."
+
+        experiment2_id = experiment1_id + 1
+        result2 = RawResultData(label="bar", data="baz")
+        result2.stage = randrange(1000)
+        result2.story = "’Twas brillig, and the slithy toves..."
+
+        # act
+        target.save_result(experiment1_id, result1)
+        target.save_result(experiment2_id, result2)
+        actual = list(target.get_result_records())
+
+        # assert
+        assert actual[0].data == 42
+        assert actual[1].data == "baz"
 
     finally:
         # clean up

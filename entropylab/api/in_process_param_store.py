@@ -282,12 +282,19 @@ class InProcessParamStore(ParamStore, Munch):
             self.__tags[tag].remove(key)
             self.__is_dirty = True
 
-    def list_keys(self, tag: str) -> List[str]:
+    def list_keys_for_tag(self, tag: str) -> List[str]:
         with self.__lock:
             if tag not in self.__tags:
                 return []
             else:
                 return self.__tags[tag]
+
+    def list_tags_for_key(self, key: str):
+        tags_for_key = []
+        for item in self.__tags.items():
+            if key in item[1]:
+                tags_for_key.append(item[0])
+        return tags_for_key
 
     """ Temporary State """
 

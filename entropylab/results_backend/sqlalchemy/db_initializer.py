@@ -3,11 +3,11 @@ import shutil
 from pathlib import Path
 from typing import TypeVar, Type, Tuple
 
+import sqlalchemy.engine
 from alembic import script, command
 from alembic.config import Config
 from alembic.runtime import migration
 from sqlalchemy import create_engine
-import sqlalchemy.engine
 from sqlalchemy.orm import sessionmaker
 
 from entropylab.api.errors import EntropyError
@@ -22,6 +22,7 @@ _SQL_ALCHEMY_MEMORY = ":memory:"
 _ENTROPY_DIRNAME = ".entropy"
 _DB_FILENAME = "entropy.db"
 _HDF5_FILENAME = "entropy.hdf5"
+_HDF5_DIRNAME = "hdf5"
 
 
 class _DbInitializer:
@@ -47,11 +48,13 @@ class _DbInitializer:
             db_file_path = os.path.join(entropy_dir_path, _DB_FILENAME)
             logger.debug(f"DB file is at: {db_file_path}")
 
-            hdf5_file_path = os.path.join(entropy_dir_path, _HDF5_FILENAME)
-            logger.debug(f"hdf5 file is at: {hdf5_file_path}")
+            hdf5_dir_path = os.path.join(
+                entropy_dir_path,
+            )
+            logger.debug(f"hdf5 directory is at: {hdf5_dir_path}")
 
             self._engine = create_engine("sqlite:///" + db_file_path, echo=echo)
-            self._storage = HDF5Storage(hdf5_file_path)
+            self._storage = HDF5Storage(hdf5_dir_path)
             self._alembic_util = _AlembicUtil(self._engine)
             if creating_new:
                 self._print_project_created(path)
@@ -68,14 +71,16 @@ class _DbInitializer:
                 raise EntropyError(
                     f"The database at {path} is not up-to-date. Update the database "
                     "using the Entropy CLI command `entropy upgrade`. "
-                    "* Before upgrading be sure to back up your database to a safe place *."
+                    "* Before upgrading be sure to back up your database to a safe "
+                    "place *."
                 )
         return self._engine, self._storage
 
     @staticmethod
     def _print_project_created(path):
         print(
-            f"New Entropy project '{project_name(path)}' created at '{project_path(path)}'"
+            f"New Entropy project '{project_name(path)}' created at "
+            f"'{project_path(path)}'"
         )
 
     @staticmethod
@@ -84,7 +89,7 @@ class _DbInitializer:
             return
         if path is not None and Path(path).suffix == ".db":
             logger.error(
-                "_DbInitializer provided with path to a sqlite database. This is deprecated."
+                "_DbInitializer given path to a sqlite database. This is deprecated."
             )
             raise EntropyError(
                 "Providing the SqlAlchemyDB() constructor with a path to a sqlite "
@@ -119,6 +124,7 @@ class _DbUpgrader:
         self._alembic_util = None
 
     def upgrade_db(self) -> None:
+        old_global_hdf5_file_path = None
         if self._path is None or self._path == _SQL_ALCHEMY_MEMORY:
             logger.debug("_DbUpgrader is in in-memory mode")
             self._storage = HDF5Storage()
@@ -133,13 +139,23 @@ class _DbUpgrader:
                 self._convert_to_project()
             entropy_dir_path = os.path.join(self._path, _ENTROPY_DIRNAME)
             db_file_path = os.path.join(entropy_dir_path, _DB_FILENAME)
-            hdf5_file_path = os.path.join(entropy_dir_path, _HDF5_FILENAME)
+            hdf5_dir_path = os.path.join(entropy_dir_path, _HDF5_DIRNAME)
+            old_global_hdf5_file_path = os.path.join(entropy_dir_path, _HDF5_FILENAME)
             self._engine = create_engine("sqlite:///" + db_file_path, echo=self._echo)
-            self._storage = HDF5Storage(hdf5_file_path)
+            self._storage = HDF5Storage(hdf5_dir_path)
         self._alembic_util = _AlembicUtil(self._engine)
         self._alembic_util.upgrade()
-        self._migrate_results_to_hdf5()
-        self._migrate_metadata_to_hdf5()
+        if old_global_hdf5_file_path and os.path.isfile(old_global_hdf5_file_path):
+            # old, global hdf5 file exists so migrate from it to new "per experiment"
+            # hdf5 files
+            self._storage.migrate_from_per_project_hdf5_to_per_experiment_hdf5_files(
+                old_global_hdf5_file_path
+            )
+        else:
+            # old, global hdf5 file does not exist so migrate directly from DB to new
+            # "per experiment" hdf5 files
+            self._migrate_results_from_db_to_hdf5()
+            self._migrate_metadata_from_db_to_hdf5()
 
     def _path_doesnt_exist(self):
         return not os.path.isdir(self._path) and not os.path.isfile(self._path)
@@ -171,13 +187,13 @@ class _DbUpgrader:
             f"at {new_project_dir_path}"
         )
 
-    def _migrate_results_to_hdf5(self) -> None:
-        self._migrate_rows_to_hdf5(EntityType.RESULT, ResultTable)
+    def _migrate_results_from_db_to_hdf5(self) -> None:
+        self._migrate_rows_from_db_to_hdf5(EntityType.RESULT, ResultTable)
 
-    def _migrate_metadata_to_hdf5(self) -> None:
-        self._migrate_rows_to_hdf5(EntityType.METADATA, MetadataTable)
+    def _migrate_metadata_from_db_to_hdf5(self) -> None:
+        self._migrate_rows_from_db_to_hdf5(EntityType.METADATA, MetadataTable)
 
-    def _migrate_rows_to_hdf5(self, entity_type: EntityType, table: Type[T]):
+    def _migrate_rows_from_db_to_hdf5(self, entity_type: EntityType, table: Type[T]):
         logger.debug(f"Migrating {entity_type.name} rows from sqlite to hdf5")
         session_maker = sessionmaker(bind=self._engine)
         with session_maker() as session:
@@ -192,7 +208,8 @@ class _DbUpgrader:
                     row.saved_in_hdf5 = True
                 session.commit()
                 logger.debug(
-                    f"Marked all {entity_type.name} rows in sqlite as `saved_in_hdf5`. Done"
+                    f"Marked all {entity_type.name} rows in sqlite as `saved_in_hdf5`."
+                    f" Done"
                 )
 
 

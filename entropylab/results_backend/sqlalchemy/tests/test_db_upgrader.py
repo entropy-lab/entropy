@@ -11,7 +11,7 @@ from entropylab.logger import logger
 from entropylab.results_backend.sqlalchemy.db_initializer import (
     _ENTROPY_DIRNAME,
     _DB_FILENAME,
-    _HDF5_FILENAME,
+    _HDF5_DIRNAME,
     _DbUpgrader,
 )
 from entropylab.results_backend.sqlalchemy.storage import HDF5Storage
@@ -105,7 +105,7 @@ def test__migrate_results_to_hdf5(initialized_project_dir_path):
     target.upgrade_db()
     # assert
     storage = HDF5Storage(
-        os.path.join(initialized_project_dir_path, _ENTROPY_DIRNAME, _HDF5_FILENAME)
+        os.path.join(initialized_project_dir_path, _ENTROPY_DIRNAME, _HDF5_DIRNAME)
     )
     hdf5_results = storage.get_result_records()
     assert len(list(hdf5_results)) == 5
@@ -128,7 +128,7 @@ def test__migrate_metadata_to_hdf5(initialized_project_dir_path):
     target.upgrade_db()
     # assert
     storage = HDF5Storage(
-        os.path.join(initialized_project_dir_path, _ENTROPY_DIRNAME, _HDF5_FILENAME)
+        os.path.join(initialized_project_dir_path, _ENTROPY_DIRNAME, _HDF5_DIRNAME)
     )
     hdf5_metadata = storage.get_metadata_records()
     assert len(list(hdf5_metadata)) == 5

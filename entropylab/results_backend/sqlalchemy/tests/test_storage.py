@@ -9,6 +9,10 @@ import pytest
 
 from entropylab import RawResultData
 from entropylab.api.data_writer import Metadata
+from entropylab.results_backend.sqlalchemy.db_initializer import (
+    _HDF5_DIRNAME,
+    _HDF5_FILENAME,
+)
 from entropylab.results_backend.sqlalchemy.model import ResultDataType
 from entropylab.results_backend.sqlalchemy.storage import (
     HDF5Storage,
@@ -259,6 +263,40 @@ def test_get_last_result_of_experiment(request):
         assert actual.experiment_id == experiment_id
         assert actual.stage == 0
         assert actual.label == "bar"
+    finally:
+        # clean up
+        shutil.rmtree(path)
+
+
+def test_migrate_from_global_hdf5_to_per_experiment_hdf5_files(request):
+    # arrange
+    path = f"./tests_cache/{request.node.name}"
+    try:
+        if not os.path.exists(path):
+            os.mkdir(path)
+        # ensure dir where hdf5 files will be saved exists
+        hdf5_dir_path = os.path.join(path, _HDF5_DIRNAME)
+        os.makedirs(hdf5_dir_path, exist_ok=True)
+        # copy ,entropy dir template into project dir
+        per_project_hdf5_file_path = os.path.join(path, _HDF5_FILENAME)
+        shutil.copyfile("./db_templates/per_project.hdf5", per_project_hdf5_file_path)
+        # target:
+        target = HDF5Storage(hdf5_dir_path)
+
+        # act
+        target.migrate_from_per_project_hdf5_to_per_experiment_hdf5_files(
+            per_project_hdf5_file_path
+        )
+
+        # assert
+        hdf5_1 = os.path.join(hdf5_dir_path, "1.hdf5")
+        with h5py.File(hdf5_1, "r") as file:
+            x = file["0/label_61/result"]
+            assert x[0, 7] == 6586472
+        hdf5_6 = os.path.join(hdf5_dir_path, "6.hdf5")
+        with h5py.File(hdf5_6, "r") as file:
+            x = file["0/label_363/result"]
+            assert x[()] == 482918
     finally:
         # clean up
         shutil.rmtree(path)

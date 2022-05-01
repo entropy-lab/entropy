@@ -126,7 +126,7 @@ class _HDF5Reader:
         experiment_id: Optional[int] = None,
         stage: Optional[int] = None,
         label: Optional[str] = None,
-    ) -> Iterable[ResultRecord]:
+    ) -> Iterable[MetadataRecord]:
         return self._get_records(
             EntityType.METADATA, _build_metadata_record, experiment_id, stage, label
         )
@@ -138,7 +138,7 @@ class _HDF5Reader:
         experiment_id: Optional[int] = None,
         stage: Optional[int] = None,
         label: Optional[str] = None,
-    ) -> Iterable[ResultRecord]:
+    ) -> Iterable[T]:
         entities = []
         if experiment_id:
             experiment_ids = [experiment_id]
@@ -281,16 +281,16 @@ class _HDF5Migrator(_HDF5Writer):
 
     def migrate_rows(self, entity_type: EntityType, rows: Iterable[T]) -> None:
         if rows is not None and len(list(rows)) > 0:
-            # noinspection PyUnresolvedReferences
-            with self._open_hdf5("a") as file:
-                for row in rows:
-                    if not row.saved_in_hdf5:
-                        record = row.to_record()
+            for row in rows:
+                if not row.saved_in_hdf5:
+                    record = row.to_record()
+                    # noinspection PyUnresolvedReferences
+                    with self._open_hdf5(record.experiment_id, "a") as file:
                         hdf5_id = self._migrate_record(file, entity_type, record)
-                        logger.debug(
-                            f"Migrated ${entity_type.name} with id [{row.id}] "
-                            f"to HDF5 with id [{hdf5_id}]"
-                        )
+                    logger.debug(
+                        f"Migrated ${entity_type.name} with id [{row.id}] "
+                        f"to HDF5 with id [{hdf5_id}]"
+                    )
 
     def _migrate_record(
         self, file: h5py.File, entity_type: EntityType, record: R
@@ -322,14 +322,36 @@ class _HDF5Migrator(_HDF5Writer):
             result_record.id,
         )
 
+    def migrate_from_per_project_hdf5_to_per_experiment_hdf5_files(
+        self, old_global_hdf5_file_path
+    ):
+        logger.debug(
+            f"Migrating global .hdf5 file {old_global_hdf5_file_path} "
+            "to per-experiment .hdf5 files"
+        )
+        with h5py.File(old_global_hdf5_file_path, "r") as file:
+            if "experiments" in file:
+                top_group = file["experiments"]
+                for exp_group in top_group.values():
+                    experiment_id = int(exp_group.name[13:])
+                    f"Migrating results and metadata for experiment id {experiment_id}"
+                    # noinspection PyUnresolvedReferences
+                    with self._open_hdf5(experiment_id, "a") as exp_file:
+                        for stage_group in exp_group.values():
+                            exp_group.copy(stage_group, exp_file)
+        new_filename = f"{old_global_hdf5_file_path}.bak"
+        logger.debug(f"Renaming global .hdf5 file to [{new_filename}]")
+        os.rename(old_global_hdf5_file_path, new_filename)
+        logger.debug("Global .hdf5 file migration done")
+
 
 class HDF5Storage(_HDF5Reader, _HDF5Migrator, _HDF5Writer):
     def __init__(self, path=None):
         """Initializes a new or existing HDF5 file for storing experiment results
                  and metadata.
 
-        :param path: filesystem path to the HDF5 file. If no path is given or the
-                 path is empty, HDF5 files are stored in memory only.
+        :param path: filesystem path to a directory where HDF5 files reside. If no path
+                 is given or the path is empty, HDF5 files are stored in memory only.
         """
         if path is None or path == "":  # memory files
             self._path = "./entropy.temp.hdf5"
@@ -338,11 +360,7 @@ class HDF5Storage(_HDF5Reader, _HDF5Migrator, _HDF5Writer):
         else:  # filesystem
             self._path = path
             self._open_hdf5 = self._open_in_fs
-        # self._check_file_permissions()  # TODO: Modify check to file-per-exp?
-
-    # def _check_file_permissions(self):
-    #     file = self._open_hdf5("a")
-    #     file.close()
+            os.makedirs(self._path, exist_ok=True)
 
     def _open_in_memory(self, experiment_id: int, mode: str) -> h5py.File:
         """Note that because backing_store=False, self._path is ignored & no file is

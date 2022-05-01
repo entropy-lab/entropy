@@ -152,6 +152,47 @@ def test_get_when_commit_id_is_bad_then_entropy_error_is_raised():
         target.get("foo", "oops")
 
 
+def test_rename_key_when_key_exists_then_it_is_renamed():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = dict(bar="baz")
+    # act
+    target.rename_key("foo", "new")
+    # assert
+    assert target["new"]["bar"] == "baz"
+
+
+def test_rename_key_when_key_does_not_exist_then_an_error_is_raised():
+    # arrange
+    target = InProcessParamStore()
+    # act & assert
+    with pytest.raises(KeyError):
+        target.rename_key("foo", "new")
+
+
+def test_rename_key_when_new_key_exists_then_an_error_is_raised():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = dict(bar="baz")
+    target["new"] = 42
+
+    # act & assert
+    with pytest.raises(KeyError):
+        target.rename_key("foo", "new")
+
+
+def test_rename_key_when_key_has_a_tag_then_tag_remains():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = dict(bar="baz")
+    target.add_tag("tag", "foo")
+    # act
+    target.rename_key("foo", "new")
+    # assert
+    assert "tag" in target.list_tags_for_key("new")
+    assert "tag" not in target.list_tags_for_key("foo")
+
+
 """ commit() """
 
 
@@ -689,7 +730,7 @@ def test_list_keys_for_tag_when_tag_exists_then_multiple_tags_are_returned():
     assert target.list_keys_for_tag("tag") == ["foo", "boo"]
 
 
-def test_list_tags_for_key_when_has_tags_then_they_are_returned():
+def test_list_tags_for_key_when_key_has_tags_then_they_are_returned():
     target = InProcessParamStore()
     target["foo"] = "bar"
     target.add_tag("tag1", "foo")

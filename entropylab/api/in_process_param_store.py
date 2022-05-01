@@ -110,6 +110,25 @@ class InProcessParamStore(ParamStore, Munch):
             if key in self.__tags[tag]:
                 self.__tags[tag].remove(key)
 
+    def rename_key(self, key: str, new_key: str):
+        with self.__lock:
+            if new_key in self.keys():
+                raise KeyError(
+                    f"Cannot rename key '{key}' to key '{new_key}' because it already exists"
+                )
+            self.__rename_key_in_tags(key, new_key)
+            value = self.__getitem__(key)
+            self.__setitem__(new_key, value)
+            self.__delitem__(key)
+
+    def __rename_key_in_tags(self, key, new_key):
+        for item in self.__tags.items():
+            tag = item[0]
+            keys = item[1]
+            if key in keys:
+                self.__tags[tag].remove(key)
+                self.__tags[tag].append(new_key)
+
     """ Commits """
 
     def commit(self, label: Optional[str] = None) -> str:

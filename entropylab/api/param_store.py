@@ -30,6 +30,10 @@ class ParamStore(ABC):
         pass
 
     @abstractmethod
+    def rename_key(self, key: str, new_key: str):
+        pass
+
+    @abstractmethod
     def commit(self, label):
         pass
 

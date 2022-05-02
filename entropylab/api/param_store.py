@@ -30,6 +30,10 @@ class ParamStore(ABC):
         pass
 
     @abstractmethod
+    def rename_key(self, key: str, new_key: str):
+        pass
+
+    @abstractmethod
     def commit(self, label):
         pass
 
@@ -81,7 +85,11 @@ class ParamStore(ABC):
         pass
 
     @abstractmethod
-    def list_keys(self, tag: str) -> List[str]:
+    def list_keys_for_tag(self, tag: str) -> List[str]:
+        pass
+
+    @abstractmethod
+    def list_tags_for_key(self, key: str):
         pass
 
     """ Temporary State """

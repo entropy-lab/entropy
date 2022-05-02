@@ -115,7 +115,7 @@ def test___delitem___when_key_is_deleted_then_it_is_removed_from_tags_too():
     target.add_tag("tag", "goo")
     # act
     del target["foo"]
-    assert target.list_keys("tag") == ["goo"]
+    assert target.list_keys_for_tag("tag") == ["goo"]
 
 
 """ get() """
@@ -150,6 +150,47 @@ def test_get_when_commit_id_is_bad_then_entropy_error_is_raised():
     # act
     with pytest.raises(EntropyError):
         target.get("foo", "oops")
+
+
+def test_rename_key_when_key_exists_then_it_is_renamed():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = dict(bar="baz")
+    # act
+    target.rename_key("foo", "new")
+    # assert
+    assert target["new"]["bar"] == "baz"
+
+
+def test_rename_key_when_key_does_not_exist_then_an_error_is_raised():
+    # arrange
+    target = InProcessParamStore()
+    # act & assert
+    with pytest.raises(KeyError):
+        target.rename_key("foo", "new")
+
+
+def test_rename_key_when_new_key_exists_then_an_error_is_raised():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = dict(bar="baz")
+    target["new"] = 42
+
+    # act & assert
+    with pytest.raises(KeyError):
+        target.rename_key("foo", "new")
+
+
+def test_rename_key_when_key_has_a_tag_then_tag_remains():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = dict(bar="baz")
+    target.add_tag("tag", "foo")
+    # act
+    target.rename_key("foo", "new")
+    # assert
+    assert "tag" in target.list_tags_for_key("new")
+    assert "tag" not in target.list_tags_for_key("foo")
 
 
 """ commit() """
@@ -275,7 +316,7 @@ def test_checkout_when_tag_existed_in_commit_then_it_is_added_to_store(
     commit_id = target.commit()
     target.remove_tag("tag", "foo")
     target.checkout(commit_id)
-    assert target.list_keys("tag") == ["foo"]
+    assert target.list_keys_for_tag("tag") == ["foo"]
 
 
 def test_checkout_when_tag_did_not_exist_in_commit_then_it_is_removed_from_store(
@@ -287,7 +328,7 @@ def test_checkout_when_tag_did_not_exist_in_commit_then_it_is_removed_from_store
     commit_id = target.commit()
     target.add_tag("tag", "foo")
     target.checkout(commit_id)
-    assert target.list_keys("tag") == []
+    assert target.list_keys_for_tag("tag") == []
 
 
 @pytest.mark.parametrize(
@@ -656,7 +697,7 @@ def test_add_tag_when_key_exists_then_tag_is_added():
     target = InProcessParamStore()
     target["foo"] = "bar"
     target.add_tag("tag", "foo")
-    assert "foo" in target.list_keys("tag")
+    assert "foo" in target.list_keys_for_tag("tag")
     assert target.is_dirty
 
 
@@ -675,18 +716,37 @@ def test_remove_tag_when_tag_doesnt_exist_then_nothing_happens():
     assert not target.is_dirty
 
 
-def test_list_keys_when_tag_doesnt_exist_then_empty_list_is_returned():
+def test_list_keys_for_tag_when_tag_doesnt_exist_then_empty_list_is_returned():
     target = InProcessParamStore()
-    assert target.list_keys("tag") == []
+    assert target.list_keys_for_tag("tag") == []
 
 
-def test_list_keys_when_tag_exists_then_multiple_tags_are_returned():
+def test_list_keys_for_tag_when_tag_exists_then_multiple_tags_are_returned():
     target = InProcessParamStore()
     target["foo"] = "bar"
     target["boo"] = "baz"
     target.add_tag("tag", "foo")
     target.add_tag("tag", "boo")
-    assert target.list_keys("tag") == ["foo", "boo"]
+    assert target.list_keys_for_tag("tag") == ["foo", "boo"]
+
+
+def test_list_tags_for_key_when_key_has_tags_then_they_are_returned():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    target.add_tag("tag1", "foo")
+    target.add_tag("tag2", "foo")
+    assert target.list_tags_for_key("foo") == ["tag1", "tag2"]
+
+
+def test_list_tags_for_key_when_key_has_no_tags_then_empty_list_is_returned():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    assert target.list_tags_for_key("foo") == []
+
+
+def test_list_tags_for_key_when_key_does_not_exist_then_empty_list_is_returned():
+    target = InProcessParamStore()
+    assert target.list_tags_for_key("foo") == []
 
 
 """ temp """

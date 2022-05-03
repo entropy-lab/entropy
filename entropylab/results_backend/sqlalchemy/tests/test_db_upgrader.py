@@ -17,9 +17,9 @@ from entropylab.results_backend.sqlalchemy.db_initializer import (
 from entropylab.results_backend.sqlalchemy.storage import HDF5Storage
 
 
-def test_upgrade_db_when_path_to_project_does_not_exist(project_dir_path):
+def test_upgrade_db_when_path_to_project_does_not_exist():
     # arrange
-    target = _DbUpgrader(project_dir_path)
+    target = _DbUpgrader("foo")
     # act & assert
     with pytest.raises(EntropyError):
         target.upgrade_db()

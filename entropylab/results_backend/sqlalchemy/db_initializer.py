@@ -48,9 +48,7 @@ class _DbInitializer:
             db_file_path = os.path.join(entropy_dir_path, _DB_FILENAME)
             logger.debug(f"DB file is at: {db_file_path}")
 
-            hdf5_dir_path = os.path.join(
-                entropy_dir_path,
-            )
+            hdf5_dir_path = os.path.join(entropy_dir_path, _HDF5_DIRNAME)
             logger.debug(f"hdf5 directory is at: {hdf5_dir_path}")
 
             self._engine = create_engine("sqlite:///" + db_file_path, echo=echo)

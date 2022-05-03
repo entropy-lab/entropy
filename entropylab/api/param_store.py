@@ -13,7 +13,12 @@ class MergeStrategy(Enum):
     THEIRS = 2
 
 
+# TODO: Derive from MutableMapping (-> rename get() to get_value())
 class ParamStore(ABC):
+    @abstractmethod
+    def keys(self):
+        pass
+
     @abstractmethod
     def to_dict(self):
         pass

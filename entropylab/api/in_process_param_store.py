@@ -123,6 +123,9 @@ class InProcessParamStore(ParamStore):
     def __contains__(self, key):
         return self.__params.__contains__(key)
 
+    def keys(self):
+        return self.__params.keys()
+
     def to_dict(self) -> Dict:
         with self.__lock:
             return copy.deepcopy(self.__params)

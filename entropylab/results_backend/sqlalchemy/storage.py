@@ -347,36 +347,34 @@ class _HDF5Migrator(_HDF5Writer):
 
 class HDF5Storage(_HDF5Reader, _HDF5Migrator, _HDF5Writer):
     def __init__(self, path=None):
-        """Initializes a new or existing HDF5 file for storing experiment results
-                 and metadata.
+        """Initializes a new storage class instance  for storing experiment results
+                 and metadata in HDF5 files.
 
         :param path: filesystem path to a directory where HDF5 files reside. If no path
                  is given or the path is empty, HDF5 files are stored in memory only.
         """
         if path is None or path == "":  # memory files
-            self._path = "./entropy.temp.hdf5"
-            self._open_hdf5 = self._open_in_memory
-            self._memory_files = dict()
+            self._path = "./entropy_temp_hdf5"
+            self._in_memory_mode = True
         else:  # filesystem
             self._path = path
-            self._open_hdf5 = self._open_in_fs
             os.makedirs(self._path, exist_ok=True)
+            self._in_memory_mode = False
 
-    def _open_in_memory(self, experiment_id: int, mode: str) -> h5py.File:
-        """Note that because backing_store=False, self._path is ignored & no file is
-        saved on disk. See https://docs.h5py.org/en/stable/high/file.html#file-drivers
-        """
-        if experiment_id in self._memory_files:
-            return self._memory_files[experiment_id]
-        else:
-            file = h5py.File(self._path, mode, driver="core", backing_store=False)
-            self._memory_files[experiment_id] = file
-            return file
-
-    def _open_in_fs(self, experiment_id: int, mode: str) -> h5py.File:
-        path = os.path.join(self._path, f"{experiment_id}.hdf5")
+    def _open_hdf5(self, experiment_id: int, mode: str) -> h5py.File:
+        path = self._build_hdf5_filepath(experiment_id)
         try:
-            return h5py.File(path, mode)
+            if self._in_memory_mode:
+                """Note that because backing_store=False, self._path is ignored & no
+                file is saved on disk.
+                See https://docs.h5py.org/en/stable/high/file.html#file-drivers
+                """
+                return h5py.File(path, mode, driver="core", backing_store=False)
+            else:
+                return h5py.File(path, mode)
         except FileNotFoundError:
             logger.exception(f"HDF5 file not found at '{path}'")
             raise
+
+    def _build_hdf5_filepath(self, experiment_id: int) -> str:
+        return os.path.join(self._path, f"{experiment_id}.hdf5")

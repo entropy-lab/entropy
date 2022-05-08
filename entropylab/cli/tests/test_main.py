@@ -23,7 +23,7 @@ def test_init_with_current_dir():
     init(args)
     # assert
     assert os.path.exists(".entropy/entropy.db")
-    assert os.path.exists(".entropy/entropy.hdf5")
+    assert os.path.exists(".entropy/hdf5")
     # clean up
     shutil.rmtree(".entropy")
 

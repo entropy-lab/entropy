@@ -61,7 +61,7 @@ def initialized_project_dir_path(request, project_dir_path) -> str:
         # param input from test annotation is the db_template file name:
         db_template = os.path.join("./db_templates", str(request.param))
         db_file = os.path.join(entropy_dir, _DB_FILENAME)
-        _copy_db_template(db_template, db_file, request)
+        _copy_template(db_template, db_file, request)
     return project_dir_path
 
 
@@ -72,7 +72,7 @@ def _build_project_dir_path_for_test(request):
     project_dir_path = (
         f"tests_cache/{request.node.name}_{datetime.now():%Y-%m-%d-%H-%M-%S}"
     )
-    Path("tests_cache").mkdir(parents=True, exist_ok=True)
+    Path(project_dir_path).mkdir(parents=True, exist_ok=True)
     return project_dir_path
 
 
@@ -85,8 +85,8 @@ def _delete_if_exists(path: str):
         os.remove(path)
 
 
-def _copy_db_template(src, dst, request):
-    """Copy the source DB (path relative to test file) to the destination dir"""
+def _copy_template(src, dst, request):
+    """Copy the source template file (path relative to test file) to the destination"""
     if src is not None and src != "":
         abs_src = os.path.join(request.fspath.dirname, src)
         logger.debug(f"Copied db template from '{abs_src}' to '{dst}'")

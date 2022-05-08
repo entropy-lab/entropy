@@ -1,7 +1,8 @@
+import os.path
 import pickle
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Any, Iterable, TypeVar, Callable
+from typing import Optional, Any, Iterable, TypeVar, Callable, List
 
 import h5py
 import numpy as np
@@ -110,43 +111,15 @@ class EntityType(Enum):
 
 
 class _HDF5Reader:
-    def _get_experiment_entities(
-        self,
-        entity_type: EntityType,
-        convert_from_dset: Callable,
-        experiment_id: Optional[int] = None,
-        stage: Optional[int] = None,
-        label: Optional[str] = None,
-    ) -> Iterable[T]:
-        dsets = []
-        try:
-            with self._open_hdf5("r") as file:
-                if "experiments" in file:
-                    top_group = file["experiments"]
-                    exp_groups = _get_all_or_single(top_group, experiment_id)
-                    for exp_group in exp_groups:
-                        stage_groups = _get_all_or_single(exp_group, stage)
-                        for stage_group in stage_groups:
-                            label_groups = _get_all_or_single(stage_group, label)
-                            for label_group in label_groups:
-                                dset_name = entity_type.name.lower()
-                                dset = label_group[dset_name]
-                                dsets.append(convert_from_dset(dset))
-            return dsets
-        except FileNotFoundError:
-            logger.exception("FileNotFoundError in get_experiment_entities()")
-            return dsets
-
     def get_result_records(
         self,
         experiment_id: Optional[int] = None,
         stage: Optional[int] = None,
         label: Optional[str] = None,
     ) -> Iterable[ResultRecord]:
-        entities = self._get_experiment_entities(
+        return self._get_records(
             EntityType.RESULT, _build_result_record, experiment_id, stage, label
         )
-        return entities
 
     def get_metadata_records(
         self,
@@ -154,10 +127,61 @@ class _HDF5Reader:
         stage: Optional[int] = None,
         label: Optional[str] = None,
     ) -> Iterable[MetadataRecord]:
-        entities = self._get_experiment_entities(
+        return self._get_records(
             EntityType.METADATA, _build_metadata_record, experiment_id, stage, label
         )
-        return entities
+
+    def _get_records(
+        self,
+        entity_type: EntityType,
+        record_build_func: Callable,
+        experiment_id: Optional[int] = None,
+        stage: Optional[int] = None,
+        label: Optional[str] = None,
+    ) -> Iterable[T]:
+        entities = []
+        if experiment_id:
+            experiment_ids = [experiment_id]
+        else:
+            experiment_ids = self._list_experiment_ids_in_fs()
+        for experiment_id in experiment_ids:
+            entities += self._get_experiment_entities(
+                entity_type, record_build_func, experiment_id, stage, label
+            )
+        return sorted(entities, key=lambda entity: entity.experiment_id)
+
+    def _list_experiment_ids_in_fs(self) -> List[int]:
+        # noinspection PyUnresolvedReferences
+        dir_list = os.listdir(self._path)
+        # TODO: Better validation of experiment ids
+        exp_files = filter(lambda f: f.endswith(".hdf5"), dir_list)
+        experiment_ids = list(map(lambda f: f[:-5], exp_files))
+        return experiment_ids
+
+    def _get_experiment_entities(
+        self,
+        entity_type: EntityType,
+        convert_from_dset: Callable,
+        experiment_id: int,
+        stage: Optional[int] = None,
+        label: Optional[str] = None,
+    ) -> Iterable[T]:
+        dsets = []
+        try:
+            # noinspection PyUnresolvedReferences
+            file = self._open_hdf5(experiment_id, "r")
+        except FileNotFoundError:
+            logger.error(f"HDF5 file for experiment_id [{experiment_id}] was not found")
+        else:
+            with file:
+                stage_groups = _get_all_or_single(file, stage)
+                for stage_group in stage_groups:
+                    label_groups = _get_all_or_single(stage_group, label)
+                    for label_group in label_groups:
+                        dset_name = entity_type.name.lower()
+                        dset = label_group[dset_name]
+                        dsets.append(convert_from_dset(dset))
+        return dsets
 
     def get_last_result_of_experiment(
         self, experiment_id: int
@@ -172,7 +196,8 @@ class _HDF5Reader:
 
 class _HDF5Writer:
     def save_result(self, experiment_id: int, result: RawResultData) -> str:
-        with self._open_hdf5("a") as file:
+        # noinspection PyUnresolvedReferences
+        with self._open_hdf5(experiment_id, "a") as file:
             return self._save_entity_to_file(
                 file,
                 EntityType.RESULT,
@@ -185,7 +210,8 @@ class _HDF5Writer:
             )
 
     def save_metadata(self, experiment_id: int, metadata: Metadata):
-        with self._open_hdf5("a") as file:
+        # noinspection PyUnresolvedReferences
+        with self._open_hdf5(experiment_id, "a") as file:
             return self._save_entity_to_file(
                 file,
                 EntityType.METADATA,
@@ -208,9 +234,9 @@ class _HDF5Writer:
         story: Optional[str] = None,
         migrated_id: Optional[str] = None,
     ) -> str:
-        path = f"/experiments/{experiment_id}/{stage}/{label}"
-        group = file.require_group(path)
-        dset = self._create_dataset(group, entity_type, data)
+        path = f"/{stage}/{label}"
+        label_group = file.require_group(path)
+        dset = self._create_dataset(label_group, entity_type, data)
         dset.attrs.create("experiment_id", experiment_id)
         dset.attrs.create("stage", stage)
         dset.attrs.create("label", label)
@@ -255,15 +281,16 @@ class _HDF5Migrator(_HDF5Writer):
 
     def migrate_rows(self, entity_type: EntityType, rows: Iterable[T]) -> None:
         if rows is not None and len(list(rows)) > 0:
-            with self._open_hdf5("a") as file:
-                for row in rows:
-                    if not row.saved_in_hdf5:
-                        record = row.to_record()
+            for row in rows:
+                if not row.saved_in_hdf5:
+                    record = row.to_record()
+                    # noinspection PyUnresolvedReferences
+                    with self._open_hdf5(record.experiment_id, "a") as file:
                         hdf5_id = self._migrate_record(file, entity_type, record)
-                        logger.debug(
-                            f"Migrated ${entity_type.name} with id [{row.id}] "
-                            f"to HDF5 with id [{hdf5_id}]"
-                        )
+                    logger.debug(
+                        f"Migrated ${entity_type.name} with id [{row.id}] "
+                        f"to HDF5 with id [{hdf5_id}]"
+                    )
 
     def _migrate_record(
         self, file: h5py.File, entity_type: EntityType, record: R
@@ -295,32 +322,59 @@ class _HDF5Migrator(_HDF5Writer):
             result_record.id,
         )
 
+    def migrate_from_per_project_hdf5_to_per_experiment_hdf5_files(
+        self, old_global_hdf5_file_path
+    ):
+        logger.debug(
+            f"Migrating global .hdf5 file {old_global_hdf5_file_path} "
+            "to per-experiment .hdf5 files"
+        )
+        with h5py.File(old_global_hdf5_file_path, "r") as file:
+            if "experiments" in file:
+                top_group = file["experiments"]
+                for exp_group in top_group.values():
+                    experiment_id = int(exp_group.name[13:])
+                    f"Migrating results and metadata for experiment id {experiment_id}"
+                    # noinspection PyUnresolvedReferences
+                    with self._open_hdf5(experiment_id, "a") as exp_file:
+                        for stage_group in exp_group.values():
+                            exp_group.copy(stage_group, exp_file)
+        new_filename = f"{old_global_hdf5_file_path}.bak"
+        logger.debug(f"Renaming global .hdf5 file to [{new_filename}]")
+        os.rename(old_global_hdf5_file_path, new_filename)
+        logger.debug("Global .hdf5 file migration done")
+
 
 class HDF5Storage(_HDF5Reader, _HDF5Migrator, _HDF5Writer):
     def __init__(self, path=None):
-        """Initializes a new or existing HDF5 file for storing experiment results
-                 and metadata.
+        """Initializes a new storage class instance  for storing experiment results
+                 and metadata in HDF5 files.
 
-        :param path: filesystem path to the HDF5 file. If no path is given or the
-                 path is empty, an in-memory-only HDF5 file is used.
+        :param path: filesystem path to a directory where HDF5 files reside. If no path
+                 is given or the path is empty, HDF5 files are stored in memory only.
         """
-        if path is None or path == "":
-            self._path = "./entropy.temp.hdf5"
-            self._open_hdf5 = self._open_in_memory
-        else:
+        if path is None or path == "":  # memory files
+            self._path = "./entropy_temp_hdf5"
+            self._in_memory_mode = True
+        else:  # filesystem
             self._path = path
-            self._open_hdf5 = self._open_in_fs
-        self._check_file_permissions()
+            os.makedirs(self._path, exist_ok=True)
+            self._in_memory_mode = False
 
-    def _check_file_permissions(self):
-        file = self._open_hdf5("a")
-        file.close()
+    def _open_hdf5(self, experiment_id: int, mode: str) -> h5py.File:
+        path = self._build_hdf5_filepath(experiment_id)
+        try:
+            if self._in_memory_mode:
+                """Note that because backing_store=False, self._path is ignored & no
+                file is saved on disk.
+                See https://docs.h5py.org/en/stable/high/file.html#file-drivers
+                """
+                return h5py.File(path, mode, driver="core", backing_store=False)
+            else:
+                return h5py.File(path, mode)
+        except FileNotFoundError:
+            logger.exception(f"HDF5 file not found at '{path}'")
+            raise
 
-    def _open_in_memory(self, mode: str) -> h5py.File:
-        """Note that because backing_store=False, self._path is ignored & no file is
-        saved on disk. See https://docs.h5py.org/en/stable/high/file.html#file-drivers
-        """
-        return h5py.File(self._path, mode, driver="core", backing_store=False)
-
-    def _open_in_fs(self, mode: str) -> h5py.File:
-        return h5py.File(self._path, mode)
+    def _build_hdf5_filepath(self, experiment_id: int) -> str:
+        return os.path.join(self._path, f"{experiment_id}.hdf5")

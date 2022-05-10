@@ -3,19 +3,30 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import os.path
 import threading
 import time
 from datetime import datetime
 from typing import Optional, Dict, Any, List, Callable
 
+import jsonpickle as jsonpickle
 import pandas as pd
-from munch import Munch
 from tinydb import TinyDB, Query
-from tinydb.storages import MemoryStorage
+from tinydb.storages import MemoryStorage, Storage
 from tinydb.table import Document
 
 from entropylab.api.errors import EntropyError
 from entropylab.api.param_store import ParamStore, MergeStrategy
+from entropylab.logger import logger
+
+
+class Param(Dict):
+    def __init__(self, value):
+        super().__init__()
+        self.value = value
+
+    def __repr__(self):
+        return f"<Param(value={self.value})>"
 
 
 class InProcessParamStore(ParamStore):
@@ -46,7 +57,7 @@ class InProcessParamStore(ParamStore):
             self.__db = TinyDB(storage=MemoryStorage)
         else:
             self.__is_in_memory_mode = False
-            self.__db = TinyDB(path)
+            self.__db = TinyDB(path, storage=JSONPickleStorage)
         if theirs is not None:
             self.merge(theirs, merge_strategy)
 
@@ -81,12 +92,12 @@ class InProcessParamStore(ParamStore):
             object.__setattr__(self, key, value)
         else:
             with self.__lock:
-                self.__params.__setitem__(key, value)
+                self.__params.__setitem__(key, Param(value))
                 self.__is_dirty = True
 
     def __getitem__(self, key: str) -> Any:
         with self.__lock:
-            return self.__params.__getitem__(key)
+            return self.__params.__getitem__(key).value
 
     def __delitem__(self, *args, **kwargs):
         with self.__lock:
@@ -94,49 +105,54 @@ class InProcessParamStore(ParamStore):
             self.__remove_key_from_tags(args[0])
             self.__is_dirty = True
 
-    def __getattr__(self, k):
+    def __getattr__(self, key):
         try:
-            return object.__getattribute__(self, k)
+            return object.__getattribute__(self, key)
         except AttributeError:
             try:
-                return self[k]
+                return self[key]
             except KeyError:
-                raise AttributeError(k)
+                raise AttributeError(key)
 
-    def __setattr__(self, k, v):
+    def __setattr__(self, key, value):
         try:
-            object.__getattribute__(self, k)
+            object.__getattribute__(self, key)
         except AttributeError:
             try:
-                self[k] = v
+                self[key] = value
             except BaseException:
-                raise AttributeError(k)
+                raise AttributeError(key)
         else:
-            object.__setattr__(self, k, v)
+            object.__setattr__(self, key, value)
 
     def __iter__(self):
-        return self.__params.__iter__()
+        with self.__lock:
+            values = _extract_param_values(self.__params)
+            return values.__iter__()
 
     def __len__(self):
-        return self.__params.__len__()
+        with self.__lock:
+            return self.__params.__len__()
 
     def __contains__(self, key):
-        return self.__params.__contains__(key)
+        with self.__lock:
+            return self.__params.__contains__(key)
 
     def keys(self):
-        return self.__params.keys()
+        with self.__lock:
+            return self.__params.keys()
 
     def to_dict(self) -> Dict:
         with self.__lock:
-            return copy.deepcopy(self.__params)
+            return _extract_param_values(self.__params)
 
     def get(self, key: str, commit_id: Optional[str] = None):
         with self.__lock:
             if commit_id is None:
-                return self.__params.__getitem__(key)
+                return self[key]
             else:
                 commit = self.__get_commit(commit_id)
-                return commit["params"][key]
+                return commit["params"][key].value
 
     def __remove_key_from_tags(self, key: str):
         for tag in self.__tags:
@@ -147,7 +163,7 @@ class InProcessParamStore(ParamStore):
         with self.__lock:
             if new_key in self.keys():
                 raise KeyError(
-                    f"Cannot rename key '{key}' to key '{new_key}' because it already exists"
+                    f"Cannot rename key '{key}' to key that already exists: '{new_key}'"
                 )
             self.__rename_key_in_tags(key, new_key)
             value = self.__getitem__(key)
@@ -181,12 +197,14 @@ class InProcessParamStore(ParamStore):
             params = copy.deepcopy(self.__params)
         else:
             params = self.__params
-        return Munch(metadata=metadata.__dict__, params=params, tags=self.__tags)
+        return dict(metadata=metadata.__dict__, params=params, tags=self.__tags)
 
     def __build_metadata(self, label: Optional[str] = None) -> Metadata:
         metadata = Metadata()
         metadata.ns = time.time_ns()
-        params_json = json.dumps(self.__params, sort_keys=True, ensure_ascii=True)
+        params_json = json.dumps(
+            self.__params, sort_keys=True, ensure_ascii=True, default=vars
+        )
         commit_encoded = (params_json + str(metadata.ns)).encode("utf-8")
         metadata.id = hashlib.sha1(commit_encoded).hexdigest()
         metadata.label = label
@@ -260,20 +278,29 @@ class InProcessParamStore(ParamStore):
 
     def merge(
         self,
-        theirs: Dict | ParamStore,
+        theirs: ParamStore,
         merge_strategy: Optional[MergeStrategy] = MergeStrategy.OURS,
     ) -> None:
-        if issubclass(type(theirs), ParamStore):
-            theirs = theirs.to_dict()
         with self.__lock:
-            ours = self.__params
+            ours = self
             self.__merge_trees(ours, theirs, merge_strategy)
 
-    def __merge_trees(self, a: Dict, b: Dict, merge_strategy: MergeStrategy) -> Dict:
-        """Merges dict `b` into dict `a`, *in-place*, using the given strategy"""
-        for key in b:
-            if key in a:
-                if isinstance(a[key], dict) and isinstance(b[key], dict):
+    # TODO: a & b should be ParamStore (1st make ParamStore implement MutableMapping)
+    def __merge_trees(
+        self,
+        a: InProcessParamStore,
+        b: InProcessParamStore,
+        merge_strategy: MergeStrategy,
+    ) -> ParamStore:
+        """Merges `b` into `a` *in-place* using the given strategy"""
+        for key in b.keys():
+            if key in a.keys():
+                if (
+                    (not isinstance(a[key], Param))
+                    and isinstance(a[key], dict)
+                    and (not isinstance(b[key], Param))
+                    and isinstance(b[key], dict)
+                ):
                     self.__merge_trees(a[key], b[key], merge_strategy)
                 elif a[key] == b[key]:
                     pass  # same leaf value, nothing to do
@@ -300,7 +327,7 @@ class InProcessParamStore(ParamStore):
             for commit in commits:
                 try:
                     value = (
-                        commit["params"][key],
+                        commit["params"][key].value,
                         _ns_to_datetime(commit["metadata"]["ns"]),
                         commit["metadata"]["id"],
                         commit["metadata"]["label"],
@@ -309,7 +336,7 @@ class InProcessParamStore(ParamStore):
                 except KeyError:
                     pass
             if key in self.__params.keys():
-                values.append((self.__params.__getitem__(key), None, None, None))
+                values.append((self[key], None, None, None))
             df = pd.DataFrame(values)
             if not df.empty:
                 df.columns = ["value", "time", "commit_id", "label"]
@@ -417,3 +444,65 @@ def _json_dumps_default(value):
 def _ns_to_datetime(ns: int) -> pd.datetime:
     """Convert a UNIX epoch timestamp in nano-seconds to a human readable string"""
     return pd.to_datetime(ns)
+
+
+def _map_dict(f, d: Dict) -> Dict:
+    values_dict = dict()
+    for item in d.items():
+        k = item[0]
+        v = item[1]
+        if not isinstance(v, Param) and isinstance(v, dict):
+            values_dict[k] = _map_dict(f, v)
+        else:
+            values_dict[k] = f(v)
+    return values_dict
+
+
+def _extract_param_values(d: Dict) -> Dict:
+    return _map_dict(lambda x: x.value, d)
+
+
+def _map_dict_in_place(f, d: Dict):
+    for item in d.items():
+        k = item[0]
+        v = item[1]
+        if isinstance(v, dict):
+            _map_dict_in_place(f, v)
+        else:
+            d[k] = f(v)
+
+
+def _extract_param_values_in_place(d: Dict):
+    _map_dict_in_place(lambda x: x.value, d)
+
+
+class JSONPickleStorage(Storage):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def read(self):
+        if not os.path.isfile(self.filename):
+            return None
+        with open(self.filename) as handle:
+            # noinspection PyBroadException
+            try:
+                s = handle.read()
+                data = jsonpickle.decode(s)
+                return data
+            except BaseException:
+                logger.exception(
+                    f"Exception decoding TinyDB JSON file '{self.filename}'"
+                )
+                return None
+
+    def write(self, data):
+        # noinspection PyBroadException
+        try:
+            with open(self.filename, "w+") as handle:
+                s = jsonpickle.encode(data)
+                handle.write(s)
+        except BaseException:
+            logger.exception(f"Exception encoding TinyDB JSON file '{self.filename}'")
+
+    def close(self):
+        pass

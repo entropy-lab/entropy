@@ -118,6 +118,13 @@ def test___delitem___when_key_is_deleted_then_it_is_removed_from_tags_too():
     assert target.list_keys_for_tag("tag") == ["goo"]
 
 
+def test___repr__():
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    actual = target.__repr__()
+    assert actual == "<InProcessParamStore({'foo': 'bar'})>"
+
+
 """ get() """
 
 

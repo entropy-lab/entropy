@@ -5,8 +5,9 @@ from typing import Optional
 
 import hupper
 import waitress
+
 from entropylab.config import settings
-from entropylab.results.dashboard.dashboard import build_dashboard_app
+from entropylab.results.dashboard.pages.main.dashboard import build_dashboard_app
 from entropylab.results.dashboard.theme import theme_stylesheet
 
 

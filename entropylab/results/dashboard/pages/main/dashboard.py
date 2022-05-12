@@ -14,8 +14,10 @@ from entropylab import SqlAlchemyDB
 from entropylab.api.data_reader import PlotRecord, FigureRecord
 from entropylab.api.errors import EntropyError
 from entropylab.logger import logger
-from entropylab.results.dashboard.dashboard_data import SqlalchemyDashboardDataReader
-from entropylab.results.dashboard.layout import layout
+from entropylab.results.dashboard.pages.main.dashboard_data import (
+    SqlalchemyDashboardDataReader,
+)
+from entropylab.results.dashboard.pages.main.layout import layout
 from entropylab.results.dashboard.theme import (
     colors,
     dark_plot_layout,
@@ -46,6 +48,7 @@ def build_dashboard_app(proj_path):
         external_stylesheets=[theme_stylesheet],
         update_title=None,
         suppress_callback_exceptions=True,
+        assets_folder="../../assets",  # TODO: Remove when app is moved to dashboard dir
     )
     _app.title = f"Entropy - {project_name(proj_path)} [{project_path(proj_path)}]"
     _app.layout = _build_layout  # See: https://dash.plotly.com/live-updates

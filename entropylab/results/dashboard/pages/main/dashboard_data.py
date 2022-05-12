@@ -9,7 +9,7 @@ from pandas import DataFrame
 
 from entropylab import SqlAlchemyDB
 from entropylab.api.data_reader import PlotRecord, FigureRecord
-from entropylab.results.dashboard.auto_plot import auto_plot
+from entropylab.results.dashboard.pages.main.auto_plot import auto_plot
 
 
 class DashboardDataReader(abc.ABC):

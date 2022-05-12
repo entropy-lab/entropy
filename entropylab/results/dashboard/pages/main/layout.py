@@ -3,7 +3,7 @@ from typing import List, Dict
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 
-from entropylab.results.dashboard.table import table
+from entropylab.results.dashboard.pages.main.table import table
 from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 
 

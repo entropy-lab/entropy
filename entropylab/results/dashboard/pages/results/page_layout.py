@@ -1,13 +1,18 @@
-from typing import List, Dict
-
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 
-from entropylab.results.dashboard.pages.main.table import table
+from entropylab.results.dashboard.pages.results.dashboard_data import (
+    DashboardDataReader,
+)
+from entropylab.results.dashboard.pages.results.table import table
 from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 
+REFRESH_INTERVAL_IN_MILLIS = 3000
 
-def layout(path: str, records: List[Dict], refresh_interval_in_millis: int):
+
+def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
+    records = dashboard_data_reader.get_last_experiments()
+
     return dbc.Container(
         fluid=True,
         className="main",
@@ -16,7 +21,7 @@ def layout(path: str, records: List[Dict], refresh_interval_in_millis: int):
             dcc.Store(id="plot-keys-to-combine", storage_type="session"),
             dcc.Store(id="prev-selected-rows", storage_type="session"),
             dcc.Interval(
-                id="interval", interval=refresh_interval_in_millis, n_intervals=0
+                id="interval", interval=REFRESH_INTERVAL_IN_MILLIS, n_intervals=0
             ),
             dbc.Alert(
                 "",
@@ -78,14 +83,14 @@ def layout(path: str, records: List[Dict], refresh_interval_in_millis: int):
                                 [
                                     dbc.Col(
                                         dbc.NavItem(
-                                            dbc.NavLink(
-                                                "Dashboard", href="#", active=True
-                                            )
+                                            dbc.NavLink("Main", href="/", active=True)
                                         )
                                     ),
                                     dbc.Col(
                                         dbc.NavItem(
-                                            dbc.NavLink("Configuration", href="#")
+                                            dbc.NavLink(
+                                                "ParamStore", href="/param_store"
+                                            )
                                         )
                                     ),
                                 ]

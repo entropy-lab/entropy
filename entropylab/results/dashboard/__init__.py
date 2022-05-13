@@ -7,8 +7,7 @@ import hupper
 import waitress
 
 from entropylab.config import settings
-from entropylab.results.dashboard.pages.main.dashboard import build_dashboard_app
-from entropylab.results.dashboard.theme import theme_stylesheet
+from entropylab.results.dashboard.app import build_dashboard_app
 
 
 def serve_dashboard(
@@ -32,6 +31,7 @@ def serve_dashboard(
         debug = settings.get("dashboard.debug", False)
 
     sys.path.append(os.path.abspath(path))
+
     app = build_dashboard_app(path)
 
     app.enable_dev_tools(debug=True)

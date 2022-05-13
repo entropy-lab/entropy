@@ -4,7 +4,7 @@ from plotly import graph_objects as go
 
 from entropylab.api.data_reader import FigureRecord
 from entropylab.api.errors import EntropyError
-from entropylab.results.dashboard.pages.main.auto_plot import auto_plot
+from entropylab.results.dashboard.pages.results.auto_plot import auto_plot
 
 
 # Dictionaries

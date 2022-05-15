@@ -2,11 +2,11 @@ import dash_bootstrap_components as dbc
 from dash import html, dcc, dash_table
 
 from entropylab.api.param_store import ParamStore
-from entropylab.results.dashboard.pages.params.utils import (
+from entropylab.dashboard.pages.params.utils import (
     paramStore_commits_df,
     paramStore_to_df,
 )
-from entropylab.results.dashboard.theme import (
+from entropylab.dashboard.theme import (
     table_style_header,
     table_style_filter,
     table_style_data,

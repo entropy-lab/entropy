@@ -1,7 +1,5 @@
 from pathlib import Path
 
-from munch import Munch
-
 """ Project related functions.
 
 An Entropy *project* is a filesystem directory containing a '.entropy' directory

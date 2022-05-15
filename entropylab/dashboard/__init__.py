@@ -7,7 +7,7 @@ import hupper
 import waitress
 
 from entropylab.config import settings
-from entropylab.results.dashboard.app import build_dashboard_app
+from entropylab.dashboard.app import build_dashboard_app
 
 
 def serve_dashboard(
@@ -45,7 +45,7 @@ def serve_dashboard(
     # Hot reloading using hupper
     worker_kwargs = dict(path=path, host=host, port=port, debug=debug)
     hupper.start_reloader(
-        "entropylab.results.dashboard.serve_dashboard",
+        "entropylab.dashboard.serve_dashboard",
         worker_kwargs=worker_kwargs,
         reload_interval=0,
     )

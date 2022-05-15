@@ -4,8 +4,8 @@ import sys
 
 import pkg_resources
 
+from entropylab.dashboard import serve_dashboard
 from entropylab.logger import logger
-from entropylab.results.dashboard import serve_dashboard
 from entropylab.results_backend.sqlalchemy import init_db, upgrade_db
 
 

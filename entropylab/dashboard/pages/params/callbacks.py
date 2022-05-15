@@ -2,7 +2,7 @@ from dash import callback_context
 from dash.dependencies import Input, Output, State
 
 from entropylab.api.param_store import ParamStore
-from entropylab.results.dashboard.pages.params.utils import (
+from entropylab.dashboard.pages.params.utils import (
     paramStore_to_df,
     paramStore_commits_df,
     data_diff,

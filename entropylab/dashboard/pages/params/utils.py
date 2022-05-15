@@ -46,7 +46,7 @@ def data_diff(params, data, data_prev):
             set([x["key"] for x in data])
         )
         del params[del_key.pop()]
-    for idx, row in enumerate(data):
+    for idx, _row in enumerate(data):
         if (len(data_prev) == len(data)) and not data_prev[idx] == data[idx]:
             if not data_prev[idx]["key"] == data[idx]["key"]:
                 params.rename_key(data_prev[idx]["key"], data[idx]["key"])

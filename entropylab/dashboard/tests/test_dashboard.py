@@ -2,7 +2,7 @@ import numpy
 import numpy as np
 from plotly import graph_objects as go
 
-from entropylab.results.dashboard.pages.results.callbacks import (
+from entropylab.dashboard.pages.results.callbacks import (
     _copy_aggregate_data_to_clipboard_as_python_code,
 )
 

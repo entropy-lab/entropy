@@ -1,10 +1,10 @@
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 
-from entropylab.results.dashboard.pages.results.dashboard_data import (
+from entropylab.dashboard.pages.results.dashboard_data import (
     DashboardDataReader,
 )
-from entropylab.results.dashboard.pages.results.table import table
+from entropylab.dashboard.pages.results.table import table
 from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 
 REFRESH_INTERVAL_IN_MILLIS = 3000

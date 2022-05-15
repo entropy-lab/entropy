@@ -1,6 +1,6 @@
 from dash import dash_table
 
-from entropylab.results.dashboard.theme import (
+from entropylab.dashboard.theme import (
     table_style_data,
     table_style_filter,
     table_style_header,

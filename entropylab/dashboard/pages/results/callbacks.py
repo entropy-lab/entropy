@@ -12,11 +12,11 @@ from plotly.subplots import make_subplots
 
 from entropylab.api.data_reader import PlotRecord, FigureRecord
 from entropylab.api.errors import EntropyError
-from entropylab.logger import logger
-from entropylab.results.dashboard.theme import (
+from entropylab.dashboard.theme import (
     colors,
     dark_plot_layout,
 )
+from entropylab.logger import logger
 
 REFRESH_INTERVAL_IN_MILLIS = 3000
 EXPERIMENTS_PAGE_SIZE = 6

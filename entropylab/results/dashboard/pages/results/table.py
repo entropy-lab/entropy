@@ -1,5 +1,12 @@
 from dash import dash_table
 
+from entropylab.results.dashboard.theme import (
+    table_style_data,
+    table_style_filter,
+    table_style_header,
+    table_style_cell,
+)
+
 EXPERIMENTS_PAGE_SIZE = 6
 
 
@@ -23,14 +30,10 @@ def table(records):
         filter_action="native",
         page_action="native",
         page_size=EXPERIMENTS_PAGE_SIZE,
-        style_header={"backgroundColor": "rgb(30, 30, 30)", "color": "white"},
-        style_filter={"backgroundColor": "rgb(40, 40, 40)", "color": "white"},
-        style_data={"backgroundColor": "rgb(50, 50, 50)", "color": "white"},
-        style_cell={
-            "textAlign": "left",
-            "textOverflow": "ellipsis",
-            "maxWidth": 0,
-        },
+        style_data=table_style_data,
+        style_filter=table_style_filter,
+        style_header=table_style_header,
+        style_cell=table_style_cell,
         style_cell_conditional=[
             {"if": {"column_id": "id"}, "width": "7%"},
             {"if": {"column_id": "label"}, "width": "30%"},

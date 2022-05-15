@@ -29,7 +29,6 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                 color="warning",
                 is_open=False,
                 fade=True,
-                # duration=3000,
             ),
             dbc.Modal(
                 [
@@ -55,42 +54,44 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                     [
                         dbc.Col(
                             dbc.NavbarBrand(
-                                html.A(
-                                    html.Img(
-                                        src="/assets/images/entropy_logo_dark.svg",
-                                        width=150,
-                                        id="entropy-logo",
-                                    ),
-                                    href="#",
+                                html.Img(
+                                    src="/assets/images/entropy_logo_dark.svg",
+                                    width=150,
+                                    id="entropy-logo",
                                 ),
                                 href="#",
                             ),
-                            width="3",
+                            width="2",
                             id="logo-col",
                         ),
                         dbc.Col(
                             [
-                                html.Div(f"{project_name(path)}", id="project-name"),
-                                dbc.Tooltip(
+                                html.Div(
+                                    f"Project: {project_name(path)}", id="project-name"
+                                ),
+                                html.Div(
                                     f"{project_path(path)}",
-                                    target="project-name",
+                                    id="project-name",
+                                    style={"fontSize": "11px"},
                                 ),
                             ],
-                            width="3",
+                            width="4",
                         ),
                         dbc.Col(
                             dbc.Row(
                                 [
                                     dbc.Col(
                                         dbc.NavItem(
-                                            dbc.NavLink("Main", href="/", active=True)
+                                            dbc.NavLink(
+                                                "Experiment Results",
+                                                href="/",
+                                                active=True,
+                                            )
                                         )
                                     ),
                                     dbc.Col(
                                         dbc.NavItem(
-                                            dbc.NavLink(
-                                                "ParamStore", href="/param_store"
-                                            )
+                                            dbc.NavLink("Params", href="/params")
                                         )
                                     ),
                                 ]

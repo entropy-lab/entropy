@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from munch import Munch
 
 """ Project related functions.
 
@@ -22,9 +23,13 @@ def project_name(path: str) -> str:
     return Path(path).absolute().name
 
 
-def project_path(path: str) -> str:
+def project_path(path: str) -> Path:
     """Returns the absolute path for the given path, as a string
 
     :path: A filesystem path to a directory. Directory does not have to contain an
     actual Entropy project"""
     return Path(path).absolute()
+
+
+def param_store_path(prj_path: str) -> Path:
+    return project_path(prj_path).joinpath("in_process_param_store.json")

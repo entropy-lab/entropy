@@ -1,30 +1,22 @@
 from dash import Dash, html, dcc, callback, Output, Input
 
 from entropylab import SqlAlchemyDB
-from entropylab.results.dashboard.pages.param_store.page_layout import (
-    build_layout as build_param_store_layout,
-)
-from entropylab.results.dashboard.pages.results.callbacks import register_callbacks
+from entropylab.api.in_process_param_store import InProcessParamStore
+from entropylab.results.dashboard.pages import results, params
 from entropylab.results.dashboard.pages.results.dashboard_data import (
     SqlalchemyDashboardDataReader,
-)
-from entropylab.results.dashboard.pages.results.page_layout import (
-    build_layout as build_results_layout,
 )
 from entropylab.results.dashboard.theme import (
     theme_stylesheet,
 )
-from entropylab.results_backend.sqlalchemy.project import project_name, project_path
+from entropylab.results_backend.sqlalchemy.project import project_name, project_path, \
+    param_store_path
 
 
 def build_dashboard_app(proj_path):
     """Initialize the dashboard Dash app to show an Entropy project
 
     :param proj_path path where the Entropy project to be used resides."""
-
-    """ Data source for our app """
-
-    dashboard_data_reader = SqlalchemyDashboardDataReader(SqlAlchemyDB(proj_path))
 
     """ Creating and setting up the Dash app """
 
@@ -40,21 +32,29 @@ def build_dashboard_app(proj_path):
         [dcc.Location(id="url", refresh=False), html.Div(id="page-content")]
     )
 
+    """ Initializing data sources """
+
+    dashboard_data_reader = SqlalchemyDashboardDataReader(SqlAlchemyDB(proj_path))
+    param_store = InProcessParamStore(param_store_path(proj_path))
+
+    """ Building page layouts """
+
+    results_layout = results.layout.build_layout(proj_path, dashboard_data_reader)
+    params_layout = params.layout.build_layout(proj_path, param_store)
+
     """ Registering callbacks used in pages """
 
-    register_callbacks(app, dashboard_data_reader)
+    results.callbacks.register_callbacks(app, dashboard_data_reader)
+    params.callbacks.register_callbacks(app, param_store)
 
     """ Callback to route between page layouts based on URL """
-
-    results_layout = build_results_layout(proj_path, dashboard_data_reader)
-    param_store_layout = build_param_store_layout(proj_path, dashboard_data_reader)
 
     @callback(Output("page-content", "children"), Input("url", "pathname"))
     def display_page(pathname):
         if pathname == "/":
             return results_layout
-        elif pathname == "/param_store":
-            return param_store_layout
+        elif pathname == "/params":
+            return params_layout
         else:
             return "404"
 

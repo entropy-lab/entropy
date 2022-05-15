@@ -1,0 +1,14 @@
+.row {
+  margin-bottom: 4px;
+}
+
+/* Hacking active cells in editable Data Tables */
+
+.input-active.dash-cell-value {
+  color: white !important;
+  text-align: left !important;
+}
+
+.cell--selected {
+  border-color: #039 !important;
+}

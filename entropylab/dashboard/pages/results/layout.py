@@ -1,13 +1,18 @@
-from typing import List, Dict
-
 import dash_bootstrap_components as dbc
 from dash import html, dcc
 
-from entropylab.results.dashboard.table import table
+from entropylab.dashboard.pages.results.dashboard_data import (
+    DashboardDataReader,
+)
+from entropylab.dashboard.pages.results.table import table
 from entropylab.results_backend.sqlalchemy.project import project_name, project_path
 
+REFRESH_INTERVAL_IN_MILLIS = 3000
 
-def layout(path: str, records: List[Dict], refresh_interval_in_millis: int):
+
+def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
+    records = dashboard_data_reader.get_last_experiments()
+
     return dbc.Container(
         fluid=True,
         className="main",
@@ -16,7 +21,7 @@ def layout(path: str, records: List[Dict], refresh_interval_in_millis: int):
             dcc.Store(id="plot-keys-to-combine", storage_type="session"),
             dcc.Store(id="prev-selected-rows", storage_type="session"),
             dcc.Interval(
-                id="interval", interval=refresh_interval_in_millis, n_intervals=0
+                id="interval", interval=REFRESH_INTERVAL_IN_MILLIS, n_intervals=0
             ),
             dbc.Alert(
                 "",
@@ -24,7 +29,6 @@ def layout(path: str, records: List[Dict], refresh_interval_in_millis: int):
                 color="warning",
                 is_open=False,
                 fade=True,
-                # duration=3000,
             ),
             dbc.Modal(
                 [
@@ -50,28 +54,28 @@ def layout(path: str, records: List[Dict], refresh_interval_in_millis: int):
                     [
                         dbc.Col(
                             dbc.NavbarBrand(
-                                html.A(
-                                    html.Img(
-                                        src="/assets/images/entropy_logo_dark.svg",
-                                        width=150,
-                                        id="entropy-logo",
-                                    ),
-                                    href="#",
+                                html.Img(
+                                    src="/assets/images/entropy_logo_dark.svg",
+                                    width=150,
+                                    id="entropy-logo",
                                 ),
                                 href="#",
                             ),
-                            width="3",
+                            width="2",
                             id="logo-col",
                         ),
                         dbc.Col(
                             [
-                                html.Div(f"{project_name(path)}", id="project-name"),
-                                dbc.Tooltip(
+                                html.Div(
+                                    f"Project: {project_name(path)}", id="project-name"
+                                ),
+                                html.Div(
                                     f"{project_path(path)}",
-                                    target="project-name",
+                                    id="project-name",
+                                    style={"fontSize": "11px"},
                                 ),
                             ],
-                            width="3",
+                            width="4",
                         ),
                         dbc.Col(
                             dbc.Row(
@@ -79,13 +83,15 @@ def layout(path: str, records: List[Dict], refresh_interval_in_millis: int):
                                     dbc.Col(
                                         dbc.NavItem(
                                             dbc.NavLink(
-                                                "Dashboard", href="#", active=True
+                                                "Experiment Results",
+                                                href="/",
+                                                active=True,
                                             )
                                         )
                                     ),
                                     dbc.Col(
                                         dbc.NavItem(
-                                            dbc.NavLink("Configuration", href="#")
+                                            dbc.NavLink("Params", href="/params")
                                         )
                                     ),
                                 ]
@@ -166,17 +172,18 @@ def layout(path: str, records: List[Dict], refresh_interval_in_millis: int):
                     ),
                 ]
             ),
-            dcc.Checklist(
-                [
-                    {"label": "✔️", "value": True},
-                    {"label": "❌", "value": False},
-                ],
-                [True, False],
-                inline=False,
-                inputClassName="success-filter-checklist-input",
-                labelClassName="success-filter-checklist-label",
-                labelStyle={"display": "flex"},
-                id="success-filter-checklist",
-            ),
+            # Disabled temporarily. See ../../assets/custom-script.js for details.
+            # dcc.Checklist(
+            #     [
+            #         {"label": "✔️", "value": True},
+            #         {"label": "❌", "value": False},
+            #     ],
+            #     [True, False],
+            #     inline=False,
+            #     inputClassName="success-filter-checklist-input",
+            #     labelClassName="success-filter-checklist-label",
+            #     labelStyle={"display": "flex"},
+            #     id="success-filter-checklist",
+            # ),
         ],
     )

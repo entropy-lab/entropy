@@ -5,18 +5,21 @@ from typing import List, Dict
 
 # import numpy as np
 import pandas as pd
-from pandas import DataFrame
 
 from entropylab import SqlAlchemyDB
 from entropylab.api.data_reader import PlotRecord, FigureRecord
-from entropylab.results.dashboard.auto_plot import auto_plot
+from entropylab.dashboard.pages.results.auto_plot import auto_plot
+
+MAX_EXPERIMENTS_NUM = 10000
 
 
 class DashboardDataReader(abc.ABC):
     @abc.abstractmethod
     def get_last_experiments(
-        self, max_num_of_experiments: int, success_filter_value: List[bool]
-    ) -> DataFrame:
+        self,
+        max_num_of_experiments: int = MAX_EXPERIMENTS_NUM,
+        success: bool = None,
+    ) -> List[Dict]:
         pass
 
     @abc.abstractmethod
@@ -31,7 +34,7 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
 
     def get_last_experiments(
         self,
-        max_num_of_experiments: int,
+        max_num_of_experiments: int = MAX_EXPERIMENTS_NUM,
         success: bool = None,
     ) -> List[Dict]:
         experiments = self._db.get_last_experiments(max_num_of_experiments, success)

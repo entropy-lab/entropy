@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Dict, List, Optional, cast
+from typing import Dict, List, cast
 
 import dash
 import dash_bootstrap_components as dbc
@@ -10,81 +10,75 @@ from dash.dependencies import Input, Output, State, ALL
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 
-from entropylab import SqlAlchemyDB
 from entropylab.api.data_reader import PlotRecord, FigureRecord
 from entropylab.api.errors import EntropyError
-from entropylab.logger import logger
-from entropylab.results.dashboard.dashboard_data import SqlalchemyDashboardDataReader
-from entropylab.results.dashboard.layout import layout
-from entropylab.results.dashboard.theme import (
+from entropylab.dashboard.theme import (
     colors,
     dark_plot_layout,
-    theme_stylesheet,
 )
-from entropylab.results_backend.sqlalchemy.project import project_name, project_path
+from entropylab.logger import logger
 
 REFRESH_INTERVAL_IN_MILLIS = 3000
-MAX_EXPERIMENTS_NUM = 10000
 EXPERIMENTS_PAGE_SIZE = 6
 
 
-def build_dashboard_app(proj_path):
+def register_callbacks(app, dashboard_data_reader):
     """Initialize the results dashboard Dash app to display an Entropy project
 
-    :param proj_path path where the Entropy project to be used resides."""
+    :param app the Dash app to add the callbacks to
+    :param dashboard_data_reader a DashboardDataReader instance to read dashboard
+    data from"""
 
     """ Creating and setting up our Dash app """
 
-    _dashboard_data_reader = SqlalchemyDashboardDataReader(SqlAlchemyDB(proj_path))
-
-    def _build_layout():
-        records = _dashboard_data_reader.get_last_experiments(MAX_EXPERIMENTS_NUM)
-        return layout(proj_path, records, REFRESH_INTERVAL_IN_MILLIS)
-
-    _app = dash.Dash(
-        __name__,
-        external_stylesheets=[theme_stylesheet],
-        update_title=None,
-        suppress_callback_exceptions=True,
-    )
-    _app.title = f"Entropy - {project_name(proj_path)} [{project_path(proj_path)}]"
-    _app.layout = _build_layout  # See: https://dash.plotly.com/live-updates
-
     """ CALLBACKS and their helper functions """
 
-    @_app.callback(
+    @app.callback(
         Output("experiments-table", "data"),
         Output("empty-project-modal", "is_open"),
-        Output("success-filter-checklist", "value"),
         Input("interval", "n_intervals"),
-        Input("success-filter-checklist", "value"),
     )
-    def refresh_experiments_table(_, success_filter_checklist_value):
+    def refresh_experiments_table(_):
         """Periodically refresh the experiments table (See
         https://dash.plotly.com/live-updates), or when the filter on the 'success'
         column is changed"""
-        success = checklist_value_to_bool(success_filter_checklist_value)
-        records = _dashboard_data_reader.get_last_experiments(
-            MAX_EXPERIMENTS_NUM, success
-        )
+        records = dashboard_data_reader.get_last_experiments()
         open_empty_project_modal = (
             len(records) == 0
         ) and not callback_triggered_by_success_filter(dash.callback_context)
-        return records, open_empty_project_modal, success_filter_checklist_value
+        return records, open_empty_project_modal
 
-    def checklist_value_to_bool(checklist_value: [bool]) -> Optional[bool]:
-        """Translate the value of the success-filter Checklist component to a
-        value understood by the data access API"""
-        if True in checklist_value and False in checklist_value:
-            return None  # None = Both True and False
-        elif True in checklist_value:
-            return True
-        elif False in checklist_value:
-            return False
-        else:
-            return None
+    # @app.callback(
+    #     Output("experiments-table", "data"),
+    #     Output("empty-project-modal", "is_open"),
+    #     Output("success-filter-checklist", "value"),
+    #     Input("interval", "n_intervals"),
+    #     Input("success-filter-checklist", "value"),
+    # )
+    # def refresh_experiments_table(_, success_filter_checklist_value):
+    #     """Periodically refresh the experiments table (See
+    #     https://dash.plotly.com/live-updates), or when the filter on the 'success'
+    #     column is changed"""
+    #     success = checklist_value_to_bool(success_filter_checklist_value)
+    #     records = dashboard_data_reader.get_last_experiments(success=success)
+    #     open_empty_project_modal = (
+    #         len(records) == 0
+    #     ) and not callback_triggered_by_success_filter(dash.callback_context)
+    #     return records, open_empty_project_modal, success_filter_checklist_value
+    #
+    # def checklist_value_to_bool(checklist_value: [bool]) -> Optional[bool]:
+    #     """Translate the value of the success-filter Checklist component to a
+    #     value understood by the data access API"""
+    #     if True in checklist_value and False in checklist_value:
+    #         return None  # None = Both True and False
+    #     elif True in checklist_value:
+    #         return True
+    #     elif False in checklist_value:
+    #         return False
+    #     else:
+    #         return None
 
-    @_app.callback(
+    @app.callback(
         Output("failed-plotting-alert", "is_open"),
         Input("failed-plotting-alert", "children"),
     )
@@ -97,7 +91,7 @@ def build_dashboard_app(proj_path):
             for inputs in callback_context.triggered
         )
 
-    @_app.callback(
+    @app.callback(
         Output("plot-tabs", "children"),
         Output("figures-by-key", "data"),
         Output("prev-selected-rows", "data"),
@@ -123,7 +117,7 @@ def build_dashboard_app(proj_path):
                 alert_on_fail = row_num == added_row
                 exp_id = data[row_num]["id"]
                 try:
-                    plots_and_figures = _dashboard_data_reader.get_plot_and_figure_data(
+                    plots_and_figures = dashboard_data_reader.get_plot_and_figure_data(
                         exp_id
                     )
                 except EntropyError:
@@ -224,7 +218,7 @@ def build_dashboard_app(proj_path):
             tab_id=f"plot-tab-{plot_key}",
         )
 
-    @_app.callback(
+    @app.callback(
         Output("plot-keys-to-combine", "data"),
         Input("add-button", "n_clicks"),
         Input({"type": "remove-button", "index": ALL}, "n_clicks"),
@@ -247,7 +241,7 @@ def build_dashboard_app(proj_path):
                 plot_keys_to_combine.remove(remove_plot_key)
         return plot_keys_to_combine
 
-    @_app.callback(
+    @app.callback(
         Output("aggregate-tab", "children"),
         Output("remove-buttons", "children"),
         Input("plot-keys-to-combine", "data"),
@@ -303,7 +297,7 @@ def build_dashboard_app(proj_path):
             className="tab-placeholder-container",
         )
 
-    @_app.callback(
+    @app.callback(
         Output("plot-tabs", "active_tab"),
         Input("plot-tabs", "children"),
     )
@@ -313,7 +307,7 @@ def build_dashboard_app(proj_path):
             return children[last_tab]["props"]["tab_id"]
         return 0
 
-    @_app.callback(
+    @app.callback(
         Output("aggregate-clipboard", "content"),
         Input("aggregate-clipboard", "n_clicks"),
         State("aggregate-graph", "figure"),
@@ -321,8 +315,6 @@ def build_dashboard_app(proj_path):
     )
     def copy_aggregate_data_to_clipboard_as_python_code(_, figure):
         return _copy_aggregate_data_to_clipboard_as_python_code(_, figure)
-
-    return _app
 
 
 def get_added_row(prev: List[int], curr: List[int]) -> int or None:

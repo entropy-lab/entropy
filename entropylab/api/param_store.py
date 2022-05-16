@@ -43,7 +43,7 @@ class ParamStore(ABC):
         pass
 
     @abstractmethod
-    def checkout(self, commit_id: str, commit_num: int, move_by: int):
+    def checkout(self, commit_id: str, commit_num: int = None, move_by: int = None):
         pass
 
     @abstractmethod

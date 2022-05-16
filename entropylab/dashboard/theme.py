@@ -24,3 +24,34 @@ dark_plot_layout = dict(
     plot_bgcolor=plot_plot_bgcolor,
     margin=dict(b=40, t=40, l=40, r=40),
 )
+
+table_style_header = {
+    "backgroundColor": "rgb(30, 30, 30)",
+    "color": "white",
+}
+
+table_style_filter = {
+    "backgroundColor": "rgb(40, 40, 40)",
+    "color": "white",
+}
+
+table_style_data = {
+    "backgroundColor": "rgb(50, 50, 50)",
+    "color": "white",
+}
+
+table_style_cell = {
+    "textAlign": "left",
+    "textOverflow": "ellipsis",
+    "maxWidth": 0,
+}
+
+table_active_cell_conditional = {
+    "if": {
+        "state": "active",
+    },
+    "color": "red !important",
+    "backgroundColor": "rgb(70, 70, 70)",
+    "textAlign": "left",
+    "borderColor": "#039 !important",
+}

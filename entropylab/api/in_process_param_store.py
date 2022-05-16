@@ -7,6 +7,7 @@ import os.path
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Optional, Dict, Any, List, Callable
 
 import jsonpickle as jsonpickle
@@ -38,7 +39,7 @@ class InProcessParamStore(ParamStore):
 
     def __init__(
         self,
-        path: Optional[str] = None,
+        path: Optional[str] | Optional[Path] = None,
         theirs: Optional[Dict | ParamStore] = None,
         merge_strategy: Optional[MergeStrategy] = MergeStrategy.THEIRS,
     ):
@@ -57,6 +58,8 @@ class InProcessParamStore(ParamStore):
             self.__db = TinyDB(storage=MemoryStorage)
         else:
             self.__is_in_memory_mode = False
+            if isinstance(path, Path):
+                path = str(path)
             self.__db = TinyDB(path, storage=JSONPickleStorage)
         if theirs is not None:
             self.merge(theirs, merge_strategy)

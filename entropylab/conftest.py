@@ -35,18 +35,21 @@ def project_dir_path(request) -> str:
 def db_file_path(request) -> str:
     """Generate a unique path to a (non-existent) sqlite db file
     The file will be removed on tear down"""
-    file_path = _build_project_dir_path_for_test(request) + ".db"
+    dir_path = _build_project_dir_path_for_test(request)
+    file_path = dir_path + ".db"
     yield file_path
     _delete_if_exists(file_path)
+    _delete_if_exists(dir_path)
 
 
 @pytest.fixture()
 def tinydb_file_path(request) -> str:
     """Generate a unique path to a (non-existent) tinydb json file
     The file will be removed on tear down"""
-    file_path = _build_project_dir_path_for_test(request) + ".json"
+    dir_path = _build_project_dir_path_for_test(request)
+    file_path = os.path.join(dir_path + "/" + "tiny_db.json")
     yield file_path
-    _delete_if_exists(file_path)
+    _delete_if_exists(dir_path)
 
 
 @pytest.fixture()

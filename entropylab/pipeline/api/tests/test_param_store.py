@@ -2,14 +2,18 @@ from pprint import pprint
 from time import sleep
 
 import pytest
-from tinydb import Query
+from tinydb import Query, TinyDB
 
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.in_process_param_store import (
     InProcessParamStore,
     Metadata,
     MergeStrategy,
+    migrate_param_store_0_1_to_0_2,
+    JSONPickleStorage,
+    Param,
 )
+from entropylab.conftest import _copy_template
 
 """ ctor """
 
@@ -98,6 +102,17 @@ def test___setitem___when_key_starts_with_dunder_then_key_is_not_saved_to_db(
         target.commit()
     with open(tinydb_file_path) as f:
         assert "__foo" not in f.read()
+
+
+def test___setitem___when_saving_dict_then_only_entire_dict_is_wrapped_in_param(
+    tinydb_file_path,
+):
+    with InProcessParamStore(tinydb_file_path) as target:
+        target.foo = dict(bar="baz")
+        target.commit()
+    db = TinyDB(tinydb_file_path, storage=JSONPickleStorage)
+    doc = db.all()[0]
+    assert doc["params"]["foo"] == Param(dict(bar="baz"))
 
 
 def test___delitem__():
@@ -785,6 +800,8 @@ def test_demo(tinydb_file_path):
     target["qubit1.flux_capacitor.amp"] = 5.0
     target["qubit1.flux_capacitor"] = {"wave": "manifold", "warp": 1337.0}
 
+    target.add_tag("tag1", "qubit1.flux_capacitor.freq")
+
     print(f"before saving to temp, freq: {target['qubit1.flux_capacitor.freq']}")
 
     target.save_temp()
@@ -822,3 +839,23 @@ def test_demo(tinydb_file_path):
 
     print("all params: ")
     pprint(target.to_dict())
+
+
+def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
+    # arrange
+    _copy_template("migrate_param_store_0_1_to_0_2.json", tinydb_file_path, request)
+    # act
+    migrate_param_store_0_1_to_0_2(tinydb_file_path)
+    # assert
+    param_store = InProcessParamStore(tinydb_file_path)
+    # checkout unharmed
+    param_store.checkout("57ea4b9fb96bdc7a13fe8ec616a3c6da21f41ca0")
+    # primitive value
+    assert param_store["qubit1.flux_capacitor.freq"] == 8.0
+    # dict value
+    assert param_store["qubit1.flux_capacitor"]["wave"] == "manifold"
+    # tags are unharmed
+    assert "qubit1.flux_capacitor.amp" in param_store.list_keys_for_tag("tag1")
+    # temp is unharmed
+    param_store.load_temp()
+    assert param_store["qubit1.flux_capacitor.freq"] == -8.0

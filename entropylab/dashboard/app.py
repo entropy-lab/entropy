@@ -12,7 +12,7 @@ from entropylab.dashboard.theme import (
 from entropylab.pipeline.results_backend.sqlalchemy.project import (
     project_name,
     project_path,
-    param_store_path,
+    param_store_file_path,
 )
 
 
@@ -38,7 +38,7 @@ def build_dashboard_app(proj_path):
     """ Initializing data sources """
 
     dashboard_data_reader = SqlalchemyDashboardDataReader(SqlAlchemyDB(proj_path))
-    param_store = InProcessParamStore(param_store_path(proj_path))
+    param_store = InProcessParamStore(param_store_file_path(proj_path))
 
     """ Building page layouts """
 

@@ -19,7 +19,8 @@ def test_ctor_creates_up_to_date_schema_when_in_memory(path: str):
     [
         None,  # new db
         "empty.db",  # existing but empty
-        "empty_after_2022-04-10-08-26-35_9ffd2ba0d5bf_simplifying_node_id.db",
+        "empty_after_2022-05-19-09-12-01_06140c96c8c4_wrapping_param_store_values.db",
+        # ⬆ latest version
     ],
     indirect=True,
 )

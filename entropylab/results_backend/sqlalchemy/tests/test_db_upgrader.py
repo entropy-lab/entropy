@@ -7,6 +7,8 @@ from sqlalchemy import create_engine
 from entropylab import SqlAlchemyDB, RawResultData
 from entropylab.api.data_writer import Metadata
 from entropylab.api.errors import EntropyError
+from entropylab.api.in_process_param_store import InProcessParamStore
+from entropylab.conftest import _copy_template
 from entropylab.logger import logger
 from entropylab.results_backend.sqlalchemy.db_initializer import (
     _ENTROPY_DIRNAME,
@@ -14,6 +16,7 @@ from entropylab.results_backend.sqlalchemy.db_initializer import (
     _HDF5_DIRNAME,
     _DbUpgrader,
 )
+from entropylab.results_backend.sqlalchemy.project import param_store_file_path
 from entropylab.results_backend.sqlalchemy.storage import HDF5Storage
 
 
@@ -156,3 +159,29 @@ def test_upgrade_db_from_all_revisions(initialized_project_dir_path):
     # act
     target.upgrade_db()
     # assert - all good if we didn't throw
+
+
+@pytest.mark.parametrize(
+    "initialized_project_dir_path",
+    [
+        "empty_after_2022-04-10-08-26-35_9ffd2ba0d5bf_simplifying_node_id.db",
+    ],
+    indirect=True,
+)
+def test_upgrade_db_upgrades_params_json_from_0_1_to_0_2(
+    request, initialized_project_dir_path
+):
+    # arrange
+    tinydb_file_path = str(param_store_file_path(initialized_project_dir_path))
+    _copy_template(
+        os.path.join("./db_templates", "param_store_v0_1.json"),
+        tinydb_file_path,
+        request,
+    )
+    target = _DbUpgrader(initialized_project_dir_path)
+    # act
+    target.upgrade_db()
+    # assert - read a checked out value from param store as sanity:
+    param_store = InProcessParamStore(tinydb_file_path)
+    param_store.checkout("57ea4b9fb96bdc7a13fe8ec616a3c6da21f41ca0")
+    assert param_store["qubit1.flux_capacitor"]["wave"] == "manifold"

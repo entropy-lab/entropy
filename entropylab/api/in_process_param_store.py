@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 import os.path
+import shutil
 import threading
 import time
 from datetime import datetime
@@ -19,6 +20,12 @@ from tinydb.table import Document
 from entropylab.api.errors import EntropyError
 from entropylab.api.param_store import ParamStore, MergeStrategy
 from entropylab.logger import logger
+
+INFO_TABLE = "info"
+TEMP_TABLE = "temp"
+INFO_DOC_ID = 1
+TEMP_DOC_ID = 1
+VERSION_KEY = "version"
 
 
 class Param(Dict):
@@ -390,7 +397,7 @@ class InProcessParamStore(ParamStore):
         Saves the state of params to a temporary location
         """
         with self.__lock:
-            table = self.__db.table("temp")
+            table = self.__db.table(TEMP_TABLE)
             doc = self.__build_document()
             table.upsert(Document(doc, doc_id=1))
 
@@ -400,7 +407,7 @@ class InProcessParamStore(ParamStore):
         location
         """
         with self.__lock:
-            table = self.__db.table("temp")
+            table = self.__db.table(TEMP_TABLE)
             doc = table.get(doc_id=1)
             if not doc:
                 raise EntropyError(
@@ -513,3 +520,82 @@ class JSONPickleStorage(Storage):
 
     def close(self):
         pass
+
+
+""" Migrations """
+
+
+def migrate_param_store_0_1_to_0_2(path: str) -> None:
+    """
+    Backup and migrate an InProcessParamStore JSON file from storing values to storing
+    Params containing the values. Preserves commits, timestamps and ids.
+
+    :param path: path to an existing JSON TinyDB file containing params.
+    """
+    old_version = "0.1"
+    new_version = "0.2"
+
+    _check_version(path, old_version, new_version)
+    backup_path = _backup_file(path)
+    with TinyDB(backup_path) as old_db:
+        old_commits = old_db.all()
+        old_temp = old_db.table(TEMP_TABLE).get(doc_id=TEMP_DOC_ID)
+    with TinyDB(path, storage=JSONPickleStorage) as new_db:
+        for old_commit in old_commits:
+            new_commit = copy.deepcopy(old_commit)
+            _wrap_params(new_commit)
+            new_db.insert(new_commit)
+        if old_temp:
+            new_temp = copy.deepcopy(old_temp)
+            _wrap_params(new_temp)
+            new_db.table(TEMP_TABLE).insert(new_temp)
+        _set_version(new_db, new_version)
+
+
+def _backup_file(path):
+    backup_path = path.replace(".json", ".bak.json")
+    shutil.move(path, backup_path)
+    return backup_path
+
+
+def _wrap_params(new_doc):
+    params = new_doc["params"]
+    for key in params.keys():
+        value = params[key]
+        if not isinstance(value, Param):
+            params[key] = Param(value)
+    # _map_dict_in_place(lambda val: Param(val), new_doc["params"])
+    new_doc["params"] = params
+
+
+def _set_version(db: TinyDB, version: str):
+    info_table = db.table(INFO_TABLE)
+    info_doc = info_table.get(doc_id=INFO_DOC_ID)
+    if info_doc:
+        info_doc[VERSION_KEY] = version
+    else:
+        info_table.insert(dict(VERSION_KEY=version))
+
+
+def _get_version(db: TinyDB):
+    if INFO_TABLE in db.tables():
+        info_table = db.table(INFO_TABLE)
+        info_doc = info_table.get(doc_id=INFO_DOC_ID)
+        return info_doc[VERSION_KEY]
+    return "0.1"
+
+
+def _check_version(path: str, old_version: str, new_version: str):
+    if os.path.isfile(path):
+        with TinyDB(path) as old_db:
+            actual_version = _get_version(old_db)
+            if actual_version != old_version:
+                raise EntropyError(
+                    f"Cannot migrate file '{path}' from version {actual_version} to "
+                    f"version {new_version}"
+                )
+    else:
+        raise EntropyError(
+            f"Cannot migrate file '{path}' to version {new_version} because the file "
+            "does not exist"
+        )

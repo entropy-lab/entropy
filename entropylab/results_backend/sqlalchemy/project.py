@@ -10,6 +10,7 @@ project
     .entropy
         entropy.db
         entropy.hdf5
+        params.json
 """
 
 
@@ -29,5 +30,15 @@ def project_path(path: str) -> Path:
     return Path(path).absolute()
 
 
+def db_file_path(prj_path: str) -> Path:
+    return project_path(prj_path).joinpath(".entropy", "entropy.db")
 def param_store_path(prj_path: str) -> Path:
+    return project_path(prj_path).joinpath(".entropy", "params.json")
+
+
+def hdf5_dir_path(prj_path: str) -> Path:
+    return project_path(prj_path).joinpath(".entropy", "hdf5")
+
+
+def param_store_file_path(prj_path: str) -> Path:
     return project_path(prj_path).joinpath(".entropy", "params.json")

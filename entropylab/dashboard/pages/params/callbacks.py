@@ -3,8 +3,8 @@ from dash.dependencies import Input, Output, State
 
 from entropylab.api.param_store import ParamStore
 from entropylab.dashboard.pages.params.utils import (
-    paramStore_to_df,
-    paramStore_commits_df,
+    param_store_to_df,
+    param_store_to_commits_df,
     data_diff,
 )
 
@@ -62,7 +62,7 @@ def register_callbacks(app, param_store: ParamStore):
             param_store.load_temp()
 
         return (
-            paramStore_to_df(param_store).to_dict("records"),
-            paramStore_commits_df(param_store).to_dict("records"),
+            param_store_to_df(param_store).to_dict("records"),
+            param_store_to_commits_df(param_store).to_dict("records"),
             param_store.is_dirty,
         )

@@ -47,7 +47,7 @@ class ParamStore(ABC):
         pass
 
     @abstractmethod
-    def list_commits(self, label: str):
+    def list_commits(self, label: Optional[str]):
         """
             returns a list of commits
 

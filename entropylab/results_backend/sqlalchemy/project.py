@@ -30,4 +30,4 @@ def project_path(path: str) -> Path:
 
 
 def param_store_path(prj_path: str) -> Path:
-    return project_path(prj_path).joinpath("in_process_param_store.json")
+    return project_path(prj_path).joinpath(".entropy", "params.json")

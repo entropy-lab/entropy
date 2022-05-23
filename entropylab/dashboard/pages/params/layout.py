@@ -3,8 +3,8 @@ from dash import html, dcc, dash_table
 
 from entropylab.api.param_store import ParamStore
 from entropylab.dashboard.pages.params.utils import (
-    paramStore_commits_df,
-    paramStore_to_df,
+    param_store_to_commits_df,
+    param_store_to_df,
 )
 from entropylab.dashboard.theme import (
     table_style_header,
@@ -163,7 +163,7 @@ def build_layout(path: str, param_store: ParamStore):
                                         editable=True,
                                     ),
                                 ],
-                                data=paramStore_to_df(param_store).to_dict("records"),
+                                data=param_store_to_df(param_store).to_dict("records"),
                                 id="data-table",
                                 sort_action="native",
                                 row_deletable=True,
@@ -207,7 +207,7 @@ def build_layout(path: str, param_store: ParamStore):
                                             type="datetime",
                                         ),
                                     ],
-                                    data=paramStore_commits_df(param_store).to_dict(
+                                    data=param_store_to_commits_df(param_store).to_dict(
                                         "records"
                                     ),
                                     sort_action="native",

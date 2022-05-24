@@ -10,7 +10,6 @@ from qualang_tools.config.parameters import ConfigVars
 
 from qm.qua import program
 from qm.QuantumMachinesManager import QuantumMachinesManager
-from qm.simulate.interface import SimulationConfig
 
 
 class QuamCore(object):
@@ -57,7 +56,8 @@ class Admin(QuamCore):
         pass
 
     def parameter(self, var: str, setter: Callable = None):
-        """Returns a parameter with the given name and setter, all parameters are saved in the ParamStore
+        """Returns a parameter with the given name and setter, all parameters are saved
+        in the ParamStore
         :return: a parameter
         :rtype: Parameter
         """
@@ -99,7 +99,8 @@ class Admin(QuamCore):
 
 class Oracle(QuamCore):
     def __init__(self, path: str, config: dict):
-        """Oracle class for querying the list of elements, waveforms, pulses etc. prepared by the admin.
+        """Oracle class for querying the list of elements, waveforms, pulses etc.
+        prepared by the admin.
         :param path: path to the entropy DB
         :type path: str
         :param config: QUA configuration dictionary
@@ -150,8 +151,8 @@ class Oracle(QuamCore):
 
 
 class User(QuamCore):
-    def __init__(self, path: str, config: dict = {}, host: str = "127.0.0.1"):
-        """User class to facilate writing and execution of QUA programs
+    def __init__(self, path: str, config: dict = None, host: str = "127.0.0.1"):
+        """User class to facilitate writing and execution of QUA programs
         :param path: path to the entropy DB
         :type path: str
         :param config: a QUA configuration, defaults to an empty dictionary
@@ -160,7 +161,7 @@ class User(QuamCore):
         :type host: str, optional
         """
         super().__init__(path=path)
-        self.config = config
+        self.config = config if config is not None else {}
         self._config = copy.deepcopy(config)
         self.host = host
         self.qm = QuantumMachinesManager(host).open_qm(config)

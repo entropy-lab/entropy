@@ -44,10 +44,10 @@ def test_admin_oracle_user(db_file_path):
     print(oracle.parameters)
     print(oracle.pulses)
 
-    user = admin.get_user()
-    print(user.elements.qb)
+    # user = admin.get_user()
+    # print(user.elements.qb)
 
-    with program() as prog:
-        play(user.pulses.cw, user.elements.qb)
+    # with program() as prog:
+    #    play(user.pulses.cw, user.elements.qb)
 
-    res = user.simulate(prog)
+    # res = user.simulate(prog)

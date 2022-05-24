@@ -32,7 +32,9 @@ class MyAdmin(Admin):
             )
         )
 
+
 path = "tests_cache/entropy.db"
+
 
 def test_admin(path):
     admin = MyAdmin(path=path)

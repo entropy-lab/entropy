@@ -14,7 +14,7 @@ from qm.simulate.interface import SimulationConfig
 
 
 class QuamCore(object):
-    def __init__(self, path:str):
+    def __init__(self, path: str):
         """Core QUAM object
         :param path: Path of the entropy DB
         :type path: str
@@ -29,6 +29,7 @@ class QuamCore(object):
         :rtype: List
         """
         return list(self.params.keys())
+
 
 class Admin(QuamCore):
     def __init__(self, path: str, host: str = "127.0.0.1"):
@@ -45,16 +46,14 @@ class Admin(QuamCore):
 
     @property
     def config(self):
-        """Returns the QUA configuration 
-        """
+        """Returns the QUA configuration"""
         self._config_builder = ConfigBuilder()
         self.prepare_config(self._config_builder)
         return self._config_builder.build()
 
     @abstractmethod
     def prepare_config(self, cb: ConfigBuilder) -> None:
-        """method to prepare the ConfigBuilder, needs to be implemented by the admin
-        """
+        """method to prepare the ConfigBuilder, needs to be implemented by the admin"""
         pass
 
     def parameter(self, var: str, setter: Callable = None):
@@ -67,8 +66,7 @@ class Admin(QuamCore):
         return self._c_vars.parameter(var)
 
     def set(self, **kwargs):
-        """Sets the parameter values according to the key, value pairs in the dictionary
-        """
+        """Sets the parameter values according to the key, value pairs in the dictionary"""
         for (k, v) in kwargs.items():
             if not callable(v):
                 self.params[k] = v
@@ -81,6 +79,7 @@ class Admin(QuamCore):
         :return: an oracle
         :rtype: Oracle
         """
+        self._set_params()
         return Oracle(path=self.path, config=self.config)
 
     def get_user(self):
@@ -88,7 +87,14 @@ class Admin(QuamCore):
         :return: an user
         :rtype: User
         """
+        self._set_params()
         return User(path=self.path, config=self.config)
+
+    def _set_params(self):
+        _dict = {}
+        for k in self.params:
+            _dict[k] = self.params[k]
+        self.set(**_dict)
 
 
 class Oracle(QuamCore):
@@ -151,7 +157,7 @@ class User(QuamCore):
         :param config: a QUA configuration, defaults to an empty dictionary
         :type config: Dict, optional
         :param host: host url for Quantum Machine Manager, defaults to local host
-        :type host: str, optional 
+        :type host: str, optional
         """
         super().__init__(path=path)
         self.config = config
@@ -190,20 +196,17 @@ class User(QuamCore):
 
     @property
     def elements(self):
-        """Returns a Munch instance of element keys available in the QUA configuration
-        """
+        """Returns a Munch instance of element keys available in the QUA configuration"""
         return dict_keys_to_munch(self.config["elements"])
 
     @property
     def pulses(self):
-        """Returns a Munch instance of pulses available in the QUA configuration
-        """
+        """Returns a Munch instance of pulses available in the QUA configuration"""
         return dict_keys_to_munch(self.config["pulses"])
 
     @property
     def integration_weights(self):
-        """Returns a Munch instance of integration weights available in the QUA configuration
-        """
+        """Returns a Munch instance of integration weights available in the QUA configuration"""
         return dict_keys_to_munch(self.config["integration_weights"])
 
 

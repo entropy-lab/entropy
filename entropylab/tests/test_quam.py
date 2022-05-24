@@ -33,22 +33,30 @@ class MyAdmin(Admin):
         )
 
 
-admin = MyAdmin(path="entropy.db")
-admin.set(lo=5e5)
-admin.params.commit("init")
-print(admin.config)
+def test_admin():
+    admin = MyAdmin(path="entropy.db")
+    admin.set(lo=5e5)
+    admin.params.save_temp()
+    print(admin.config)
 
-oracle = admin.get_oracle()
-print(oracle.params.list_commits())
-print(oracle.elements)
-oracle.params.checkout("566d691a7fe492c12e3ae53f61f18e162d788101")
-print(oracle.parameters)
-print(oracle.pulses)
 
-user = admin.get_user()
-print(user.elements.qb)
+def test_oracle():
+    admin = MyAdmin(path="entropy.db")
+    admin.params.load_temp()
+    oracle = admin.get_oracle()
+    # print(oracle.params.list_commits())
+    print(oracle.elements)
+    print(oracle.parameters)
+    print(oracle.pulses)
 
-with program() as prog:
-    play(user.pulses.cw, user.elements.qb)
 
-res = user.simulate(prog)
+def test_user():
+    admin = MyAdmin(path="entropy.db")
+    admin.params.load_temp()
+    user = admin.get_user()
+    print(user.elements.qb)
+
+    with program() as prog:
+        play(user.pulses.cw, user.elements.qb)
+
+    res = user.simulate(prog)

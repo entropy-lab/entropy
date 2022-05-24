@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added 
 * ParamStore viewer added to the GUI
+* Added Quantum Abstraction Machine (QUAM)
 ### Changed
 
 * Success/Failure filter in results table is broken. A bug was issued

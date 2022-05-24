@@ -67,7 +67,7 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
     def save_figure(self, experiment_id: int, figure: go.Figure) -> None:
         figure_record = FigureRecord(
             experiment_id=experiment_id,
-            id=random.randint(0, 2 ** 31 - 1),
+            id=random.randint(0, 2**31 - 1),
             figure=figure,
             time=datetime.now(),
         )

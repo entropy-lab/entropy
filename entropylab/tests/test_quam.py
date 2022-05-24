@@ -32,16 +32,17 @@ class MyAdmin(Admin):
             )
         )
 
+path = "tests_cache/entropy.db"
 
-def test_admin():
-    admin = MyAdmin(path="entropy.db")
+def test_admin(path):
+    admin = MyAdmin(path=path)
     admin.set(lo=5e5)
     admin.params.save_temp()
     print(admin.config)
 
 
-def test_oracle():
-    admin = MyAdmin(path="entropy.db")
+def test_oracle(path):
+    admin = MyAdmin(path=path)
     admin.params.load_temp()
     oracle = admin.get_oracle()
     # print(oracle.params.list_commits())
@@ -50,8 +51,8 @@ def test_oracle():
     print(oracle.pulses)
 
 
-def test_user():
-    admin = MyAdmin(path="entropy.db")
+def test_user(path):
+    admin = MyAdmin(path=path)
     admin.params.load_temp()
     user = admin.get_user()
     print(user.elements.qb)

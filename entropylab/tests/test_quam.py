@@ -37,6 +37,12 @@ def test_admin_oracle_user(db_file_path):
     admin = MyAdmin(path=db_file_path)
     admin.set(lo=5e5)
     admin.params.save_temp()
+
+    def voltage_setter(val: float):
+        print(val)
+
+    voltage = admin.parameter("voltage", setter=voltage_setter)
+    voltage(12)
     print(admin.config)
 
     oracle = admin.get_oracle()

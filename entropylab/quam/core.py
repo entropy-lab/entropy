@@ -63,7 +63,7 @@ class Admin(QuamCore):
         """
         if var not in self.params.keys():
             self.params[var] = None
-        return self._c_vars.parameter(var)
+        return self._c_vars.parameter(var, setter=setter)
 
     def set(self, **kwargs):
         """Sets the parameter values according to the key, value pairs in the dictionary"""

@@ -21,10 +21,10 @@ from entropylab.api.errors import EntropyError
 from entropylab.api.param_store import ParamStore, MergeStrategy
 from entropylab.logger import logger
 
-INFO_TABLE = "info"
-TEMP_TABLE = "temp"
 INFO_DOC_ID = 1
+INFO_TABLE = "info"
 TEMP_DOC_ID = 1
+TEMP_TABLE = "temp"
 VERSION_KEY = "version"
 
 
@@ -49,6 +49,38 @@ class Metadata:
         d = self.__dict__.copy()
         d["timestamp"] = _ns_to_datetime(self.timestamp)
         return f"<Metadata({_dict_to_json(d)})>"
+
+
+class JSONPickleStorage(Storage):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def read(self):
+        if not os.path.isfile(self.filename):
+            return None
+        with open(self.filename) as handle:
+            # noinspection PyBroadException
+            try:
+                s = handle.read()
+                data = jsonpickle.decode(s)
+                return data
+            except BaseException:
+                logger.exception(
+                    f"Exception decoding TinyDB JSON file '{self.filename}'"
+                )
+                return None
+
+    def write(self, data):
+        # noinspection PyBroadException
+        try:
+            with open(self.filename, "w+") as handle:
+                s = jsonpickle.encode(data)
+                handle.write(s)
+        except BaseException:
+            logger.exception(f"Exception encoding TinyDB JSON file '{self.filename}'")
+
+    def close(self):
+        pass
 
 
 class InProcessParamStore(ParamStore):
@@ -486,38 +518,6 @@ def _map_dict_in_place(f, d: Dict):
 
 def _extract_param_values_in_place(d: Dict):
     _map_dict_in_place(lambda x: x.value, d)
-
-
-class JSONPickleStorage(Storage):
-    def __init__(self, filename):
-        self.filename = filename
-
-    def read(self):
-        if not os.path.isfile(self.filename):
-            return None
-        with open(self.filename) as handle:
-            # noinspection PyBroadException
-            try:
-                s = handle.read()
-                data = jsonpickle.decode(s)
-                return data
-            except BaseException:
-                logger.exception(
-                    f"Exception decoding TinyDB JSON file '{self.filename}'"
-                )
-                return None
-
-    def write(self, data):
-        # noinspection PyBroadException
-        try:
-            with open(self.filename, "w+") as handle:
-                s = jsonpickle.encode(data)
-                handle.write(s)
-        except BaseException:
-            logger.exception(f"Exception encoding TinyDB JSON file '{self.filename}'")
-
-    def close(self):
-        pass
 
 
 """ Migrations """

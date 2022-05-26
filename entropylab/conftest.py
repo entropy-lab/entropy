@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from entropylab.logger import logger
-from entropylab.results_backend.sqlalchemy.db_initializer import (
+from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import (
     _ENTROPY_DIRNAME,
     _DB_FILENAME,
 )
@@ -72,6 +72,9 @@ def _build_project_dir_path_for_test(request):
     project_dir_path = (
         f"tests_cache/{request.node.name}_{datetime.now():%Y-%m-%d-%H-%M-%S}"
     )
+    if os.path.isdir(project_dir_path):
+        logger.info(f"Test cleanup. Deleting directory '{project_dir_path}'")
+        shutil.rmtree(project_dir_path)
     Path(project_dir_path).mkdir(parents=True, exist_ok=True)
     return project_dir_path
 

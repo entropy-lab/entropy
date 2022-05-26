@@ -1,9 +1,9 @@
 from datetime import datetime
 
 from entropylab import Script
-from entropylab.api.execution import EntropyContext
-from entropylab.instruments.lab_topology import LabResources, ExperimentResources
-from entropylab.results_backend.sqlalchemy.db import SqlAlchemyDB
+from entropylab.pipeline.api.execution import EntropyContext
+from entropylab.components.lab_topology import LabResources, ExperimentResources
+from entropylab.pipeline.results_backend.sqlalchemy.db import SqlAlchemyDB
 from entropylab.tests.mock_instruments import MockScope
 
 repeats = 30

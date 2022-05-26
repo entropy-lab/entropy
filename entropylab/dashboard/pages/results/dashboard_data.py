@@ -7,7 +7,7 @@ from typing import List, Dict
 import pandas as pd
 
 from entropylab import SqlAlchemyDB
-from entropylab.api.data_reader import PlotRecord, FigureRecord
+from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
 from entropylab.dashboard.pages.results.auto_plot import auto_plot
 
 MAX_EXPERIMENTS_NUM = 10000

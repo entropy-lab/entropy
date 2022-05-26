@@ -5,7 +5,10 @@ from entropylab.dashboard.pages.results.dashboard_data import (
     DashboardDataReader,
 )
 from entropylab.dashboard.pages.results.table import table
-from entropylab.results_backend.sqlalchemy.project import project_name, project_path
+from entropylab.pipeline.results_backend.sqlalchemy.project import (
+    project_name,
+    project_path,
+)
 
 REFRESH_INTERVAL_IN_MILLIS = 3000
 

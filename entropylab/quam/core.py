@@ -3,7 +3,7 @@ import copy
 from typing import Callable, Dict
 from munch import Munch
 
-from entropylab.api.in_process_param_store import InProcessParamStore
+from entropylab.pipeline.api.in_process_param_store import InProcessParamStore
 
 from qualang_tools.config import ConfigBuilder
 from qualang_tools.config.parameters import ConfigVars

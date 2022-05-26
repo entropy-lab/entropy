@@ -3,7 +3,7 @@ import asyncio
 import numpy as np
 from bokeh.plotting import Figure
 
-from entropylab.graph_experiment import (
+from entropylab.pipeline.graph_experiment import (
     Graph,
     PyNode,
     pynode,

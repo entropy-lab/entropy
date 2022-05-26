@@ -6,10 +6,10 @@ import pytest
 from bokeh.io import save
 from bokeh.plotting import Figure
 
-from entropylab.api.data_writer import PlotSpec
-from entropylab.api.execution import EntropyContext
-from entropylab.api.plot import CirclePlotGenerator
-from entropylab.graph_experiment import (
+from entropylab.pipeline.api.data_writer import PlotSpec
+from entropylab.pipeline.api.execution import EntropyContext
+from entropylab.pipeline.api.plot import CirclePlotGenerator
+from entropylab.pipeline.graph_experiment import (
     Graph,
     PyNode,
     pynode,

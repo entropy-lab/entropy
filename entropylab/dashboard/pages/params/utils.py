@@ -1,6 +1,6 @@
 import pandas as pd
 
-from entropylab.api.param_store import ParamStore
+from entropylab.pipeline.api.param_store import ParamStore
 
 
 def param_store_to_df(ps: ParamStore):

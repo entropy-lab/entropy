@@ -1,9 +1,9 @@
 import numpy
-from entropylab.graph_experiment import (
+from entropylab.pipeline.graph_experiment import (
     Graph,
     PyNode,
 )
-from entropylab.results_backend.sqlalchemy.db import SqlAlchemyDB
+from entropylab.pipeline.results_backend.sqlalchemy.db import SqlAlchemyDB
 
 
 def a():

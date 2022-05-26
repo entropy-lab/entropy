@@ -18,6 +18,7 @@ include = [
 ]
 exclude = [
     "**/tests/**",
+    "**/conftest.py/**",
 ]
 readme = "README.md"
 homepage = "https://github.com/entropy-lab/entropy"

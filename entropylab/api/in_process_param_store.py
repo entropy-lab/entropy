@@ -37,6 +37,20 @@ class Param(Dict):
         return f"<Param(value={self.value})>"
 
 
+class Metadata:
+    def __init__(self, d: Dict = None):
+        self.id: str = ""
+        self.timestamp: int = time.time_ns()  # time in nanoseconds since the Epoch
+        self.label: Optional[str] = None
+        if d:
+            self.__dict__.update(d)
+
+    def __repr__(self) -> str:
+        d = self.__dict__.copy()
+        d["timestamp"] = _ns_to_datetime(self.timestamp)
+        return f"<Metadata({_dict_to_json(d)})>"
+
+
 class InProcessParamStore(ParamStore):
     """Naive implementation of ParamStore based on tinydb
 
@@ -215,11 +229,10 @@ class InProcessParamStore(ParamStore):
 
     def __build_metadata(self, label: Optional[str] = None) -> Metadata:
         metadata = Metadata()
-        metadata.ns = time.time_ns()
         params_json = json.dumps(
             self.__params, sort_keys=True, ensure_ascii=True, default=vars
         )
-        commit_encoded = (params_json + str(metadata.ns)).encode("utf-8")
+        commit_encoded = (params_json + str(metadata.timestamp)).encode("utf-8")
         metadata.id = hashlib.sha1(commit_encoded).hexdigest()
         metadata.label = label
         return metadata
@@ -337,12 +350,12 @@ class InProcessParamStore(ParamStore):
         with self.__lock:
             values = []
             commits = self.__db.all()
-            commits.sort(key=lambda x: x["metadata"]["ns"])
+            commits.sort(key=lambda x: x["metadata"]["timestamp"])
             for commit in commits:
                 try:
                     value = (
                         commit["params"][key].value,
-                        _ns_to_datetime(commit["metadata"]["ns"]),
+                        _ns_to_datetime(commit["metadata"]["timestamp"]),
                         commit["metadata"]["id"],
                         commit["metadata"]["label"],
                     )
@@ -416,21 +429,6 @@ class InProcessParamStore(ParamStore):
             self.__params.clear()
             self.__params.update(doc["params"])
             self.__tags = doc["tags"]
-
-
-class Metadata:
-    id: str
-    ns: int
-    label: Optional[str]
-
-    def __init__(self, d: Dict = None):
-        if d:
-            self.__dict__.update(d)
-
-    def __repr__(self) -> str:
-        d = self.__dict__.copy()
-        d["ns"] = _ns_to_datetime(self.ns)
-        return f"<Metadata({_dict_to_json(d)})>"
 
 
 """ Static helper methods """
@@ -544,10 +542,12 @@ def migrate_param_store_0_1_to_0_2(path: str) -> None:
         for old_commit in old_commits:
             new_commit = copy.deepcopy(old_commit)
             _wrap_params(new_commit)
+            _rename_ns(new_commit)
             new_db.insert(new_commit)
         if old_temp:
             new_temp = copy.deepcopy(old_temp)
             _wrap_params(new_temp)
+            _rename_ns(new_temp)
             new_db.table(TEMP_TABLE).insert(new_temp)
         _set_version(new_db, new_version)
 
@@ -558,14 +558,20 @@ def _backup_file(path):
     return backup_path
 
 
-def _wrap_params(new_doc):
-    params = new_doc["params"]
+def _wrap_params(new_commit):
+    params = new_commit["params"]
     for key in params.keys():
         value = params[key]
         if not isinstance(value, Param):
             params[key] = Param(value)
     # _map_dict_in_place(lambda val: Param(val), new_doc["params"])
-    new_doc["params"] = params
+    new_commit["params"] = params
+
+
+def _rename_ns(new_commit):
+    timestamp = new_commit["metadata"]["ns"]
+    del new_commit["metadata"]["ns"]
+    new_commit["metadata"]["timestamp"] = timestamp
 
 
 def _set_version(db: TinyDB, version: str):

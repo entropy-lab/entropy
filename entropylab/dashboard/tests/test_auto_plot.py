@@ -131,7 +131,7 @@ def test_auto_plot_ndarray_containing_list_with_2_lists():
 
 
 def test_auto_plot_2d_ndarray():
-    data = np.arange(15 ** 2).reshape((15, 15))
+    data = np.arange(15**2).reshape((15, 15))
     actual = auto_plot(1, data)
     assert isinstance(actual, FigureRecord)
     assert actual.id == 0

@@ -856,6 +856,8 @@ def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
     assert param_store["qubit1.flux_capacitor"]["wave"] == "manifold"
     # tags are unharmed
     assert "qubit1.flux_capacitor.amp" in param_store.list_keys_for_tag("tag1")
+    commit = param_store.list_commits("warm-up")[0]
+    assert commit.timestamp == 1652959865653245900
     # temp is unharmed
     param_store.load_temp()
     assert param_store["qubit1.flux_capacitor.freq"] == -8.0

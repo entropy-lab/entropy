@@ -41,7 +41,7 @@ from entropylab.components.lab_topology import (
     ResourceRecord,
 )
 from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import _DbInitializer
-from entropylab.pipeline.results_backend.sqlalchemy.lab_model import (
+from entropylab.components.lab_model import (
     Resources,
     ResourcesSnapshots,
 )

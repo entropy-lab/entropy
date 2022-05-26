@@ -113,6 +113,11 @@ class InProcessParamStore(ParamStore):
             self.__is_in_memory_mode = False
             if isinstance(path, Path):
                 path = str(path)
+            if not os.path.isfile(path):
+                logger.debug(
+                    f"ParamStore JSON file at '{path}' does not "
+                    f"exist. It will be created."
+                )
             self.__db = TinyDB(path, storage=JSONPickleStorage)
         if theirs is not None:
             self.merge(theirs, merge_strategy)

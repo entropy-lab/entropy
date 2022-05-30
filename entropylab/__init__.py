@@ -1,16 +1,16 @@
-from entropylab.api.data_reader import ExperimentReader
-from entropylab.api.data_writer import RawResultData
-from entropylab.api.execution import EntropyContext
-from entropylab.api.graph import GraphHelper
-from entropylab.graph_experiment import (
+from entropylab.pipeline.api.data_reader import ExperimentReader
+from entropylab.pipeline.api.data_writer import RawResultData
+from entropylab.pipeline.api.execution import EntropyContext
+from entropylab.pipeline.api.graph import GraphHelper
+from entropylab.pipeline.graph_experiment import (
     Graph,
     PyNode,
     SubGraphNode,
     pynode,
 )
-from entropylab.instruments.lab_topology import ExperimentResources, LabResources
-from entropylab.results_backend.sqlalchemy.db import SqlAlchemyDB
-from entropylab.script_experiment import Script, script_experiment
+from entropylab.components.lab_topology import ExperimentResources, LabResources
+from entropylab.pipeline.results_backend.sqlalchemy.db import SqlAlchemyDB
+from entropylab.pipeline.script_experiment import Script, script_experiment
 
 __all__ = [
     "ExperimentReader",

@@ -4,8 +4,8 @@ from typing import List, Dict
 import numpy as np
 from plotly import express as px
 
-from entropylab.api.data_reader import FigureRecord
-from entropylab.api.errors import EntropyError
+from entropylab.pipeline.api.data_reader import FigureRecord
+from entropylab.pipeline.api.errors import EntropyError
 
 
 def auto_plot(experiment_id: int, data) -> FigureRecord:

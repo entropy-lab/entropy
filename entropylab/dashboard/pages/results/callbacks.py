@@ -10,8 +10,8 @@ from dash.dependencies import Input, Output, State, ALL
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 
-from entropylab.api.data_reader import PlotRecord, FigureRecord
-from entropylab.api.errors import EntropyError
+from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
+from entropylab.pipeline.api.errors import EntropyError
 from entropylab.dashboard.theme import (
     colors,
     dark_plot_layout,

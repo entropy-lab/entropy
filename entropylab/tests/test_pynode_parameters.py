@@ -1,7 +1,7 @@
 import asyncio
 
-from entropylab.api.graph import GraphHelper
-from entropylab.graph_experiment import pynode, Graph
+from entropylab.pipeline.api.graph import GraphHelper
+from entropylab.pipeline.graph_experiment import pynode, Graph
 
 
 @pynode("a", output_vars={"x"})

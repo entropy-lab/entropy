@@ -1,9 +1,9 @@
 from entropylab import Script, Graph
-from entropylab.api.data_reader import ExperimentReader
-from entropylab.api.execution import EntropyContext
-from entropylab.graph_experiment import PyNode
-from entropylab.instruments.lab_topology import ExperimentResources, LabResources
-from entropylab.results_backend.sqlalchemy.db import SqlAlchemyDB
+from entropylab.pipeline.api.data_reader import ExperimentReader
+from entropylab.pipeline.api.execution import EntropyContext
+from entropylab.pipeline.graph_experiment import PyNode
+from entropylab.components.lab_topology import ExperimentResources, LabResources
+from entropylab.pipeline.results_backend.sqlalchemy.db import SqlAlchemyDB
 
 
 def a(context: EntropyContext):

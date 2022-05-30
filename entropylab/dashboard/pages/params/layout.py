@@ -1,7 +1,7 @@
 import dash_bootstrap_components as dbc
 from dash import html, dcc, dash_table
 
-from entropylab.api.param_store import ParamStore
+from entropylab.pipeline.api.param_store import ParamStore
 from entropylab.dashboard.pages.params.utils import (
     param_store_to_commits_df,
     param_store_to_df,
@@ -13,7 +13,10 @@ from entropylab.dashboard.theme import (
     table_style_cell,
     table_active_cell_conditional,
 )
-from entropylab.results_backend.sqlalchemy.project import project_name, project_path
+from entropylab.pipeline.results_backend.sqlalchemy.project import (
+    project_name,
+    project_path,
+)
 
 REFRESH_INTERVAL_IN_MILLIS = 3000
 

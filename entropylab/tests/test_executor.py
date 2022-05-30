@@ -2,12 +2,12 @@ from datetime import datetime
 
 import pytest
 
-from entropylab.api.data_writer import PlotSpec
-from entropylab.api.execution import EntropyContext
-from entropylab.api.plot import CirclePlotGenerator, LinePlotGenerator
-from entropylab.instruments.lab_topology import LabResources, ExperimentResources
-from entropylab.results_backend.sqlalchemy.db import SqlAlchemyDB
-from entropylab.script_experiment import Script, script_experiment
+from entropylab.pipeline.api.data_writer import PlotSpec
+from entropylab.pipeline.api.execution import EntropyContext
+from entropylab.pipeline.api.plot import CirclePlotGenerator, LinePlotGenerator
+from entropylab.components.lab_topology import LabResources, ExperimentResources
+from entropylab.pipeline.results_backend.sqlalchemy.db import SqlAlchemyDB
+from entropylab.pipeline.script_experiment import Script, script_experiment
 from entropylab.tests.mock_instruments import MockScope
 
 

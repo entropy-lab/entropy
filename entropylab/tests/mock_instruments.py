@@ -1,4 +1,4 @@
-from entropylab.instruments.instrument_driver import Resource
+from entropylab.components.instrument_driver import Resource
 
 
 class MockScope(Resource):

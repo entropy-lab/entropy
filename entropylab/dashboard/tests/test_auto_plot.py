@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 from plotly import graph_objects as go
 
-from entropylab.api.data_reader import FigureRecord
-from entropylab.api.errors import EntropyError
+from entropylab.pipeline.api.data_reader import FigureRecord
+from entropylab.pipeline.api.errors import EntropyError
 from entropylab.dashboard.pages.results.auto_plot import auto_plot
 
 

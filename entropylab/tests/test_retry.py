@@ -1,5 +1,5 @@
 from entropylab import PyNode, Graph
-from entropylab.api.graph import RetryBehavior
+from entropylab.pipeline.api.graph import RetryBehavior
 from entropylab.logger import logger
 
 counter = 1

@@ -1,7 +1,7 @@
 from dash import Dash, html, dcc, callback, Output, Input
 
 from entropylab import SqlAlchemyDB
-from entropylab.api.in_process_param_store import InProcessParamStore
+from entropylab.pipeline.api.in_process_param_store import InProcessParamStore
 from entropylab.dashboard.pages import results, params
 from entropylab.dashboard.pages.results.dashboard_data import (
     SqlalchemyDashboardDataReader,
@@ -9,7 +9,7 @@ from entropylab.dashboard.pages.results.dashboard_data import (
 from entropylab.dashboard.theme import (
     theme_stylesheet,
 )
-from entropylab.results_backend.sqlalchemy.project import (
+from entropylab.pipeline.results_backend.sqlalchemy.project import (
     project_name,
     project_path,
     param_store_path,

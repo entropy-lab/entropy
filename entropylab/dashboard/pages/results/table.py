@@ -35,15 +35,12 @@ def table(records):
         style_header=table_style_header,
         style_cell=table_style_cell,
         style_cell_conditional=[
-            {"if": {"column_id": "id"}, "width": "7%"},
-            {"if": {"column_id": "label"}, "width": "30%"},
-            {
-                "if": {"column_id": "start_time"},
-                "width": "18%",
-            },
-            {"if": {"column_id": "end_time"}, "width": "18%"},
-            {"if": {"column_id": "user"}, "width": "17%"},
-            {"if": {"column_id": "success"}, "width": "10%"},
+            {"if": {"column_id": "id"}, "width": "9%"},
+            {"if": {"column_id": "label"}, "width": "20%"},
+            {"if": {"column_id": "start_time"}, "width": "26%"},
+            {"if": {"column_id": "end_time"}, "width": "26%"},
+            {"if": {"column_id": "user"}, "width": "13%"},
+            {"if": {"column_id": "success"}, "width": "6%"},
         ],
         style_data_conditional=[
             {

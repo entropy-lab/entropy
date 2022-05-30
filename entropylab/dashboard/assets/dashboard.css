@@ -135,7 +135,7 @@ input.current-page::placeholder {
 }
 
 #add-button {
-  margin-top: 45px;
+  /* margin-top: 45px; */
   font-size:12px;
 }
 

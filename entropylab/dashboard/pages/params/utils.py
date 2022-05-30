@@ -23,7 +23,7 @@ def param_store_to_commits_df(ps: ParamStore):
     for commit in commit_list:
         ids.append(commit.id)
         labels.append(commit.label)
-        times.append(pd.Timestamp(commit.ns, unit="ns").strftime("%Y-%m-%d %X"))
+        times.append(pd.Timestamp(commit.timestamp, unit="ns").strftime("%Y-%m-%d %X"))
     return pd.DataFrame(
         {"commit_id": ids, "commit_label": labels, "commit_time": times}
     )

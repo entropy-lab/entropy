@@ -6,17 +6,19 @@ Create Date: 2022-05-19 09:12:01.569825+00:00
 
 """
 
-# revision identifiers, used by Alembic.
 import logging
 import os
 import shutil
 
 from alembic import op
 
-from entropylab.api.errors import EntropyError
-from entropylab.api.in_process_param_store import migrate_param_store_0_1_to_0_2
-from entropylab.results_backend.sqlalchemy.project import param_store_file_path
+from entropylab.pipeline.api.errors import EntropyError
+from entropylab.pipeline.api.in_process_param_store import (
+    migrate_param_store_0_1_to_0_2,
+)
+from entropylab.pipeline.results_backend.sqlalchemy.project import param_store_file_path
 
+# revision identifiers, used by Alembic.
 revision = "06140c96c8c4"
 down_revision = "9ffd2ba0d5bf"
 branch_labels = None

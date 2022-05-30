@@ -5,19 +5,19 @@ import pytest
 from sqlalchemy import create_engine
 
 from entropylab import SqlAlchemyDB, RawResultData
-from entropylab.api.data_writer import Metadata
-from entropylab.api.errors import EntropyError
-from entropylab.api.in_process_param_store import InProcessParamStore
 from entropylab.conftest import _copy_template
 from entropylab.logger import logger
-from entropylab.results_backend.sqlalchemy.db_initializer import (
+from entropylab.pipeline.api.data_writer import Metadata
+from entropylab.pipeline.api.errors import EntropyError
+from entropylab.pipeline.api.in_process_param_store import InProcessParamStore
+from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import (
     _ENTROPY_DIRNAME,
     _DB_FILENAME,
     _HDF5_DIRNAME,
     _DbUpgrader,
 )
-from entropylab.results_backend.sqlalchemy.project import param_store_file_path
-from entropylab.results_backend.sqlalchemy.storage import HDF5Storage
+from entropylab.pipeline.results_backend.sqlalchemy.project import param_store_file_path
+from entropylab.pipeline.results_backend.sqlalchemy.storage import HDF5Storage
 
 
 def test_upgrade_db_when_path_to_project_does_not_exist():

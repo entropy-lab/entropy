@@ -1,4 +1,5 @@
 import dash_bootstrap_components as dbc
+import pkg_resources
 from dash import html, dcc
 
 from entropylab.dashboard.pages.results.dashboard_data import (
@@ -77,6 +78,7 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                                     id="project-name",
                                     style={"fontSize": "11px"},
                                 ),
+                                html.Div(f"entropylab version: {pkg_resources.get_distribution('entropylab').version}")
                             ],
                             width="4",
                         ),
@@ -105,25 +107,23 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                     color="primary",
                 ),
             ),
-            dbc.Row(
+            dbc.Row([
                 dbc.Col(
                     [
                         html.H5("Experiments", id="experiments-title"),
                         (table(records)),
                         html.Div(id="no-paging-spacer"),
                     ],
-                    width="12",
-                )
-            ),
-            dbc.Row(
-                [
+                    width="4",
+                ),
+                dbc.Col([
                     dbc.Col(
                         (
                             dbc.Tabs(
                                 id="plot-tabs",
                             ),
                         ),
-                        width="5",
+                        width="8",
                     ),
                     dbc.Col(
                         html.Div(
@@ -156,7 +156,7 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                                         title="Copy data to clipboard",
                                         id="aggregate-clipboard",
                                         className="position-absolute start-0 top-0 "
-                                        "h-100 w-100 opacity-0",
+                                                  "h-100 w-100 opacity-0",
                                     ),
                                 ],
                                 id="copy-data-button",
@@ -164,15 +164,76 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                             ),
                         ],
                         id="aggregate-container",
-                        width="5",
+                        width="8",
                     ),
-                    dbc.Col(
+                    dbc.Row(
                         [
                             html.Div("<< Remove", id="remove-title"),
                             html.Div(id="remove-buttons"),
                         ],
-                        width="1",
+
                     ),
+
+                ]), ]
+            ),
+            # dbc.Row(
+            #     [
+            #         dbc.Col(
+            #             (
+            #                 dbc.Tabs(
+            #                     id="plot-tabs",
+            #                 ),
+            #             ),
+            #             width="5",
+            #         ),
+            #         dbc.Col(
+            #             html.Div(
+            #                 dbc.Button(
+            #                     "Add >>",
+            #                     id="add-button",
+            #                 ),
+            #                 className="add-button-col-container",
+            #             ),
+            #             width="1",
+            #             className="add-button-col",
+            #         ),
+            #         dbc.Col(
+            #             [
+            #                 dbc.Tabs(
+            #                     id="aggregate-tabs",
+            #                     children=[
+            #                         dbc.Tab(
+            #                             "",
+            #                             label="Aggregate",
+            #                             id="aggregate-tab",
+            #                         )
+            #                     ],
+            #                     persistence=True,
+            #                 ),
+            #                 dbc.Button(
+            #                     [
+            #                         "Copy Data to Clipboard",
+            #                         dcc.Clipboard(
+            #                             title="Copy data to clipboard",
+            #                             id="aggregate-clipboard",
+            #                             className="position-absolute start-0 top-0 "
+            #                             "h-100 w-100 opacity-0",
+            #                         ),
+            #                     ],
+            #                     id="copy-data-button",
+            #                     color="primary",
+            #                 ),
+            #             ],
+            #             id="aggregate-container",
+            #             width="5",
+            #         ),
+            #         dbc.Col(
+            #             [
+            #                 html.Div("<< Remove", id="remove-title"),
+            #                 html.Div(id="remove-buttons"),
+            #             ],
+            #             width="1",
+            #         ),
                 ]
             ),
             # Disabled temporarily. See ../../assets/custom-script.js for details.
@@ -188,5 +249,5 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
             #     labelStyle={"display": "flex"},
             #     id="success-filter-checklist",
             # ),
-        ],
-    )
+    #     ],
+    # )

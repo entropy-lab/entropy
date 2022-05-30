@@ -7,7 +7,7 @@ from entropylab.dashboard.theme import (
     table_style_cell,
 )
 
-EXPERIMENTS_PAGE_SIZE = 6
+EXPERIMENTS_PAGE_SIZE = 36
 
 
 def table(records):
@@ -19,7 +19,7 @@ def table(records):
             dict(name="start_time", id="start_time", type="datetime"),
             dict(name="end_time", id="end_time", type="datetime"),
             dict(name="user", id="user", type="text"),
-            dict(name="success", id="success"),
+            # dict(name="success", id="success"),
         ],
         data=records,
         persistence=True,

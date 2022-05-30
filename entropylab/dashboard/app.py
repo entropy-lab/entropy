@@ -1,7 +1,6 @@
 from dash import Dash, html, dcc, callback, Output, Input
 
 from entropylab import SqlAlchemyDB
-from entropylab.pipeline.api.in_process_param_store import InProcessParamStore
 from entropylab.dashboard.pages import results, params
 from entropylab.dashboard.pages.results.dashboard_data import (
     SqlalchemyDashboardDataReader,
@@ -9,6 +8,8 @@ from entropylab.dashboard.pages.results.dashboard_data import (
 from entropylab.dashboard.theme import (
     theme_stylesheet,
 )
+from entropylab.logger import logger
+from entropylab.pipeline.api.in_process_param_store import InProcessParamStore
 from entropylab.pipeline.results_backend.sqlalchemy.project import (
     project_name,
     project_path,
@@ -38,7 +39,15 @@ def build_dashboard_app(proj_path):
     """ Initializing data sources """
 
     dashboard_data_reader = SqlalchemyDashboardDataReader(SqlAlchemyDB(proj_path))
-    param_store = InProcessParamStore(param_store_file_path(proj_path))
+    # noinspection PyBroadException
+    try:
+        param_store_file = param_store_file_path(proj_path)
+        param_store = InProcessParamStore(param_store_file)
+    except BaseException as e:
+        logger.exception(
+            f"Exception when loading ParamStore file at '{param_store_file}'"
+        )
+        raise e
 
     """ Building page layouts """
 

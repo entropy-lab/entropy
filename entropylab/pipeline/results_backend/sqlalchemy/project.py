@@ -40,3 +40,7 @@ def hdf5_dir_path(prj_path: str) -> Path:
 
 def param_store_file_path(prj_path: str) -> Path:
     return project_path(prj_path).joinpath(".entropy", "params.json")
+
+
+def dashboard_log_path(prj_path: str) -> Path:
+    return project_path(prj_path).joinpath(".entropy", "dashboard.log")

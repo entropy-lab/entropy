@@ -17,9 +17,9 @@ from tinydb import TinyDB, Query
 from tinydb.storages import MemoryStorage, Storage
 from tinydb.table import Document
 
+from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.param_store import ParamStore, MergeStrategy
-from entropylab.logger import logger
 
 INFO_DOC_ID = 1
 INFO_TABLE = "info"
@@ -113,6 +113,11 @@ class InProcessParamStore(ParamStore):
             self.__is_in_memory_mode = False
             if isinstance(path, Path):
                 path = str(path)
+            if not os.path.isfile(path):
+                logger.debug(
+                    f"Could not find a ParamStore JSON file at '{path}'. "
+                    f"A new, empty file will be created."
+                )
             self.__db = TinyDB(path, storage=JSONPickleStorage)
         if theirs is not None:
             self.merge(theirs, merge_strategy)

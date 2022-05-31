@@ -1,0 +1,1 @@
+The results GUI is a web interface for viewing measurement results. 

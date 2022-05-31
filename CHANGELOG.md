@@ -75,7 +75,7 @@ a first implementation of this tool.
 
 ## [0.3.0] - 2021-10-11
 ### Added
-* Entropy now is also a CLI utility see doc [here](docs/cli.md).
+* Entropy now is also a CLI utility see doc [here](entropylab/cli/cli.md).
 * CLI utility to help upgrade the entropy project. 
 ### Changed
 * Entropy project is now a directory with `.entropy` subdirectory with all entropy specific information.

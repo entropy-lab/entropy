@@ -1,0 +1,24 @@
+{
+  "name": "CalibrateSystem",
+  "description": "Makes sure that system is calibrated",
+  "command": "python3",
+  "bin": "calibrate.py",
+  "dependancies": [],
+  "icon": "bootstrap/gear-fill.svg",
+  "inputs": [
+    {
+      "description": {
+        "instrumentAddress": "instrument IP address for calibration"
+      },
+      "units": { "instrumentAddress": "IP address" },
+      "type": { "instrumentAddress": 1 }
+    }
+  ],
+  "outputs": [
+    {
+      "description": { "calibration_status": "Calibration status" },
+      "units": { "calibration_status": "calibrated, uncalibrated" },
+      "retention": { "calibration_status": 0 }
+    }
+  ]
+}

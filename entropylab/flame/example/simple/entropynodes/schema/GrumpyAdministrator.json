@@ -1,0 +1,25 @@
+{
+  "name": "GrumpyAdministrator",
+  "description": "divides task lisk and sends them to others",
+  "command": "python3",
+  "bin": "grumpy_administrator.py",
+  "dependancies": [],
+  "icon": "bootstrap/person-lines-fill.svg",
+  "inputs": [
+    {
+      "description": {
+        "customers": "all customers we have today",
+        "clerk_salary": "workforce demands"
+      },
+      "units": { "customers": "list of strings", "clerk_salary": "k$" },
+      "type": { "customers": 1, "clerk_salary": 1 }
+    }
+  ],
+  "outputs": [
+    {
+      "description": { "clerk_request": "notifies connected clerk to do work" },
+      "units": { "clerk_request": "string" },
+      "retention": { "clerk_request": 0 }
+    }
+  ]
+}

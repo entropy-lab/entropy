@@ -1,0 +1,37 @@
+{
+  "name": "QPUcircuitRunner",
+  "description": "Executes given circuit sequence",
+  "command": "python3",
+  "bin": "circuitExec.py",
+  "dependancies": [],
+  "icon": "bootstrap/cpu.svg",
+  "inputs": [
+    {
+      "description": {
+        "circuit_param": "cirucuit description",
+        "error_correction": "corrected data"
+      },
+      "units": { "circuit_param": "JSON", "error_correction": "JSON" },
+      "type": { "circuit_param": 2, "error_correction": 2 }
+    }
+  ],
+  "outputs": [
+    {
+      "description": {
+        "precorrected_data": "data send for error correction",
+        "circuit_finished": "Event trigger",
+        "final_data": "circuit averaged output"
+      },
+      "units": {
+        "precorrected_data": "JSON",
+        "circuit_finished": "bool",
+        "final_data": "bool"
+      },
+      "retention": {
+        "precorrected_data": 2,
+        "circuit_finished": 0,
+        "final_data": 2
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "name": "FinalDataAnalysis",
+  "description": "Final fitting and plotting",
+  "command": "python3",
+  "bin": "plot.py",
+  "dependancies": [],
+  "icon": "bootstrap/file-bar-graph.svg",
+  "inputs": [
+    {
+      "description": { "data": "experiment results" },
+      "units": { "data": "JSON" },
+      "type": { "data": 2 }
+    }
+  ],
+  "outputs": [
+    {
+      "description": {
+        "estimated_parameter": "final result",
+        "final_plot": "to-do"
+      },
+      "units": { "estimated_parameter": "MHz", "final_plot": "png" },
+      "retention": { "estimated_parameter": 2, "final_plot": 2 }
+    }
+  ]
+}

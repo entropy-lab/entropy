@@ -1,0 +1,84 @@
+from entropylab.flame.inputs import Inputs
+from entropylab.flame.workflow import Workflow
+
+__all__=["{{name}}"]
+
+class {{name}}(object):
+
+    
+    def __init__(self, workflow_node_unique_name{% for key, value in inputdescription.items() %},
+        {{key}}=None{% endfor%}):
+        """{{description}}
+        {% for key, value in inputdescription.items() %}
+        :param {{key}}: ({{inputunits[key]}} - {{inputtype[key]}}) {{value}}{% endfor %}
+        """
+        self._command = "{{command}}"
+        self._bin = "{{bin}}"
+        self._name = workflow_node_unique_name
+        self._icon = "{{node_icon}}"
+        self._inputs = _Inputs({% for key, value in inputdescription.items() %}
+        {{key}}={{key}},{% endfor%})
+        self._outputs = _Outputs(self._name)
+        self._host = {}
+        Workflow._register_node(self)  # register the node in the workflow context
+
+
+    def host(self, **kwargs):
+        """Sets additional options for execution on the host."""
+        for key, value in kwargs.items():
+            self._host[key] = value
+        return self
+
+
+    @property
+    def i(self):
+        """Node inputs"""
+        return self._inputs
+
+
+    @property
+    def o(self):
+        """Node outputs"""
+        return self._outputs
+
+
+class _Inputs(object):
+
+    def __init__(self{% for key, value in inputdescription.items() %},
+        {{key}}=None{% endfor%}):
+        self._inputs = Inputs()
+        {% for key, value in inputdescription.items() %}
+        {% if inputtype[key]==STREAM %}self._inputs.stream("{{key}}", description="{{value}}", units="{{inputunits[key]}}")
+        {% else %}self._inputs.state("{{key}}", description="{{value}}", units="{{inputunits[key]}}")
+        {% endif %}self._inputs.set({{key}}={{key}})
+        {% endfor %}
+    
+    {% for key, value in inputdescription.items() %}
+    @property
+    def {{key}}(self):
+        """Input: {{value}} ({{inputunits[key]}})"""
+        return self._inputs.get("{{key}}")
+        
+    @{{key}}.setter
+    def {{key}}(self, value):
+        """Input: {{value}} ({{inputunits[key]}})"""
+        self._inputs.set({{key}}=value)
+    {% endfor %}
+
+class _Outputs(object):
+
+    def __init__(self, name):
+        self._name = name 
+        self._outputs = [{% for key, value in outputdescription.items() %}
+            "{{key}}",{% endfor %}]
+
+    {% for key, value in outputdescription.items() %}
+    @property
+    def {{key}}(self):
+        """Output: {{value}}
+        :return: ({{outputunits[key]}})
+        """
+        return "#" + self._name + "/{{key}}"
+    {% endfor %}
+    
+

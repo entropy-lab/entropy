@@ -1,0 +1,24 @@
+{
+  "name": "ExternalScan",
+  "description": "Sets and maintains instrument variables",
+  "command": "python3",
+  "bin": "externalScan.py",
+  "dependancies": [],
+  "icon": "bootstrap/sliders.svg",
+  "inputs": [
+    {
+      "description": {
+        "set_point": "node will execute only if it receives positive calibration status"
+      },
+      "units": { "set_point": "status" },
+      "type": { "set_point": 2 }
+    }
+  ],
+  "outputs": [
+    {
+      "description": { "setpoint_reached": "Trigger" },
+      "units": { "setpoint_reached": "bool" },
+      "retention": { "setpoint_reached": 0 }
+    }
+  ]
+}

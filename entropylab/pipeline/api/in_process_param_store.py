@@ -4,6 +4,7 @@ import copy
 import hashlib
 import json
 import os.path
+import shutil
 import threading
 import time
 from datetime import datetime
@@ -20,6 +21,12 @@ from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.param_store import ParamStore, MergeStrategy
 from entropylab.logger import logger
 
+INFO_DOC_ID = 1
+INFO_TABLE = "info"
+TEMP_DOC_ID = 1
+TEMP_TABLE = "temp"
+VERSION_KEY = "version"
+
 
 class Param(Dict):
     def __init__(self, value):
@@ -28,6 +35,52 @@ class Param(Dict):
 
     def __repr__(self):
         return f"<Param(value={self.value})>"
+
+
+class Metadata:
+    def __init__(self, d: Dict = None):
+        self.id: str = ""
+        self.timestamp: int = time.time_ns()  # time in nanoseconds since the Epoch
+        self.label: Optional[str] = None
+        if d:
+            self.__dict__.update(d)
+
+    def __repr__(self) -> str:
+        d = self.__dict__.copy()
+        d["timestamp"] = _ns_to_datetime(self.timestamp)
+        return f"<Metadata({_dict_to_json(d)})>"
+
+
+class JSONPickleStorage(Storage):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def read(self):
+        if not os.path.isfile(self.filename):
+            return None
+        with open(self.filename) as handle:
+            # noinspection PyBroadException
+            try:
+                s = handle.read()
+                data = jsonpickle.decode(s)
+                return data
+            except BaseException:
+                logger.exception(
+                    f"Exception decoding TinyDB JSON file '{self.filename}'"
+                )
+                return None
+
+    def write(self, data):
+        # noinspection PyBroadException
+        try:
+            with open(self.filename, "w+") as handle:
+                s = jsonpickle.encode(data)
+                handle.write(s)
+        except BaseException:
+            logger.exception(f"Exception encoding TinyDB JSON file '{self.filename}'")
+
+    def close(self):
+        pass
 
 
 class InProcessParamStore(ParamStore):
@@ -208,11 +261,10 @@ class InProcessParamStore(ParamStore):
 
     def __build_metadata(self, label: Optional[str] = None) -> Metadata:
         metadata = Metadata()
-        metadata.ns = time.time_ns()
         params_json = json.dumps(
             self.__params, sort_keys=True, ensure_ascii=True, default=vars
         )
-        commit_encoded = (params_json + str(metadata.ns)).encode("utf-8")
+        commit_encoded = (params_json + str(metadata.timestamp)).encode("utf-8")
         metadata.id = hashlib.sha1(commit_encoded).hexdigest()
         metadata.label = label
         return metadata
@@ -330,12 +382,12 @@ class InProcessParamStore(ParamStore):
         with self.__lock:
             values = []
             commits = self.__db.all()
-            commits.sort(key=lambda x: x["metadata"]["ns"])
+            commits.sort(key=lambda x: x["metadata"]["timestamp"])
             for commit in commits:
                 try:
                     value = (
                         commit["params"][key].value,
-                        _ns_to_datetime(commit["metadata"]["ns"]),
+                        _ns_to_datetime(commit["metadata"]["timestamp"]),
                         commit["metadata"]["id"],
                         commit["metadata"]["label"],
                     )
@@ -390,7 +442,7 @@ class InProcessParamStore(ParamStore):
         Saves the state of params to a temporary location
         """
         with self.__lock:
-            table = self.__db.table("temp")
+            table = self.__db.table(TEMP_TABLE)
             doc = self.__build_document()
             table.upsert(Document(doc, doc_id=1))
 
@@ -400,7 +452,7 @@ class InProcessParamStore(ParamStore):
         location
         """
         with self.__lock:
-            table = self.__db.table("temp")
+            table = self.__db.table(TEMP_TABLE)
             doc = table.get(doc_id=1)
             if not doc:
                 raise EntropyError(
@@ -409,21 +461,6 @@ class InProcessParamStore(ParamStore):
             self.__params.clear()
             self.__params.update(doc["params"])
             self.__tags = doc["tags"]
-
-
-class Metadata:
-    id: str
-    ns: int
-    label: Optional[str]
-
-    def __init__(self, d: Dict = None):
-        if d:
-            self.__dict__.update(d)
-
-    def __repr__(self) -> str:
-        d = self.__dict__.copy()
-        d["ns"] = _ns_to_datetime(self.ns)
-        return f"<Metadata({_dict_to_json(d)})>"
 
 
 """ Static helper methods """
@@ -483,33 +520,88 @@ def _extract_param_values_in_place(d: Dict):
     _map_dict_in_place(lambda x: x.value, d)
 
 
-class JSONPickleStorage(Storage):
-    def __init__(self, filename):
-        self.filename = filename
+""" Migrations """
 
-    def read(self):
-        if not os.path.isfile(self.filename):
-            return None
-        with open(self.filename) as handle:
-            # noinspection PyBroadException
-            try:
-                s = handle.read()
-                data = jsonpickle.decode(s)
-                return data
-            except BaseException:
-                logger.exception(
-                    f"Exception decoding TinyDB JSON file '{self.filename}'"
+
+def migrate_param_store_0_1_to_0_2(path: str) -> None:
+    """
+    Backup and migrate an InProcessParamStore JSON file from storing values to storing
+    Params containing the values. Preserves commits, timestamps and ids.
+
+    :param path: path to an existing JSON TinyDB file containing params.
+    """
+    old_version = "0.1"
+    new_version = "0.2"
+
+    _check_version(path, old_version, new_version)
+    backup_path = _backup_file(path)
+    with TinyDB(backup_path) as old_db:
+        old_commits = old_db.all()
+        old_temp = old_db.table(TEMP_TABLE).get(doc_id=TEMP_DOC_ID)
+    with TinyDB(path, storage=JSONPickleStorage) as new_db:
+        for old_commit in old_commits:
+            new_commit = copy.deepcopy(old_commit)
+            _wrap_params(new_commit)
+            _rename_ns(new_commit)
+            new_db.insert(new_commit)
+        if old_temp:
+            new_temp = copy.deepcopy(old_temp)
+            _wrap_params(new_temp)
+            _rename_ns(new_temp)
+            new_db.table(TEMP_TABLE).insert(new_temp)
+        _set_version(new_db, new_version)
+
+
+def _backup_file(path):
+    backup_path = path.replace(".json", ".bak.json")
+    shutil.move(path, backup_path)
+    return backup_path
+
+
+def _wrap_params(new_commit):
+    params = new_commit["params"]
+    for key in params.keys():
+        value = params[key]
+        if not isinstance(value, Param):
+            params[key] = Param(value)
+    # _map_dict_in_place(lambda val: Param(val), new_doc["params"])
+    new_commit["params"] = params
+
+
+def _rename_ns(new_commit):
+    timestamp = new_commit["metadata"]["ns"]
+    del new_commit["metadata"]["ns"]
+    new_commit["metadata"]["timestamp"] = timestamp
+
+
+def _set_version(db: TinyDB, version: str):
+    info_table = db.table(INFO_TABLE)
+    info_doc = info_table.get(doc_id=INFO_DOC_ID)
+    if info_doc:
+        info_doc[VERSION_KEY] = version
+    else:
+        info_table.insert(dict(VERSION_KEY=version))
+
+
+def _get_version(db: TinyDB):
+    if INFO_TABLE in db.tables():
+        info_table = db.table(INFO_TABLE)
+        info_doc = info_table.get(doc_id=INFO_DOC_ID)
+        return info_doc[VERSION_KEY]
+    return "0.1"
+
+
+def _check_version(path: str, old_version: str, new_version: str):
+    if os.path.isfile(path):
+        with TinyDB(path) as old_db:
+            actual_version = _get_version(old_db)
+            if actual_version != old_version:
+                raise EntropyError(
+                    f"Cannot migrate file '{path}' from version {actual_version} to "
+                    f"version {new_version}"
                 )
-                return None
-
-    def write(self, data):
-        # noinspection PyBroadException
-        try:
-            with open(self.filename, "w+") as handle:
-                s = jsonpickle.encode(data)
-                handle.write(s)
-        except BaseException:
-            logger.exception(f"Exception encoding TinyDB JSON file '{self.filename}'")
-
-    def close(self):
-        pass
+    else:
+        raise EntropyError(
+            f"Cannot migrate file '{path}' to version {new_version} because the file "
+            "does not exist"
+        )

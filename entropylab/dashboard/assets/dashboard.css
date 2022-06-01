@@ -181,3 +181,18 @@ input.current-page::placeholder {
   width: 220px;
   text-align: right;
 }
+
+
+#footer-links div {
+  text-align: center !important;
+}
+
+#footer-links div a {
+  color: white;
+  text-decoration: none;
+}
+
+#footer-links div  a:hover {
+  color: white;
+  text-decoration: underline;
+}

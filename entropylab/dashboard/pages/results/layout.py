@@ -132,18 +132,13 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                                             id="plot-tabs",
                                         ),
                                     ]
-                                    # width="8",
                                 ),
                                 dbc.Row(
-                                    html.Div(
-                                        dbc.Button(
-                                            "Add Plot to Aggregate View",
-                                            id="add-button",
-                                        ),
-                                        className="add-button-col-container",
+                                    dbc.Button(
+                                        "➕ Add Plot to Aggregate View",
+                                        id="add-button",
                                     ),
-                                    # width="1",
-                                    className="add-button-col",
+                                    className="add-button-container",
                                 ),
                                 dbc.Row(
                                     [
@@ -163,13 +158,13 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                                         ),
                                         dbc.Button(
                                             [
-                                                "Copy Data to Clipboard",
+                                                " Copy Data to Clipboard",
                                                 dcc.Clipboard(
                                                     title="Copy data to clipboard",
                                                     id="aggregate-clipboard",
                                                     className="position-absolute "
-                                                    "start-0 top-0 "
-                                                    "h-100 w-100 opacity-0",
+                                                    # "start-0 top-0 "
+                                                    # "h-100 w-100 opacity-0",
                                                 ),
                                             ],
                                             id="copy-data-button",
@@ -177,12 +172,11 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                                         ),
                                     ],
                                     id="aggregate-container",
-                                    # width="8",
                                 ),
                                 dbc.Row(
                                     [
                                         html.Div(
-                                            "Remove Plots from Aggregate View",
+                                            "Click to remove from Aggregate View:",
                                             id="remove-title",
                                         ),
                                         html.Div(id="remove-buttons"),

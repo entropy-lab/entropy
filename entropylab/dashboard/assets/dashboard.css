@@ -123,32 +123,25 @@ input.current-page::placeholder {
   height: 450px;
 }
 
-.add-button-col {
-  display: table;
-  overflow: hidden;
-}
-
-.add-button-col-container {
-  display: table-cell;
-  vertical-align: middle;
-  text-align: center;
+.add-button-container {
+  margin-top:20px;
+  display: flex
+  align-items: center;
+  justify-content: center;
 }
 
 #add-button {
-  /* margin-top: 45px; */
-  font-size:12px;
+  width: 300px;
 }
 
 #remove-title {
-  margin-top:40px;
-  font-size:12px;
+  margin-top:20px;
 }
 
 .remove-button {
   width: 70px;
   margin: 4px;
   border-color: #666666;
-  font-size:12px;
 }
 
 .remove-button:hover {
@@ -175,9 +168,16 @@ input.current-page::placeholder {
   width:154px;
 }
 
+#aggregate-clipboard {
+  position: absolute;
+  top: 5px;
+  left: 20px;
+}
+
 #copy-data-button {
   position: absolute;
-  top: 3px;
-  left: 240px;
-  font-size:12px;
+  top: 20px;
+  right: 0px;
+  width: 220px;
+  text-align: right;
 }

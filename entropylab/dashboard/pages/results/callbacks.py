@@ -10,13 +10,13 @@ from dash.dependencies import Input, Output, State, ALL
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 
-from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
-from entropylab.pipeline.api.errors import EntropyError
 from entropylab.dashboard.theme import (
     colors,
     dark_plot_layout,
 )
 from entropylab.logger import logger
+from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
+from entropylab.pipeline.api.errors import EntropyError
 
 REFRESH_INTERVAL_IN_MILLIS = 3000
 EXPERIMENTS_PAGE_SIZE = 6
@@ -274,7 +274,7 @@ def register_callbacks(app, dashboard_data_reader):
 
     def build_remove_button(plot_id, color):
         return dbc.Button(
-            f"{plot_id} ✖️",
+            f" ✖️ {plot_id}",
             style={"background-color": color},
             class_name="remove-button",
             id={"type": "remove-button", "index": plot_id},

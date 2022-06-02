@@ -49,7 +49,9 @@ def top_bar(path: str):
                                     )
                                 )
                             ),
-                            dbc.Col(dbc.NavItem(dbc.NavLink("Params", href="/params"))),
+                            dbc.Col(
+                                dbc.NavItem(dbc.NavLink("🧮 Params", href="/params"))
+                            ),
                         ]
                     ),
                     width="6",

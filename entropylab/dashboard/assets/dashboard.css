@@ -13,6 +13,11 @@ html,body {
 /* Top bar nav items */
 .navbar .nav-item .nav-link {
   color: var(--bg-primary) !important;
+  font-size: 24px;
+}
+
+.navbar .nav-item .nav-link.active {
+  font-weight: 900 !important;
 }
 
 #logo-col {
@@ -23,11 +28,18 @@ html,body {
 #project-name {
   font-family: monospace !important;
   font-weight: 900 !important;
-  font-size: 24px;
+  font-size: 28px;
 }
 
-#experiments-title {
+
+#experiments-title,
+#plots-title {
   margin-top:20px;
+}
+
+#experiments-table {
+  height: 1100px;
+  overflow-y: auto;
 }
 
 /* "success" column filter */
@@ -83,10 +95,6 @@ html,body {
   background-color: var(--bs-secondary);
 }
 
-#no-paging-spacer {
-  height:40px
-}
-
 input.current-page::placeholder {
   color: var(--bs-body-color) !important;
 }
@@ -138,10 +146,17 @@ input.current-page::placeholder {
   margin-top:20px;
 }
 
+.remove-button-label {
+}
+
 .remove-button {
-  width: 70px;
+  width: 90px;
+  height: 60px;
   margin: 4px;
   border-color: #666666;
+  display: flex
+  align-items: center;
+  justify-content: center;
 }
 
 .remove-button:hover {

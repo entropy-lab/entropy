@@ -63,7 +63,6 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                             [
                                 html.H5("Experiments", id="experiments-title"),
                                 (table(records)),
-                                html.Div(id="no-paging-spacer"),
                             ],
                             width="5",
                         ),
@@ -71,9 +70,7 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                             [
                                 dbc.Row(
                                     [
-                                        html.H5(
-                                            "Plots and Figures", id="experiments-title"
-                                        ),
+                                        html.H5("Plots and Figures", id="plots-title"),
                                         dbc.Tabs(
                                             id="plot-tabs",
                                         ),
@@ -131,7 +128,7 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                             ],
                             width="7",
                         ),
-                    ]
+                    ],
                 ),
                 footer(),
             ],

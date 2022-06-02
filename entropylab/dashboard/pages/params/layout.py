@@ -30,14 +30,6 @@ def build_layout(path: str, param_store: ParamStore):
             ),
             top_bar(path),
             dbc.Row(
-                dbc.Col(
-                    [
-                        html.H5("Params", id="params-title"),
-                    ],
-                    width="12",
-                )
-            ),
-            dbc.Row(
                 children=[
                     dbc.Col(
                         [

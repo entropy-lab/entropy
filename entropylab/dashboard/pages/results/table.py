@@ -7,8 +7,6 @@ from entropylab.dashboard.theme import (
     table_style_cell,
 )
 
-EXPERIMENTS_PAGE_SIZE = 36
-
 
 def table(records):
     tbl = dash_table.DataTable(
@@ -28,8 +26,6 @@ def table(records):
         cell_selectable=False,
         sort_action="native",
         filter_action="native",
-        page_action="native",
-        page_size=EXPERIMENTS_PAGE_SIZE,
         style_data=table_style_data,
         style_filter=table_style_filter,
         style_header=table_style_header,

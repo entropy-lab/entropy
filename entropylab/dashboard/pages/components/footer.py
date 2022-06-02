@@ -14,7 +14,7 @@ def footer():
             dbc.Col(
                 dbc.Row(
                     children=[
-                        dbc.Col(f"Entropylab v{version}", width=3),
+                        dbc.Col(f"Entropylab v{version}", width=4),
                         dbc.Col(" · ", width=1),
                         dbc.Col(
                             dbc.Row(
@@ -48,11 +48,11 @@ def footer():
                                 ],
                                 id="footer-links",
                             ),
-                            width=8,
+                            width=7,
                         ),
                     ]
                 ),
-                width=dict(size=6, offset=3),
+                width=dict(size=4, offset=4),
             ),
         ],
         style=dict(marginTop="40px", marginBottom="40px"),

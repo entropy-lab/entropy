@@ -34,14 +34,15 @@ class Param(Dict):
     def __init__(self, value):
         super().__init__()
         self.value = value
+        self.commit_id = None
 
     def __repr__(self):
-        return f"<Param(value={self.value})>"
+        return f"<Param(value={self.value}, commit_id={self.commit_id})>"
 
 
 class Metadata:
     def __init__(self, d: Dict = None):
-        self.id: str = ""
+        self.id: str = ""  # commit_id
         self.timestamp: int = time.time_ns()  # time in nanoseconds since the Epoch
         self.label: Optional[str] = None
         if d:
@@ -256,6 +257,7 @@ class InProcessParamStore(ParamStore):
             if not self.__is_dirty:
                 return self.__base_commit_id
             commit_id = self.__generate_commit_id()
+            self.__stamp_dirty_params_with_commit_id(commit_id)
             doc = self.__build_document(commit_id, label)
             doc_id = self.__db.insert(doc)
             self.__base_commit_id = doc["metadata"]["id"]
@@ -264,6 +266,11 @@ class InProcessParamStore(ParamStore):
             self.__dirty_keys.clear()
             return doc["metadata"]["id"]
 
+    def __stamp_dirty_params_with_commit_id(self, commit_id: str):
+        for key in self.__dirty_keys:
+            if key in self.__params:
+                self.__params[key].commit_id = commit_id
+
     @staticmethod
     def __generate_commit_id():
         random_string = "".join(
@@ -271,7 +278,15 @@ class InProcessParamStore(ParamStore):
         ).encode("utf-8")
         return hashlib.sha1(random_string).hexdigest()
 
-    def __build_document(self, commit_id: str, label: Optional[str] = None) -> dict:
+    def __build_document(
+        self, commit_id: Optional[str] = None, label: Optional[str] = None
+    ) -> dict:
+        """
+        builds a document to be saved as a commit/temp in TinyDB.
+        :param commit_id: is None when saving to temp.
+        :param label: an optional label to associate the commit with.
+        :return: a dictionary describing the current state of the ParamStore
+        """
         metadata = self.__build_metadata(commit_id, label)
         if self.__is_in_memory_mode:
             params = copy.deepcopy(self.__params)
@@ -280,7 +295,9 @@ class InProcessParamStore(ParamStore):
         return dict(metadata=metadata.__dict__, params=params, tags=self.__tags)
 
     @staticmethod
-    def __build_metadata(commit_id: str, label: Optional[str] = None) -> Metadata:
+    def __build_metadata(
+        commit_id: Optional[str] = None, label: Optional[str] = None
+    ) -> Metadata:
         metadata = Metadata()
         metadata.id = commit_id
         metadata.timestamp = time.time_ns()
@@ -382,7 +399,7 @@ class InProcessParamStore(ParamStore):
                 ):
                     """This is a special case where the values of the Params are both
                     dictionaries. In this case we merge the dictionary from b into the
-                    dictionary from b using the given strategy"""
+                    dictionary from a using the given strategy."""
                     a_has_changed = a_has_changed or self.__merge_trees(
                         a[key], b[key], merge_strategy
                     )
@@ -479,8 +496,7 @@ class InProcessParamStore(ParamStore):
         """
         with self.__lock:
             table = self.__db.table(TEMP_TABLE)
-            commit_id = self.__generate_commit_id()
-            doc = self.__build_document(commit_id)
+            doc = self.__build_document()
             table.upsert(Document(doc, doc_id=1))
 
     def load_temp(self) -> None:

@@ -5,10 +5,12 @@ import hashlib
 import json
 import os.path
 import shutil
+import string
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
+from random import SystemRandom
 from typing import Optional, Dict, Any, List, Callable, Set
 
 import jsonpickle as jsonpickle
@@ -253,7 +255,8 @@ class InProcessParamStore(ParamStore):
         with self.__lock:
             if not self.__is_dirty:
                 return self.__base_commit_id
-            doc = self.__build_document(label)
+            commit_id = self.__generate_commit_id()
+            doc = self.__build_document(commit_id, label)
             doc_id = self.__db.insert(doc)
             self.__base_commit_id = doc["metadata"]["id"]
             self.__base_doc_id = doc_id
@@ -261,21 +264,26 @@ class InProcessParamStore(ParamStore):
             self.__dirty_keys.clear()
             return doc["metadata"]["id"]
 
-    def __build_document(self, label: Optional[str] = None) -> dict:
-        metadata = self.__build_metadata(label)
+    @staticmethod
+    def __generate_commit_id():
+        random_string = "".join(
+            SystemRandom().choice(string.printable) for _ in range(32)
+        ).encode("utf-8")
+        return hashlib.sha1(random_string).hexdigest()
+
+    def __build_document(self, commit_id: str, label: Optional[str] = None) -> dict:
+        metadata = self.__build_metadata(commit_id, label)
         if self.__is_in_memory_mode:
             params = copy.deepcopy(self.__params)
         else:
             params = self.__params
         return dict(metadata=metadata.__dict__, params=params, tags=self.__tags)
 
-    def __build_metadata(self, label: Optional[str] = None) -> Metadata:
+    @staticmethod
+    def __build_metadata(commit_id: str, label: Optional[str] = None) -> Metadata:
         metadata = Metadata()
-        params_json = json.dumps(
-            self.__params, sort_keys=True, ensure_ascii=True, default=vars
-        )
-        commit_encoded = (params_json + str(metadata.timestamp)).encode("utf-8")
-        metadata.id = hashlib.sha1(commit_encoded).hexdigest()
+        metadata.id = commit_id
+        metadata.timestamp = time.time_ns()
         metadata.label = label
         return metadata
 
@@ -471,7 +479,8 @@ class InProcessParamStore(ParamStore):
         """
         with self.__lock:
             table = self.__db.table(TEMP_TABLE)
-            doc = self.__build_document()
+            commit_id = self.__generate_commit_id()
+            doc = self.__build_document(commit_id)
             table.upsert(Document(doc, doc_id=1))
 
     def load_temp(self) -> None:

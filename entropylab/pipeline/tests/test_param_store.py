@@ -443,20 +443,14 @@ def test_list_commits_when_label_exists_then_it_is_returned(
     assert len(actual) == 3
 
 
-""" _generate_metadata() """
+""" __generate_commit_id() """
 
 
-def test__generate_metadata_empty_dict():
+def test__generate_commit_id():
     target = InProcessParamStore()
-    actual = target._InProcessParamStore__build_metadata()
-    assert len(actual.id) == 40
-
-
-def test__generate_metadata_nonempty_dict():
-    target = InProcessParamStore()
-    target["foo"] = "bar"
-    actual = target._InProcessParamStore__build_metadata()
-    assert len(actual.id) == 40
+    commit_id1 = target._InProcessParamStore__generate_commit_id()
+    commit_id2 = target._InProcessParamStore__generate_commit_id()
+    assert commit_id1 != commit_id2
 
 
 """ merge() MergeStrategy.OURS """

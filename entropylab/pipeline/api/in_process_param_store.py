@@ -9,7 +9,7 @@ import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Callable
+from typing import Optional, Dict, Any, List, Callable, Set
 
 import jsonpickle as jsonpickle
 import pandas as pd
@@ -105,6 +105,7 @@ class InProcessParamStore(ParamStore):
         self.__params: Dict[str, Param] = dict()  # where current params are stored
         self.__tags: Dict[str, List[str]] = dict()  # tags that are mapped to keys
         self.__is_dirty: bool = True  # can the store be committed at this time?
+        self.__dirty_keys: Set[str] = set()  # updated keys not committed yet
 
         if path is None:
             self.__is_in_memory_mode = True
@@ -155,6 +156,7 @@ class InProcessParamStore(ParamStore):
             with self.__lock:
                 self.__params.__setitem__(key, Param(value))
                 self.__is_dirty = True
+                self.__dirty_keys.add(key)
 
     def __getitem__(self, key: str) -> Any:
         with self.__lock:
@@ -162,9 +164,11 @@ class InProcessParamStore(ParamStore):
 
     def __delitem__(self, *args, **kwargs):
         with self.__lock:
+            key = args[0]
             self.__params.__delitem__(*args, **kwargs)
-            self.__remove_key_from_tags(args[0])
+            self.__remove_key_from_tags(key)
             self.__is_dirty = True
+            self.__dirty_keys.add(key)
 
     def __getattr__(self, key):
         try:
@@ -254,6 +258,7 @@ class InProcessParamStore(ParamStore):
             self.__base_commit_id = doc["metadata"]["id"]
             self.__base_doc_id = doc_id
             self.__is_dirty = False
+            self.__dirty_keys.clear()
             return doc["metadata"]["id"]
 
     def __build_document(self, label: Optional[str] = None) -> dict:
@@ -288,6 +293,7 @@ class InProcessParamStore(ParamStore):
             self.__base_commit_id = commit_id
             self.__base_doc_id = commit.doc_id
             self.__is_dirty = False
+            self.__dirty_keys.clear()
 
     def list_commits(self, label: Optional[str] = None) -> List[Metadata]:
         with self.__lock:
@@ -352,11 +358,12 @@ class InProcessParamStore(ParamStore):
     # TODO: a & b should be ParamStore (1st make ParamStore implement MutableMapping)
     def __merge_trees(
         self,
-        a: InProcessParamStore,
-        b: InProcessParamStore,
+        a: InProcessParamStore | Dict,
+        b: InProcessParamStore | Dict,
         merge_strategy: MergeStrategy,
-    ) -> ParamStore:
+    ) -> bool:
         """Merges `b` into `a` *in-place* using the given strategy"""
+        a_has_changed = False
         for key in b.keys():
             if key in a.keys():
                 if (
@@ -365,23 +372,39 @@ class InProcessParamStore(ParamStore):
                     and (not isinstance(b[key], Param))
                     and isinstance(b[key], dict)
                 ):
-                    self.__merge_trees(a[key], b[key], merge_strategy)
+                    """This is a special case where the values of the Params are both
+                    dictionaries. In this case we merge the dictionary from b into the
+                    dictionary from b using the given strategy"""
+                    a_has_changed = a_has_changed or self.__merge_trees(
+                        a[key], b[key], merge_strategy
+                    )
+                    if (
+                        a_has_changed
+                        and isinstance(a, ParamStore)
+                        and isinstance(b, ParamStore)
+                    ):
+                        """if the dictionary in a has been changed, this was done
+                        in-place. We therefore need mark the Param key as dirty. We only
+                        do this at the very top of the recursion - when a and b are the
+                        ParamStores being merged"""
+                        self.__is_dirty = True
+                        self.__dirty_keys.add(key)
                 elif a[key] == b[key]:
-                    pass  # same leaf value, nothing to do
-                else:  # conflict:
+                    pass  # same leaf values, nothing to do
+                else:  # diff leave values => conflict:
                     if merge_strategy == MergeStrategy.OURS:
                         pass  # a takes precedence, ignore b
                     elif merge_strategy == MergeStrategy.THEIRS:
                         a[key] = b[key]  # b takes precedence, overwrite a
-                        self.__is_dirty = True
+                        a_has_changed = True
                     else:
                         raise NotImplementedError(
                             f"MergeStrategy '{merge_strategy}' is not implemented"
                         )
             else:  # key from b is not in a:
                 a[key] = b[key]  # "copy" from b to a
-                self.__is_dirty = True
-        return a
+                a_has_changed = True
+        return a_has_changed
 
     def list_values(self, key: str) -> pd.DataFrame:
         with self.__lock:

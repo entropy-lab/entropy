@@ -4,6 +4,7 @@ from time import sleep
 import pytest
 from tinydb import Query, TinyDB
 
+from entropylab.conftest import _copy_template
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.in_process_param_store import (
     InProcessParamStore,
@@ -13,7 +14,6 @@ from entropylab.pipeline.api.in_process_param_store import (
     JSONPickleStorage,
     Param,
 )
-from entropylab.conftest import _copy_template
 
 """ ctor """
 
@@ -528,6 +528,20 @@ def test_merge_strategy_ours_both_sides():
     }
 
 
+def test_merge_strategy_ours_correctly_marks_key_for_dict_as_dirty():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = {"x": {"a": 1}}
+    theirs = InProcessParamStore()
+    theirs["foo"] = {"x": {"b": 2}}
+    target.commit()  # so we start the merge in  a non-dirty state
+    # act
+    target.merge(theirs, MergeStrategy.OURS)
+    # assert
+    assert target._InProcessParamStore__dirty_keys == {"foo"}
+    assert target["foo"]["x"]["a"] == 1 and target["foo"]["x"]["b"] == 2
+
+
 def test_merge_strategy_ours_when_both_are_empty_then_store_remains_not_dirty():
     target = InProcessParamStore()
     theirs = InProcessParamStore()
@@ -579,6 +593,20 @@ def test_merge_strategy_theirs_merge_two_leaves_under_same_parent_dict():
     theirs["foo"] = {"b": 2}
     target.merge(theirs, MergeStrategy.THEIRS)
     assert target["foo"]["a"] == 1 and target["foo"]["b"] == 2
+
+
+def test_merge_strategy_theirs_correctly_marks_key_for_dict_as_dirty():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = {"x": {"a": 1}}
+    theirs = InProcessParamStore()
+    theirs["foo"] = {"x": {"b": 2}}
+    target.commit()  # so we start the merge in  a non-dirty state
+    # act
+    target.merge(theirs, MergeStrategy.THEIRS)
+    # assert
+    assert target._InProcessParamStore__dirty_keys == {"foo"}
+    assert target["foo"]["x"]["a"] == 1 and target["foo"]["x"]["b"] == 2
 
 
 def test_merge_strategy_theirs_when_ours_is_leaf_theirs_is_dict_then_theirs_is_copied():

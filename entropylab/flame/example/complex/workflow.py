@@ -3,7 +3,8 @@ from entropylab.flame.workflow import Workflow
 
 wf = Workflow(
     "Scan with error correction",
-    description="Performs Bayesian estimation for the optimal parameters and uses this during the circuit run.",
+    description="Performs Bayesian estimation for the optimal parameters "
+    "and uses this during the circuit run.",
 )
 
 c = expNodes.CalibrateSystem("calibration_1")

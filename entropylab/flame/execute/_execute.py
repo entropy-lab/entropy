@@ -80,7 +80,8 @@ class Execute:
                 )
                 code = g.returncode
                 if code is not None and code != 0 and code != 15:
-                    # code == 15 is for forceful termination since on Windows there is no graceful termination signal
+                    # code == 15 is for forceful termination since on Windows
+                    # there is no graceful termination signal
                     # see https://bugs.python.org/issue26350
                     execute_utils.status_update(
                         node_name,
@@ -227,7 +228,7 @@ class Execute:
             sys.exit("failed to run shell: '%s'" % (str(e)))
 
     def __assign_relative_outputs_to_free_ports(self):
-        logger.debug(f"Execute. Assign relative outputs to free ports.")
+        logger.debug("Execute. Assign relative outputs to free ports.")
         total_node_count = 0
         resolution = {}
         node_schemas = {}
@@ -290,7 +291,7 @@ class Execute:
         return total_node_count, node_schemas
 
     def __write_parameter_resolution_in_the_playbook(self):
-        logger.debug(f"Execute. Write parameter resolution in the playbook.")
+        logger.debug("Execute. Write parameter resolution in the playbook.")
         for node_name, node in self.workflow._nodes.items():
             self.runtime_state_info.runtime_state.set(
                 f"#{node_name}", node._inputs._inputs.print_defined()
@@ -339,7 +340,7 @@ class Execute:
         # wait for finish, if debug on periodically snapshot process performance
         # also listen to external signal (in case the execution termination request)
         # is received
-        logger.debug(f"Execute. Wait for finish or terminate.")
+        logger.debug("Execute. Wait for finish or terminate.")
         max_time = self.args.max_execution_time
         active_nodes = len(self.processes_list)
         time_step = self.args.status_check_interval
@@ -368,7 +369,7 @@ class Execute:
         return execution_timeout_event
 
     def __terminate(self):
-        logger.debug(f"Execute. Terminate.")
+        logger.debug("Execute. Terminate.")
         # send terminate signal to all the nodes
         processListAll = []
         for p in self.processes_list:
@@ -378,25 +379,26 @@ class Execute:
             p.terminate()
 
         # wait for nodes to gracefully exit
-        logger.debug(f"Execute. Terminate. Wait for nodes to gracefully exit. v0")
+        logger.debug("Execute. Terminate. Wait for nodes to gracefully exit. v0")
         gone, alive = self.__wait_for_processes(processListAll, "success", "finished")
 
         # kill all the remaining nodes
-        logger.debug(f"Execute. Terminate. Kill all the remaining nodes. v0")
+        logger.debug("Execute. Terminate. Kill all the remaining nodes. v0")
         for p in alive:
-            if not p in self.processes_list:
-                # kill only executed process, not the shell script itself in order to keep log file
+            if p not in self.processes_list:
+                # kill only executed process, not the shell script itself
+                # in order to keep log file
                 p.kill()
 
-        logger.debug(f"Execute. Terminate. Wait for finish. v1")
+        logger.debug("Execute. Terminate. Wait for finish. v1")
         gone, alive2 = self.__wait_for_processes(alive, "", "finished")
 
-        logger.debug(f"Execute. Terminate. Kill all the remaining nodes. v1")
+        logger.debug("Execute. Terminate. Kill all the remaining nodes. v1")
         for p in self.processes_list:
             # kill even shell script itself if it is still active
             p.kill()
 
-        logger.debug(f"Execute. Terminate. Wait for finish. v2")
+        logger.debug("Execute. Terminate. Wait for finish. v2")
         self.__wait_for_processes(alive2, "success", "finished")
 
     def __flush_runtimedata_into_hdf5(self):
@@ -412,7 +414,9 @@ class Execute:
                     db.execute(
                         sql_text(
                             f"""
-        SELECT to_char (time::timestamp at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') FROM "{eui}"
+        SELECT to_char
+        (time::timestamp at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+        FROM "{eui}"
         """
                         )
                     )
@@ -442,7 +446,7 @@ class Execute:
                 _update_node_output(db, node_name, o, node_info, grp)
 
         # Flush the runtimedata into data_store HDF5 file
-        logger.debug(f"Execute. Flush runtime data into hdf5.")
+        logger.debug("Execute. Flush runtime data into hdf5.")
         with execute_utils.get_runtimedata(_Config.DATABASE_NAME) as db:
             with h5py.File(f"./{_Config.job_id}.hdf5", "w") as f:
                 execute_utils.write_metadata_to_h5(f, self.metadata)
@@ -451,10 +455,9 @@ class Execute:
                     _update_node(db, node_name, node, node_info)
 
     def __clean_the_playbook(self):
-        logger.debug(f"Execute. Clean the playbook.")
+        logger.debug("Execute. Clean the playbook.")
         runtime_state = self.runtime_state_info.runtime_state
         for node_name, node in self.workflow._nodes.items():
-            pid = int(runtime_state.get(f"pid#{node_name}").decode())
             runtime_state.delete(f"pid#{node_name}")
             for o in node._outputs._outputs:
                 eui = f"#{node_name}/{o}"
@@ -465,7 +468,7 @@ class Execute:
             runtime_state.delete(f"#{node_name}")
 
     def __clean(self):
-        logger.debug(f"Execute. Clean.")
+        logger.debug("Execute. Clean.")
         self.runtime_state_info.runtime_state.delete("dataserver")
 
         if self.message_queue_info.updates_channel is not None:
@@ -485,7 +488,7 @@ class Execute:
         self.runtime_state_info.runtime_state.delete("executor_pid")
 
     def __result_message(self, execution_timout_event, execution_connection_problem):
-        logger.debug(f"Execute. Result message.")
+        logger.debug("Execute. Result message.")
         status_message = ""
         if execution_timout_event:
             status_message = "Execution timed out."
@@ -497,7 +500,7 @@ class Execute:
         nodes_success = 0
         nodes_error = 0
 
-        for node, value in _Config.node_status_dict.items():
+        for _node, value in _Config.node_status_dict.items():
             if value != "success":
                 nodes_error += 1
             else:

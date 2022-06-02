@@ -8,14 +8,14 @@ from entropylab.flame.execute._execute import Execute
 
 
 def _main():
-    logger.info(f"Execute. Start")
+    logger.info("Execute. Start")
     signal.signal(signal.SIGINT, execute_utils.exit_gracefully)
     signal.signal(signal.SIGTERM, execute_utils.exit_gracefully)
     args = execute_utils.parse_args()
     execute_ = Execute(args)
     msg = execute_.run()
     print(msg)
-    logger.info(f"Execute. Finish")
+    logger.info("Execute. Finish")
 
 
 if __name__ == "__main__":

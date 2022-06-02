@@ -62,12 +62,12 @@ def remove_port_lock(port_number, runtime_state):
 
 
 def exit_gracefully(self, *args):
-    logger.debug(f"Utils. Exit gracefully")
+    logger.debug("Utils. Exit gracefully")
     _Config.execution_active = False
 
 
 def check_node_messages(executor_input):
-    logger.debug(f"Utils. Check node messages.")
+    logger.debug("Utils. Check node messages.")
     try:
         # check for updates
         msg = msgpack.unpackb(executor_input.recv(flags=zmq.NOBLOCK))

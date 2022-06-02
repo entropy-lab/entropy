@@ -1,5 +1,4 @@
 import entropylab.flame.nodeio as nodeio
-import time
 
 # ==================== DEFINE NODE ====================
 

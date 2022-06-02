@@ -140,7 +140,8 @@ class Workflow(object):
                         f.write(json.dumps(parameters, indent=2))
                     manyvalues = "s" if reused_values > 1 else ""
                     print(
-                        f"Reused {reused_values} parameter value{manyvalues} from existing parameters.json file."
+                        f"Reused {reused_values} parameter value{manyvalues} "
+                        "from existing parameters.json file."
                     )
             except Exception:
                 pass
@@ -191,7 +192,7 @@ class Workflow(object):
             icons[type(node).__name__] = node._icon
         # add links
         for node_name, node in self._nodes.items():
-            for input_name, input_value in node._inputs._inputs.values.items():
+            for _input_name, input_value in node._inputs._inputs.values.items():
                 if (
                     input_value is not None
                     and type(input_value[0]) == str
@@ -259,7 +260,7 @@ class Workflow(object):
 
     def add(self, node_or_workflow, prepend_name=""):
         if isinstance(node_or_workflow, Workflow):
-            for name, node in node_or_workflow._nodes.items():
+            for _name, node in node_or_workflow._nodes.items():
                 self._register_node(node, prepend_name=prepend_name)
         else:
             self._register_node(node_or_workflow)

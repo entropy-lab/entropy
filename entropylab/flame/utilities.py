@@ -3,7 +3,7 @@ import importlib
 
 from entropylab.flame.workflow import Workflow
 
-__all__ = ["get_graph", "get_cytoscape_graph"]
+__all__ = ["_get_workflow", "workflow_json", "workflow_summary"]
 
 
 def _get_workflow(workflow_path):

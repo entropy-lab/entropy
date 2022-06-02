@@ -1,6 +1,5 @@
 # ==================== DEFINE NODE ====================
 import entropylab.flame.nodeio as nodeio
-import time
 
 nodeio.context(
     name="CheerfulNode",

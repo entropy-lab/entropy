@@ -1,5 +1,9 @@
 import entropylab.flame.nodeio as nodeio
-import time
+
+import numpy as np
+import matplotlib.pyplot as plt
+import io
+import base64
 
 # ==================== DEFINE NODE ====================
 
@@ -26,11 +30,6 @@ nodeio.register()  # enables this to be used as part of workflow
 input.set(data=3.23)
 
 # =============== RUN NODE STATE MACHINE ===============
-
-import numpy as np
-import matplotlib.pyplot as plt
-import io
-import base64
 
 while nodeio.status.active:
     a = input.get("data")

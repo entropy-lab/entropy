@@ -35,7 +35,7 @@ while nodeio.status.active:
     today_work = inputs.get("customers")
     for i, customer in enumerate(today_work):
         outputs.set(clerk_request=customer)
-        print(f"Here comes {customer}")
+        print(f"Here comes {customer} (number = {i})")
         # budget_requests = inputs.get("clerk_salary")
         # print(f"Clerk demands {budget_requests} k$")
 

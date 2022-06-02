@@ -16,13 +16,12 @@ from . import nodeio_context
 __all__ = [
     "Inputs",
     "Outputs",
-    "setup_workflow_context",
-    "save_node",
+    "register",
     "terminate_workflow",
 ]
 
 
-def context(name="", description="", dependancies=[], icon=""):
+def context(name="", description="", icon=""):
     """Description of the current node in the wider context.
 
     :param name: Name that will be used for providing instances of this node
@@ -30,9 +29,6 @@ def context(name="", description="", dependancies=[], icon=""):
       spaces or special characters. E.g. valid name is ExampleName
     :param description: Description of functionality of the node. It will be
       used as documentation of the node.
-    :param dependancies: Optional, list of valid file paths to files (code,
-      libraries)on which functionality of this node depends. It will be used to
-      track their version for each workflow job.
     :param icon: Optional, icon to use. Icons have to be available in
       entropy_web_ui/nodeicons. Use e.g. 'bootstrap/alarm.svg'
     """
@@ -47,7 +43,7 @@ def context(name="", description="", dependancies=[], icon=""):
     parser.add_argument("--entropy-identity", type=str, default=None)
     parser.add_argument("--entropy-playbook", type=str, default=None)
     parser.add_argument("args", nargs=argparse.REMAINDER)
-    args = parser.parse_args()
+    args, _unknown = parser.parse_known_args()
 
     if args.entropy_identity is not None:
         print("=" * 40)
@@ -105,7 +101,6 @@ def context(name="", description="", dependancies=[], icon=""):
 
     nodeio_context.node_name = name
     nodeio_context.node_description = description
-    nodeio_context.node_dependancies = dependancies
     nodeio_context.node_icon = icon
     status = StateMachine()
 
@@ -144,7 +139,7 @@ def register():
         upstream_data["executor_output#"] = None
 
         while (
-            upstream_data["executor_output#"] == None
+            upstream_data["executor_output#"] is None
             or upstream_data["executor_output#"] == ""
         ):
             # send connection ping on all outputs
@@ -189,7 +184,7 @@ def register():
                 "Terminating... received cmd from executor ", executor["cmd"]
             )
         # flush and ping back to executor you are ready
-        for key, conn in upstream_connections.items():
+        for _key, conn in upstream_connections.items():
             buffer_full = True
             while buffer_full:
                 try:
@@ -221,7 +216,6 @@ def register():
         "description": nodeio_context.node_description,
         "command": "python3",
         "bin": bin_path,
-        "dependancies": nodeio_context.node_dependancies,
         "icon": nodeio_context.node_icon,
         "inputs": Inputs._schema(),
         "outputs": Outputs._schema(),

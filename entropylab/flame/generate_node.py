@@ -2,7 +2,9 @@
 Generates python class for the workflow module based on module schema .json
 """
 
-import sys, os, json
+import sys
+import os
+import json
 from jinja2 import Template
 from .enum_types import InputType
 

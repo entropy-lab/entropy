@@ -38,7 +38,10 @@ def zmq_context():
 
 def runtime_db_connect():
     global runtime_data
-    SQLALCHEMY_DATABASE_URL = f'postgresql://{data_server[0]}:{data_server[1]}@{data_server[2]}/{data_server[3]}?client_encoding="utf8"'
+    SQLALCHEMY_DATABASE_URL = (
+        f"postgresql://{data_server[0]}:{data_server[1]}"
+        + f'@{data_server[2]}/{data_server[3]}?client_encoding="utf8"'
+    )
     runtime_data = create_engine(SQLALCHEMY_DATABASE_URL).connect()
 
 

@@ -133,7 +133,9 @@ class Inputs:
             assert self.value_set[name], f"Inputs '{name}' has not been defined yet."
             if len(self.values[name]) == 0:
                 print(
-                    f"\tENTROPYLAB - INPUTS: End of the input queue {nodeio_context.node_name}/{name} is reached, terminating test run of the node."
+                    "\tENTROPYLAB - INPUTS: End of the input queue "
+                    f"{nodeio_context.node_name}/{name} is reached, "
+                    "terminating test run of the node."
                 )
                 exit()
             if self.input_type[name] == InputType.STREAM:
@@ -217,7 +219,7 @@ class Inputs:
         available for consummers.
         """
         for key, value in kwargs.items():
-            if not key in self.values:
+            if key not in self.values:
                 raise ValueError(f"The input {key} has not been defined.")
             # deduce type for conversion
             if value is not None:
@@ -233,7 +235,7 @@ class Inputs:
 
                 self.values[key].append(value)
 
-                self.value_set[key] = self.values[key] != None
+                self.value_set[key] = True
         return
 
     def updated(self, name):
@@ -326,13 +328,21 @@ class Inputs:
         return json.dumps(inputs, indent=indent, sort_keys=sort_keys)
 
     def get_as_JSON(self, what="all", format=ioFormat.VALUES):
+        def _filter_all(value_set):
+            return True
+
+        def _filter_defined(value_set):
+            return value_set
+
+        def _filter_undefined(value_set):
+            return not value_set
 
         if what == "all":
-            filter = lambda value_set: True
+            filter = _filter_all
         elif what == "defined":
-            filter = lambda value_set: value_set
+            filter = _filter_defined
         elif what == "undefined":
-            filter = lambda value_set: not value_set
+            filter = _filter_undefined
         else:
             raise ValueError(
                 "Only all, defined and undefined are valid inputs " "for get_as_JSON"

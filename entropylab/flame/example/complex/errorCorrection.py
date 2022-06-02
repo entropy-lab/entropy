@@ -1,5 +1,6 @@
 import entropylab.flame.nodeio as nodeio
 import time
+from math import floor
 
 # ==================== DEFINE NODE ====================
 
@@ -32,8 +33,6 @@ input.set(
 )
 
 # =============== RUN NODE STATE MACHINE ===============
-
-from math import floor
 
 v = 0
 

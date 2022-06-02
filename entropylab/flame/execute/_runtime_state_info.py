@@ -21,7 +21,7 @@ def _setup_runtime_db(db_url, runtimedata_info):
                         f"""
                 SELECT pg_terminate_backend(pg_stat_activity.pid)
                 FROM pg_stat_activity
-                WHERE pg_stat_activity.datname = '{runtimedata_info[3]}' 
+                WHERE pg_stat_activity.datname = '{runtimedata_info[3]}'
                 AND pid <> pg_backend_pid();
                 """
                     )
@@ -29,7 +29,7 @@ def _setup_runtime_db(db_url, runtimedata_info):
                 db.execute(sql_text(f"DROP DATABASE {runtimedata_info[3]}"))
                 db.execute(sql_text("DROP OWNED BY workflow"))
                 db.execute(sql_text("DROP USER workflow"))
-        except Exception as e:
+        except Exception:
             # no such database
             logger.info("RuntimeStateInfo. No such database")
             pass
@@ -47,7 +47,8 @@ def _setup_runtime_db(db_url, runtimedata_info):
             )
             db.execute(
                 sql_text(
-                    f"GRANT ALL PRIVILEGES ON DATABASE {runtimedata_info[3]} TO {runtimedata_info[0]}"
+                    f"""GRANT ALL PRIVILEGES ON DATABASE
+                    {runtimedata_info[3]} TO {runtimedata_info[0]}"""
                 )
             )
 
@@ -84,9 +85,15 @@ class RuntimeStateInfo:
         self.runtimedata_info = rd_i
         data_server_arg = f"{rd_i[0]},{rd_i[1]},{rd_i[2]},{rd_i[3]}"
         rs.set("dataserver", data_server_arg)
-        _Config.DATABASE_NAME = f'postgresql://{rd_i[0]}:{rd_i[1]}@{rd_i[2]}/{rd_i[3]}?client_encoding="utf8"'
+        _Config.DATABASE_NAME = (
+            f"postgresql://{rd_i[0]}:{rd_i[1]}"
+            f'@{rd_i[2]}/{rd_i[3]}?client_encoding="utf8"'
+        )
         admin_password = os.getenv("POSTGRES_PASSWORD", "passwordpasswordpassword")
-        _Config.SQLALCHEMY_DATABASE_URL = f'postgresql://postgres:{admin_password}@{rd_i[2]}/postgres?client_encoding="utf8"'
+        _Config.SQLALCHEMY_DATABASE_URL = (
+            f"postgresql://postgres:{admin_password}"
+            f'@{rd_i[2]}/postgres?client_encoding="utf8"'
+        )
         _setup_runtime_db(_Config.SQLALCHEMY_DATABASE_URL, rd_i)
         self.install_extensions()
 

@@ -96,9 +96,9 @@ class Inputs:
         else:
             # we have external inputs
             if (
-                type(self.values[name]) == str
-                and len(self.values[name]) > 0
-                and self.values[name][0] == "#"
+                type(self.values[name][0]) == str
+                and len(self.values[name][0]) > 0
+                and self.values[name][0][0] == "#"
             ):
                 # if they are runtime variables, initialize connections
                 self.value_set[name] = False
@@ -109,7 +109,7 @@ class Inputs:
                     # variable
                     socket.setsockopt(zmq.CONFLATE, 1)
                 socket.setsockopt(zmq.LINGER, 0)
-                socket.connect(self.values[name][1:])
+                socket.connect(self.values[name][0][1:])
                 socket.subscribe("")
                 self.connections[name] = socket
 
@@ -207,7 +207,7 @@ class Inputs:
                         return self.values[name]
 
             # requested input is parameter
-            return self.convert_to[name](self.values[name])
+            return self.convert_to[name](self.values[name][0])
 
     def set(self, **kwargs):
         """Sets the value of the input.
@@ -222,10 +222,15 @@ class Inputs:
             # deduce type for conversion
             if value is not None:
                 self.convert_to[key] = type(value)
+            else:
+                self.values[key] = None
+                self.value_set[key] = False
+                return
             # if we are using external instance of inputs prevent overwritting of the parameters
             if self.__index >= len(self.__external_intances):
                 if self.values[key] is None:
                     self.values[key] = []
+
                 self.values[key].append(value)
 
                 self.value_set[key] = self.values[key] != None
@@ -335,6 +340,8 @@ class Inputs:
 
         outJSON = {}
         for k, v in self.values.items():
+            if self.value_set[k]:
+                v = v[0]  # only current value if we have event sequence
             if filter(self.value_set[k]):
                 if isinstance(v, Inputs):
                     outJSON[k] = v.get_as_JSON(what=what, format=format)

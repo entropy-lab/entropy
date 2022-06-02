@@ -193,13 +193,14 @@ class Workflow(object):
         for node_name, node in self._nodes.items():
             for input_name, input_value in node._inputs._inputs.values.items():
                 if (
-                    type(input_value) == str
-                    and len(input_value) > 2
-                    and input_value[0] == "#"
-                    and input_value[1] != "/"
+                    input_value is not None
+                    and type(input_value[0]) == str
+                    and len(input_value[0]) > 2
+                    and input_value[0][0] == "#"
+                    and input_value[0][1] != "/"
                 ):
                     # relative EUI reference to runtime variable
-                    source_node = input_value[1:].split("/")[0]
+                    source_node = input_value[0][1:].split("/")[0]
                     graph.add_edge(source_node, node_name)
 
         result = {

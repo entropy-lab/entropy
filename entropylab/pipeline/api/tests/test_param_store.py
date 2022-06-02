@@ -273,6 +273,22 @@ def test_commit_when_label_is_given_then_label_is_saved(tinydb_file_path):
     assert result[0]["metadata"]["label"] == "foo"
 
 
+def test_commit_assert_changed_values_are_stamped_with_commit_id(tinydb_file_path):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = 42
+    target["bar"] = 42
+    commit_id1 = target.commit()
+    target["bar"] = 1337
+    target["baz"] = 1337
+    # act
+    commit_id2 = target.commit()
+    # assert
+    assert target._InProcessParamStore__params["foo"].commit_id == commit_id1
+    assert target._InProcessParamStore__params["bar"].commit_id == commit_id2
+    assert target._InProcessParamStore__params["baz"].commit_id == commit_id2
+
+
 """ checkout() """
 
 

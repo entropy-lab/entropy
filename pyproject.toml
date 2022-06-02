@@ -67,7 +67,7 @@ requests = "^2.27.1"
 distro = "^1.7.0"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.2"
+pytest = "^7.1.2"
 black = "^22.3.0"
 flake8 = "^3.9.0"
 flake8-bugbear = "^21.3.2"

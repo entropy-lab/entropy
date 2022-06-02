@@ -1,0 +1,27 @@
+{
+  "name": "CheerfulNode",
+  "description": "greets customers",
+  "command": "python3",
+  "bin": "cheerful_node.py",
+  "dependancies": [],
+  "icon": "bootstrap/person-circle.svg",
+  "inputs": [
+    {
+      "description": {
+        "customer": "one person at a time",
+        "weather": "How is weather today"
+      },
+      "units": { "customer": "human", "weather": "best guess" },
+      "type": { "customer": 2, "weather": 1 }
+    }
+  ],
+  "outputs": [
+    {
+      "description": {
+        "requested_salary": "requested fees from administrator"
+      },
+      "units": { "requested_salary": "k$" },
+      "retention": { "requested_salary": 2 }
+    }
+  ]
+}

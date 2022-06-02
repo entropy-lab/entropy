@@ -1,0 +1,22 @@
+{
+  "name": "BayesianEstimation",
+  "description": "error correction algorithm",
+  "command": "python3",
+  "bin": "errorCorrection.py",
+  "dependancies": [],
+  "icon": "bootstrap/speedometer.svg",
+  "inputs": [
+    {
+      "description": { "precorrected_data": "cirucuit description" },
+      "units": { "precorrected_data": "JSON" },
+      "type": { "precorrected_data": 2 }
+    }
+  ],
+  "outputs": [
+    {
+      "description": { "correction_data": "corrected data" },
+      "units": { "correction_data": "JSON" },
+      "retention": { "correction_data": 2 }
+    }
+  ]
+}

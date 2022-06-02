@@ -1,0 +1,49 @@
+{
+  "name": "TaskList",
+  "description": "Does scan of parameters and triggers circuit execution",
+  "command": "python3",
+  "bin": "sequence.py",
+  "dependancies": [],
+  "icon": "bootstrap/list-task.svg",
+  "inputs": [
+    {
+      "description": {
+        "calibration": "node will execute only if it receives positive calibration status",
+        "scan_points": "an array for setpoint execution",
+        "laser_setpoint_locked": "Triger when laser setpoint is set",
+        "circuit_done": "Triger when circuit execution is done"
+      },
+      "units": {
+        "calibration": "status",
+        "scan_points": "MHz",
+        "laser_setpoint_locked": "bool",
+        "circuit_done": "bool"
+      },
+      "type": {
+        "calibration": 1,
+        "scan_points": 1,
+        "laser_setpoint_locked": 2,
+        "circuit_done": 2
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "description": {
+        "circuit_specification": "Triggers circuit execution by providing information for run",
+        "scan_setpoint": "Laser setpoint",
+        "status": "window into what node is doing"
+      },
+      "units": {
+        "circuit_specification": "JSON",
+        "scan_setpoint": "MHz",
+        "status": "json"
+      },
+      "retention": {
+        "circuit_specification": 0,
+        "scan_setpoint": 0,
+        "status": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "boss": {
+    "customers": ["world", "Venus"]
+  },
+  "clerk": {
+    "weather": "sunny"
+  }
+}

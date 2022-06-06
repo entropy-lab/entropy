@@ -30,6 +30,6 @@ for f in file_list:
     copy(os.path.join(origin, f), destination)
 
 
-print("\t Execute workflow with\tpython3 -m entropylab.flame.execute ")
+print("\t Execute workflow with\tpython -m entropylab.flame.execute ")
 print("\t (to interrupt and terminate execution press Ctrl+C)")
 print("\n")

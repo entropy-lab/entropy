@@ -437,7 +437,7 @@ class Execute:
         # add def for decrease tab level
         def _update_node(db, node_name, node, node_info):
             # node_info = self.workflow._node_details(node)
-            grp = f.create_group(f"#{node_name}")
+            grp = f.create_group(f"{node_name}")
             grp.attrs["type"] = node_info["name"]
             grp.attrs["description"] = node_info["description"]
             grp.attrs["bin"] = node_info["bin"]

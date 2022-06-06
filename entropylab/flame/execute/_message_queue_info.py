@@ -24,7 +24,11 @@ class MessageQueueInfo:
             )
             logger.info("MessageQueueInfo. Host: localhost")
         except Exception:
-            self.status_connection, self.updates_channel = _setup_message_queue(
-                "messagequeue"
-            )
-            logger.info("MessageQueueInfo. Host: messagequeue")
+            try:
+                self.status_connection, self.updates_channel = _setup_message_queue(
+                    "messagequeue"
+                )
+                logger.info("MessageQueueInfo. Host: messagequeue")
+            except Exception:
+                self.status_connection, self.updates_channel = None, None
+                logger.info("MessageQueueInfo. No message queue configured.")

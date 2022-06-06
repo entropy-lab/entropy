@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Dict, List, cast
+from typing import Dict, List, cast, Optional
 
 import dash
 import dash_bootstrap_components as dbc
@@ -331,7 +331,7 @@ def register_callbacks(app, dashboard_data_reader):
         return _copy_aggregate_data_to_clipboard_as_python_code(_, figure)
 
 
-def get_added_row(prev: List[int], curr: List[int]) -> int or None:
+def get_added_row(prev: List[int], curr: List[int]) -> Optional[int]:
     added_rows = list(set(curr) - set(prev))
     if len(added_rows) != 0:
         return added_rows[0]

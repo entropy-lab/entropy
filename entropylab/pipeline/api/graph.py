@@ -168,7 +168,9 @@ class Node(ABC):
         """
         :return: a set of node's ancestors, including current node
         """
-        parents: Set[Node] = set([var.node for var in self._input_vars.values()])
+        parents: Set[Node] = set(
+            [var.node for var in self._input_vars.values()] + list(self._must_run_after)
+        )
         ancestors = parents.copy()
         ancestors.add(self)
         for anc in parents:

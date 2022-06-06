@@ -25,13 +25,13 @@ copytree(
 for f in file_list:
     copy(os.path.join(origin, f), destination)
 
-print("\t1. First execute\tpython3 cheerful_node.py\t\tto test single node")
-print("\t2. First execute\tpython3 grumpy_administrator.py\tto test single node")
-print("\t3. Then execute\t\tpython3 workflow.py\t\tto generate list of parameters")
+print("\t1. First execute\tpython cheerful_node.py\t\tto test single node")
+print("\t2. First execute\tpython grumpy_administrator.py\tto test single node")
+print("\t3. Then execute\t\tpython workflow.py\t\tto generate list of parameters")
 print(
     "\t4. Open and change parameters.json (Null is not acceptable value for "
     "final resolved parameters) "
 )
-print("\t5. Execute workflow with\tpython3 -m entropylab.flame.execute ")
+print("\t5. Execute workflow with\tpython -m entropylab.flame.execute ")
 print("\t  (to interrupt and terminate execution press Ctrl+C)")
 print("\n")

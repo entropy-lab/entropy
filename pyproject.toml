@@ -62,7 +62,7 @@ tzlocal = "^4.1"
 tenacity = "^8.0.1"
 asyncpg = "^0.25"
 celery = "^5.2.3"
-fastapi = "^0.75.0"
+fastapi = ">=0.75,<0.78"
 requests = "^2.27.1"
 distro = "^1.7.0"
 

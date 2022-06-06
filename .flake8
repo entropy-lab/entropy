@@ -2,5 +2,5 @@
 max-line-length = 88
 select = C,E,F,W,B,B950
 ignore = E203, E501, W503
-exclude = *tests/*, *old_graph*, *.venv/*, entropylab/flame/example/complex/entropynodes/library/*, entropylab/flame/template/empty/*
+exclude = *tests/*, *old_graph*, *.venv/*, entropylab/flame/example/complex/entropynodes/library/*, entropylab/flame/template/*
 per-file-ignores = __init__.py:F401

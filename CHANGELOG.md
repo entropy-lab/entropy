@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
+## [0.8.0]
+
 * Added Flame execution engine with NodeIO library
 * Updated QuAM names
 
@@ -104,7 +106,8 @@ Entropy persistence backend.
 * QPU-DB - This is an extension to entropy which is built to save and manage the pieced of information describing 
 a Quantum Processing Unit. If multiple nodes are set up to calibrate the QPU, measuring decoherence times and resonant frequencies for example, then that data can be saved to a centralized store and subsequently used in the target application. Warning: this module will be replaced in future releases but a migration path will be provided. 
 
-[Unreleased]: https://github.com/entropy-lab/entropy/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/entropy-lab/entropy/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/entropy-lab/entropy/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/entropy-lab/entropy/compare/v0.6.0...v0.7.0
 [0.5.7]: https://github.com/entropy-lab/entropy/compare/v0.5.6...v0.6.0
 [0.5.6]: https://github.com/entropy-lab/entropy/compare/v0.5.5...v0.5.6

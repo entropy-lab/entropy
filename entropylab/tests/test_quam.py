@@ -1,4 +1,4 @@
-from entropylab.quam.core import Admin
+from entropylab.quam.core import QuAMManager
 from qualang_tools.config.components import *
 from qualang_tools.config.primitive_components import *
 from qualang_tools.config import ConfigBuilder
@@ -6,7 +6,7 @@ from qualang_tools.config import ConfigBuilder
 from qm.qua import *
 
 
-class MyAdmin(Admin):
+class MyManager(QuAMManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -33,27 +33,23 @@ class MyAdmin(Admin):
         )
 
 
-def test_admin_oracle_user(db_file_path):
-    admin = MyAdmin(path=db_file_path)
-    admin.set(lo=5e5)
-    admin.params.save_temp()
+def test_quam(db_file_path):
+    manager = MyManager(path=db_file_path)
+    manager.param_store["lo"] = 5e5
+    manager.param_store.save_temp()
 
     def voltage_setter(val: float):
         print(val)
 
-    voltage = admin.parameter("voltage", setter=voltage_setter)
+    voltage = manager.parameter("voltage", setter=voltage_setter)
     voltage(12)
-    print(admin.config)
+    # print(manager.generate_config())
 
-    oracle = admin.get_oracle()
-    print(oracle.elements)
-    print(oracle.parameters)
-    print(oracle.pulses)
-
-    # user = admin.get_user()
-    # print(user.elements.qb)
+    # quam = manager.open_quam()
+    # print(quam.elements.qb)
 
     # with program() as prog:
-    #    play(user.pulses.cw, user.elements.qb)
+    #    play(quam.pulses.cw, quam.elements.qb)
 
-    # res = user.simulate(prog)
+    # from qm.simulate import SimulationConfig
+    # res = quam.qmm.open_qm(quam.config).simulate(prog, simulate=SimulationConfig(duration=1000))

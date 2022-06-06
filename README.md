@@ -33,10 +33,10 @@ The Entropy system is built with concrete implementations of the various parts (
 
 ## Modules 
 
-- Pipeline
-- Flame
-- QuAM
-- Utilities
+- ***Pipeline*** : A simple execution engine for a collection of nodes. Allows passing data between nodes and saving results to a database. Also includes a dashboard for viewing results. 
+- ***Flame*** : An actor model execution engine 
+- ***QuAM*** : The Quantum Abstract Machine. An abstraction layer above QPU to simplify experiment authoring and parameter management.
+ 
 
 ## Installation
 
@@ -45,16 +45,6 @@ Installation is done from pypi using the following command
 ```shell
 pip install entropylab
 ```
-
-## Usage
-
-See [docs](docs) folder in this repository for all the dirty details.
-
-
-## Extensions
-
-Entropy can and will be extended via custom extensions. An example is `entropylab-qpudb`, an extension built to keep track of the calibration parameters of a mutli-qubit Quantum Processing Unit (QPU). This extension is useful when writing an automatic calibration graph. 
-
 
 ## Versioning and the Alpha release 
 

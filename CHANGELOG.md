@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 * Readme files pushed into modules folders
+### Added
+* Support for Jupyter notebook node development in NodeIO
 
 ## [0.8.0]
 

@@ -347,7 +347,7 @@ python-versions = ">=3.6"
 
 [[package]]
 name = "dash"
-version = "2.4.1"
+version = "2.5.0"
 description = "A Python framework for building reactive web-apps. Developed by Plotly."
 category = "main"
 optional = false
@@ -1951,8 +1951,8 @@ cycler = [
     {file = "cycler-0.11.0.tar.gz", hash = "sha256:9c87405839a19696e837b3b818fed3f5f69f16f1eec1a1ad77e043dcea9c772f"},
 ]
 dash = [
-    {file = "dash-2.4.1-py3-none-any.whl", hash = "sha256:44ad5593d69f8aba37e4dd8fa07b1e5dfc012aebd8cccf6e4f68591bca02d177"},
-    {file = "dash-2.4.1.tar.gz", hash = "sha256:aef5fdbb2e948a378c1c8175d52a76c59cf998c62b25eaff616cd947310b04d3"},
+    {file = "dash-2.5.0-py3-none-any.whl", hash = "sha256:aaec03c6944b73873e1651989d5f32482735b18862b95fe727dff13b6b5028e4"},
+    {file = "dash-2.5.0.tar.gz", hash = "sha256:816e78b6d41c04076e83b4858348d164e380eb6fa50e6770d51c7ac9a4b20879"},
 ]
 dash-bootstrap-components = [
     {file = "dash-bootstrap-components-1.1.0.tar.gz", hash = "sha256:340755d3ca4d2e5b2745fc67398785e673092faef2097e2895f8580b1ad1816e"},

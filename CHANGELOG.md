@@ -4,21 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
+### Changed
+* Readme files pushed into modules folders
 
 ## [0.8.0]
 
+### Added
 * Added Flame execution engine with NodeIO library
+
+### Changed
 * Updated QuAM names
 
 ## [0.7.0] - 2022-05-31
 
+### Added
 * Added a --debug flag to CLI
 * Added migration for paramStore v0.2
 
 ## [0.6.0] - 2022-05-25
 
 ### Added
-
 * QuAM - Quantum Abstract Machine. An abstraction layer above qubits to help to build and run experiments. This is
 a first implementation of this tool. 
 
@@ -75,7 +80,7 @@ a first implementation of this tool.
 
 ## [0.3.0] - 2021-10-11
 ### Added
-* Entropy now is also a CLI utility see doc [here](docs/cli.md).
+* Entropy now is also a CLI utility see doc [here](entropylab/cli/cli.md).
 * CLI utility to help upgrade the entropy project. 
 ### Changed
 * Entropy project is now a directory with `.entropy` subdirectory with all entropy specific information.

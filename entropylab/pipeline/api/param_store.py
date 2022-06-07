@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum, unique
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, MutableMapping
 
 import pandas as pd
 
@@ -13,8 +13,7 @@ class MergeStrategy(Enum):
     THEIRS = 2
 
 
-# TODO: Derive from MutableMapping (-> rename get() to get_value())
-class ParamStore(ABC):
+class ParamStore(ABC, MutableMapping):
     @abstractmethod
     def keys(self):
         pass
@@ -24,7 +23,7 @@ class ParamStore(ABC):
         pass
 
     @abstractmethod
-    def get(self, key: str, commit_id: Optional[str] = None) -> object:
+    def get_value(self, key: str, commit_id: Optional[str] = None) -> object:
         """
             returns the value of a param by its key
 

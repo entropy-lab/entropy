@@ -208,7 +208,7 @@ class InProcessParamStore(ParamStore):
         with self.__lock:
             return _extract_param_values(self.__params)
 
-    def get(self, key: str, commit_id: Optional[str] = None) -> object:
+    def get_value(self, key: str, commit_id: Optional[str] = None) -> object:
         with self.__lock:
             if commit_id is None:
                 return self[key]
@@ -378,11 +378,10 @@ class InProcessParamStore(ParamStore):
             ours = self
             self.__merge_trees(ours, theirs, merge_strategy)
 
-    # TODO: a & b should be ParamStore (1st make ParamStore implement MutableMapping)
     def __merge_trees(
         self,
-        a: InProcessParamStore | Dict,
-        b: InProcessParamStore | Dict,
+        a: ParamStore | Dict,
+        b: ParamStore | Dict,
         merge_strategy: MergeStrategy,
     ) -> bool:
         """Merges `b` into `a` *in-place* using the given strategy"""

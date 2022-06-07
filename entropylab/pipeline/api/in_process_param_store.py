@@ -21,23 +21,13 @@ from tinydb.table import Document
 
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
-from entropylab.pipeline.api.param_store import ParamStore, MergeStrategy
+from entropylab.pipeline.api.param_store import ParamStore, MergeStrategy, Param
 
 INFO_DOC_ID = 1
 INFO_TABLE = "info"
 TEMP_DOC_ID = 1
 TEMP_TABLE = "temp"
 VERSION_KEY = "version"
-
-
-class Param(Dict):
-    def __init__(self, value):
-        super().__init__()
-        self.value = value
-        self.commit_id = None
-
-    def __repr__(self):
-        return f"<Param(value={self.value}, commit_id={self.commit_id})>"
 
 
 class Metadata:
@@ -218,13 +208,21 @@ class InProcessParamStore(ParamStore):
         with self.__lock:
             return _extract_param_values(self.__params)
 
-    def get(self, key: str, commit_id: Optional[str] = None):
+    def get(self, key: str, commit_id: Optional[str] = None) -> object:
         with self.__lock:
             if commit_id is None:
                 return self[key]
             else:
                 commit = self.__get_commit(commit_id)
                 return commit["params"][key].value
+
+    def get_param(self, key: str, commit_id: Optional[str] = None) -> Param:
+        with self.__lock:
+            if commit_id is None:
+                return copy.deepcopy(self.__params[key])
+            else:
+                commit = self.__get_commit(commit_id)
+                return copy.deepcopy(commit["params"][key])
 
     def __remove_key_from_tags(self, key: str):
         for tag in self.__tags:

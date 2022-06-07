@@ -36,6 +36,9 @@ class Execute:
         self.__init_workflow()
 
         _Config.job_id = self.metadata.get("job_eui", "#/").replace("#/", "")
+        if _Config.job_id == "":
+            # for the Flame executed from command line without job EUI
+            _Config.job_id = "output_data"
         runtime_id = self.metadata.get("runtime_id", -1)
         self.routing_key = f"status_updates.{runtime_id}.{_Config.job_id}"
         self.runtime_state_info = RuntimeStateInfo()

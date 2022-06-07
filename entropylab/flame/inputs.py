@@ -302,9 +302,15 @@ class Inputs:
             del self.units[name]
             del self.input_type[name]
 
-    def delete(self, name):
-        """Deletes input value, keeping the input variable"""
+    def reset(self, name):
+        """Resets input value to not set, keeping the input variable"""
         if name in self.values:
+            self.values[name] = None
+            self.value_set[name] = False
+
+    def reset_all(self):
+        """Resets all set input values to not set, keeping the input variable"""
+        for name, _value in self.values.items():
             self.values[name] = None
             self.value_set[name] = False
 

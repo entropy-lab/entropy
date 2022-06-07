@@ -148,7 +148,7 @@ def test_get_when_commit_id_is_none_then_value_is_returned():
     target = InProcessParamStore()
     target["foo"] = "bar"
     # act
-    actual = target.get("foo")
+    actual = target.get_value("foo")
     # assert
     assert actual == "bar"
 
@@ -160,7 +160,7 @@ def test_get_when_commit_id_is_not_none_then_value_is_returned():
     commit_id = target.commit()
     target["foo"] = "baz"
     # act
-    actual = target.get("foo", commit_id)
+    actual = target.get_value("foo", commit_id)
     # assert
     assert actual == "bar"
 
@@ -171,7 +171,7 @@ def test_get_when_commit_id_is_bad_then_entropy_error_is_raised():
     target["foo"] = "bar"
     # act
     with pytest.raises(EntropyError):
-        target.get("foo", "oops")
+        target.get_value("foo", "oops")
 
 
 """ get_param() """
@@ -289,7 +289,7 @@ def test_commit_in_memory_when_param_changes_commit_doesnt_change():
     # act
     target["foo"] = "baz"
     # assert
-    assert target.get("foo", commit_id) == "bar"
+    assert target.get_value("foo", commit_id) == "bar"
 
 
 def test_commit_when_body_is_empty_does_not_throw(tinydb_file_path):
@@ -926,7 +926,7 @@ def test_demo(tinydb_file_path):
     print(f"second commit freq: {target['qubit1.flux_capacitor.freq']}")
     print(
         f"first commit freq from history: "
-        f"{target.get('qubit1.flux_capacitor.freq', commit_id)}"
+        f"{target.get_value('qubit1.flux_capacitor.freq', commit_id)}"
     )
 
     target.commit("warm-up")

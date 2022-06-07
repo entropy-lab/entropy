@@ -1,4 +1,6 @@
 import dash_bootstrap_components as dbc
+import shutil
+import os
 from dash import html
 
 from entropylab.pipeline.results_backend.sqlalchemy.project import (
@@ -8,6 +10,7 @@ from entropylab.pipeline.results_backend.sqlalchemy.project import (
 
 
 def top_bar(path: str):
+    hdd = shutil.disk_usage(path)
     return dbc.Row(
         dbc.Navbar(
             [
@@ -30,7 +33,7 @@ def top_bar(path: str):
                             id="project-name",
                         ),
                         html.Div(
-                            f"{project_path(path)}",
+                            f"{project_path(path)} | Project size:{os.path.getsize(path)/2**20:.4f} MB | Free space:{hdd.free//2**30} GB",
                             id="project-name",
                             style={"fontSize": "11px"},
                         ),

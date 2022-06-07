@@ -33,7 +33,8 @@ def top_bar(path: str):
                             id="project-name",
                         ),
                         html.Div(
-                            f"{project_path(path)} | Project size:{os.path.getsize(path)/2**20:.4f} MB | Free space:{hdd.free//2**30} GB",
+                            f"{project_path(path)} | Project size:{os.path.getsize(path) / 2 ** 20:.4f} MB |"
+                            f" Free space:{hdd.free // 2 ** 30} GB",
                             id="project-name",
                             style={"fontSize": "11px"},
                         ),

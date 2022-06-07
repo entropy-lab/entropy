@@ -83,27 +83,26 @@ class Outputs:
 
             if key in self.connections:
                 self.connections[key].send(encoded_value)
-
-            # if retention is non-zero send to database
-            if self.retention[key] > 0:
-                if nodeio_context.runtime_data is not None:
-                    # save forever
+            
+            if nodeio_context.runtime_data is not None:
+                if self.retention[key] > 0:
+                    # if retention is non-zero send to database
 
                     # TODO: use zeromq bridge to SQL to simplify nodeio logic
                     # and have one place to control reliability
                     nodeio_context.runtime_data.execute(
                         f"""INSERT INTO "#{nodeio_context.entropy_identity}/{key}" """
                         f""" (time, value) VALUES (NOW(), msgpack_decode(%s));
-                         """,
+                            """,
                         (psycopg2.Binary(encoded_value)),
                     )
-                else:
-                    # for debugging purposes
-                    print(
-                        f"\tENTROPYLAB - OUTPUT #{nodeio_context.node_name}/{key}"
-                        f" SAVE (retention = {self.retention[key]})"
-                    )
-                    print(f"\t{value}")
+            else:
+                # for debugging purposes
+                print(
+                    f"\tENTROPYLAB - OUTPUT #{nodeio_context.node_name}/{key}"
+                    f" SAVE (retention = {self.retention[key]})"
+                )
+                print(f"\t{value}")
         return
 
     # TODO: add also write that will have more controllable options when writing data

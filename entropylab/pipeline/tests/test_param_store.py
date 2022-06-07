@@ -12,8 +12,8 @@ from entropylab.pipeline.api.in_process_param_store import (
     MergeStrategy,
     migrate_param_store_0_1_to_0_2,
     JSONPickleStorage,
-    Param,
 )
+from entropylab.pipeline.api.param_store import Param
 
 """ ctor """
 
@@ -174,6 +174,71 @@ def test_get_when_commit_id_is_bad_then_entropy_error_is_raised():
         target.get("foo", "oops")
 
 
+""" get_param() """
+
+
+def test_get_param_when_param_exists_then_it_is_returned():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    # act
+    actual = target.get_param("foo")
+    # assert
+    assert actual.value == "bar"
+    assert actual.commit_id is None
+
+
+def test_get_param_when_param_is_committed_then_commit_id_is_returned_in_param():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    commit_id = target.commit()
+    # act
+    actual = target.get_param("foo")
+    # assert
+    assert actual.commit_id == commit_id
+
+
+def test_get_param_when_key_is_not_in_param_store_then_keyerror_is_raised():
+    target = InProcessParamStore()
+    with pytest.raises(KeyError):
+        target.get_param("foo")
+
+
+def test_get_param_when_commit_id_is_not_none_then_value_is_returned():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    commit_id = target.commit()
+    target["foo"] = "baz"
+    # act
+    actual = target.get_param("foo", commit_id)
+    # assert
+    assert actual.value == "bar"
+
+
+def test_get_param_when_key_is_not_in_commit_then_keyerror_is_raised():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    commit_id = target.commit()
+    # act & assert
+    with pytest.raises(KeyError):
+        target.get_param("oops", commit_id)
+
+
+def test_get_param_when_commit_id_is_bad_then_entropy_error_is_raised():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    # act
+    with pytest.raises(EntropyError):
+        target.get_param("foo", "oops")
+
+
+""" rename_key() """
+
+
 def test_rename_key_when_key_exists_then_it_is_renamed():
     # arrange
     target = InProcessParamStore()
@@ -185,9 +250,7 @@ def test_rename_key_when_key_exists_then_it_is_renamed():
 
 
 def test_rename_key_when_key_does_not_exist_then_an_error_is_raised():
-    # arrange
     target = InProcessParamStore()
-    # act & assert
     with pytest.raises(KeyError):
         target.rename_key("foo", "new")
 
@@ -442,9 +505,9 @@ def test_list_commits_when_label_exists_then_it_is_returned(
     target["foo"] = "exact"
     target.commit("label")
     target["foo"] = "pre"
-    target.commit("foolabel")
+    target.commit("foo-label")
     target["foo"] = "post"
-    target.commit("labelfoo")
+    target.commit("label-foo")
     target["foo"] = "no-match"
     target.commit("foo")
     target["foo"] = "empty"

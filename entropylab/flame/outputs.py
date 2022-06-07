@@ -83,7 +83,7 @@ class Outputs:
 
             if key in self.connections:
                 self.connections[key].send(encoded_value)
-            
+
             if nodeio_context.runtime_data is not None:
                 if self.retention[key] > 0:
                     # if retention is non-zero send to database

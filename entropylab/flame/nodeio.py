@@ -20,6 +20,7 @@ __all__ = [
     "terminate_workflow",
 ]
 
+
 def context(name="", description="", icon=""):
     """Description of the current node in the wider context.
 
@@ -122,14 +123,14 @@ class StateMachine:
 def _is_IPython():
     try:
         shell = get_ipython().__class__.__name__
-        if shell == 'ZMQInteractiveShell':
-            return True   # Jupyter notebook or qtconsole
-        elif shell == 'TerminalInteractiveShell':
+        if shell == "ZMQInteractiveShell":
+            return True  # Jupyter notebook or qtconsole
+        elif shell == "TerminalInteractiveShell":
             return False  # Terminal running IPython
         else:
             return False  # Other type (?)
     except NameError:
-        return False      # Probably standard Python interpreter
+        return False  # Probably standard Python interpreter
 
 
 def register():
@@ -282,12 +283,14 @@ def terminate_workflow():
         status.active = False
         exit()
 
+
 def terminate_node():
     if _is_IPython():
+
         class StopExecution(Exception):
             def _render_traceback_(self):
                 pass
-        
+
         raise StopExecution
     else:
         exit()

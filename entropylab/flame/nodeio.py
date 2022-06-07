@@ -20,7 +20,6 @@ __all__ = [
     "terminate_workflow",
 ]
 
-
 def context(name="", description="", icon=""):
     """Description of the current node in the wider context.
 
@@ -120,6 +119,19 @@ class StateMachine:
     # status check in case we are resolving calibration of the system
 
 
+def _is_IPython():
+    try:
+        shell = get_ipython().__class__.__name__
+        if shell == 'ZMQInteractiveShell':
+            return True   # Jupyter notebook or qtconsole
+        elif shell == 'TerminalInteractiveShell':
+            return False  # Terminal running IPython
+        else:
+            return False  # Other type (?)
+    except NameError:
+        return False      # Probably standard Python interpreter
+
+
 def register():
     """Saves this into node library, allowing it to be used in workflows."""
 
@@ -209,6 +221,11 @@ def register():
         # schema (i.e. node code has not been changed since the last time we
         # indenpendantly run this node)
 
+        return  # We are running as a part of the workflow. Skip node creation.
+
+    if _is_IPython():
+        return  # this node is still being prepared for runtime
+
     bin_path = str(os.path.basename(__main__.__file__))
 
     schema = {
@@ -263,4 +280,14 @@ def terminate_workflow():
     else:
         # terminate just this node
         status.active = False
+        exit()
+
+def terminate_node():
+    if _is_IPython():
+        class StopExecution(Exception):
+            def _render_traceback_(self):
+                pass
+        
+        raise StopExecution
+    else:
         exit()

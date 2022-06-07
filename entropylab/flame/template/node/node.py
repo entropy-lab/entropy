@@ -21,6 +21,7 @@ nodeio.register()
 # ==================== DRY RUN DATA ====================
 
 # set inputs data for dry-run of the node
+inputs.reset_all()  # needed just for repeated for development with repeated runs in IPython 
 # inputs.set( <input_name> = <input_value>)
 
 # =============== RUN NODE STATE MACHINE ===============

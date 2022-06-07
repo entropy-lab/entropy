@@ -10,13 +10,13 @@ from dash.dependencies import Input, Output, State, ALL
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 
-from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
-from entropylab.pipeline.api.errors import EntropyError
 from entropylab.dashboard.theme import (
     colors,
     dark_plot_layout,
 )
 from entropylab.logger import logger
+from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
+from entropylab.pipeline.api.errors import EntropyError
 
 REFRESH_INTERVAL_IN_MILLIS = 3000
 EXPERIMENTS_PAGE_SIZE = 6
@@ -96,7 +96,7 @@ def register_callbacks(app, dashboard_data_reader):
         Output("figures-by-key", "data"),
         Output("prev-selected-rows", "data"),
         Output("failed-plotting-alert", "children"),
-        Output("no-paging-spacer", "hidden"),
+        Output("add-button", "disabled"),
         Input("experiments-table", "selected_rows"),
         State("experiments-table", "data"),
         State("figures-by-key", "data"),
@@ -111,7 +111,7 @@ def register_callbacks(app, dashboard_data_reader):
         prev_selected_rows = prev_selected_rows or {}
         alert_text = ""
         added_row = get_added_row(prev_selected_rows, selected_rows)
-        spacer_hidden = len(data) > EXPERIMENTS_PAGE_SIZE
+        add_button_disabled = False
         if data and selected_rows:
             for row_num in selected_rows:
                 alert_on_fail = row_num == added_row
@@ -151,7 +151,14 @@ def register_callbacks(app, dashboard_data_reader):
                         )
         if len(result) == 0:
             result = [build_plot_tabs_placeholder()]
-        return result, figures_by_key, selected_rows, alert_text, spacer_hidden
+            add_button_disabled = True
+        return (
+            result,
+            figures_by_key,
+            selected_rows,
+            alert_text,
+            add_button_disabled,
+        )
 
     def build_plot_tabs(
         alert_on_fail, failed_plot_ids, figures_by_key, plots_and_figures, result
@@ -274,7 +281,14 @@ def register_callbacks(app, dashboard_data_reader):
 
     def build_remove_button(plot_id, color):
         return dbc.Button(
-            f"{plot_id} ✖️",
+            dbc.Row(
+                children=[
+                    dbc.Col(
+                        "✖",
+                    ),
+                    dbc.Col(f"{plot_id}", className="remove-button-label"),
+                ],
+            ),
             style={"background-color": color},
             class_name="remove-button",
             id={"type": "remove-button", "index": plot_id},

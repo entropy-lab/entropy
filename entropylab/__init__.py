@@ -30,5 +30,5 @@ __all__ = [
     "script_experiment",
     "InProcessParamStore",
     "QuAM",
-    "QuAMManager"
+    "QuAMManager",
 ]

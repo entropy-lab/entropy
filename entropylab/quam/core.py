@@ -18,7 +18,6 @@ class QuAMCore(object):
         self.param_store = InProcessParamStore(path)
 
 
-
 class QuAMManager(QuAMCore):
     def __init__(self, path: str, host: str = "127.0.0.1"):
         """Admin

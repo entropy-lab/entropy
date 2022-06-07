@@ -468,7 +468,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
 name = "dynaconf"
-version = "3.1.8"
+version = "3.1.9"
 description = "The dynamic configurator for your Python Project"
 category = "main"
 optional = false
@@ -1959,7 +1959,6 @@ dash-bootstrap-components = [
     {file = "dash_bootstrap_components-1.1.0-py3-none-any.whl", hash = "sha256:e0490bf865c61f14371e537bdab4be08db693cec01884eb5a9c55489ebd13d47"},
 ]
 dash-core-components = [
-    {file = "dash_core_components-2.0.0-py3-none-any.whl", hash = "sha256:52b8e8cce13b18d0802ee3acbc5e888cb1248a04968f962d63d070400af2e346"},
     {file = "dash_core_components-2.0.0.tar.gz", hash = "sha256:c6733874af975e552f95a1398a16c2ee7df14ce43fa60bb3718a3c6e0b63ffee"},
 ]
 dash-cytoscape = [
@@ -1970,11 +1969,9 @@ dash-dangerously-set-inner-html = [
     {file = "dash_dangerously_set_inner_html-0.0.2.tar.gz", hash = "sha256:d7fe990755851fc4d2e22c8f10b7aea055cabf380bbceefba589779b269fea64"},
 ]
 dash-html-components = [
-    {file = "dash_html_components-2.0.0-py3-none-any.whl", hash = "sha256:b42cc903713c9706af03b3f2548bda4be7307a7cf89b7d6eae3da872717d1b63"},
     {file = "dash_html_components-2.0.0.tar.gz", hash = "sha256:8703a601080f02619a6390998e0b3da4a5daabe97a1fd7a9cebc09d015f26e50"},
 ]
 dash-table = [
-    {file = "dash_table-5.0.0-py3-none-any.whl", hash = "sha256:19036fa352bb1c11baf38068ec62d172f0515f73ca3276c79dee49b95ddc16c9"},
     {file = "dash_table-5.0.0.tar.gz", hash = "sha256:18624d693d4c8ef2ddec99a6f167593437a7ea0bf153aa20f318c170c5bc7308"},
 ]
 deprecated = [
@@ -1994,8 +1991,8 @@ docutils = [
     {file = "docutils-0.18.1.tar.gz", hash = "sha256:679987caf361a7539d76e584cbeddc311e3aee937877c87346f31debc63e9d06"},
 ]
 dynaconf = [
-    {file = "dynaconf-3.1.8-py2.py3-none-any.whl", hash = "sha256:dea41800cf4eef488f49d3b5d1ff6305b85c3c21538f4dcfc39ab34d29606d28"},
-    {file = "dynaconf-3.1.8.tar.gz", hash = "sha256:d141a6664fca3648d2d8e84440966af9f58c4f4201ca78353a3f595a67c19ab4"},
+    {file = "dynaconf-3.1.9-py2.py3-none-any.whl", hash = "sha256:9eaaa6e64a4a64225f80cdad14379a37656b8f2dc607ab0fd949b75d479674cc"},
+    {file = "dynaconf-3.1.9.tar.gz", hash = "sha256:f435c9e5b0b4b1dddf5e17e60a1e4c91ae0e6275aa51522456e671a7be3380eb"},
 ]
 fastapi = [
     {file = "fastapi-0.77.1-py3-none-any.whl", hash = "sha256:041d8935a13c8f22a7ef80c76d8eea54953c44476d7057e7734138ee8951b9dc"},

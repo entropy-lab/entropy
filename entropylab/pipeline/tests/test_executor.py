@@ -8,7 +8,7 @@ from entropylab.pipeline.api.plot import CirclePlotGenerator, LinePlotGenerator
 from entropylab.components.lab_topology import LabResources, ExperimentResources
 from entropylab.pipeline.results_backend.sqlalchemy.db import SqlAlchemyDB
 from entropylab.pipeline.script_experiment import Script, script_experiment
-from entropylab.tests.mock_instruments import MockScope
+from entropylab.pipeline.tests.mock_instruments import MockScope
 
 
 def do_something():

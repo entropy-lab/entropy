@@ -5,11 +5,13 @@ import hashlib
 import json
 import os.path
 import shutil
+import string
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Callable
+from random import SystemRandom
+from typing import Optional, Dict, Any, List, Callable, Set
 
 import jsonpickle as jsonpickle
 import pandas as pd
@@ -19,7 +21,7 @@ from tinydb.table import Document
 
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
-from entropylab.pipeline.api.param_store import ParamStore, MergeStrategy
+from entropylab.pipeline.api.param_store import ParamStore, MergeStrategy, Param
 
 INFO_DOC_ID = 1
 INFO_TABLE = "info"
@@ -28,18 +30,9 @@ TEMP_TABLE = "temp"
 VERSION_KEY = "version"
 
 
-class Param(Dict):
-    def __init__(self, value):
-        super().__init__()
-        self.value = value
-
-    def __repr__(self):
-        return f"<Param(value={self.value})>"
-
-
 class Metadata:
     def __init__(self, d: Dict = None):
-        self.id: str = ""
+        self.id: str = ""  # commit_id
         self.timestamp: int = time.time_ns()  # time in nanoseconds since the Epoch
         self.label: Optional[str] = None
         if d:
@@ -105,6 +98,7 @@ class InProcessParamStore(ParamStore):
         self.__params: Dict[str, Param] = dict()  # where current params are stored
         self.__tags: Dict[str, List[str]] = dict()  # tags that are mapped to keys
         self.__is_dirty: bool = True  # can the store be committed at this time?
+        self.__dirty_keys: Set[str] = set()  # updated keys not committed yet
 
         if path is None:
             self.__is_in_memory_mode = True
@@ -155,6 +149,7 @@ class InProcessParamStore(ParamStore):
             with self.__lock:
                 self.__params.__setitem__(key, Param(value))
                 self.__is_dirty = True
+                self.__dirty_keys.add(key)
 
     def __getitem__(self, key: str) -> Any:
         with self.__lock:
@@ -162,9 +157,11 @@ class InProcessParamStore(ParamStore):
 
     def __delitem__(self, *args, **kwargs):
         with self.__lock:
+            key = args[0]
             self.__params.__delitem__(*args, **kwargs)
-            self.__remove_key_from_tags(args[0])
+            self.__remove_key_from_tags(key)
             self.__is_dirty = True
+            self.__dirty_keys.add(key)
 
     def __getattr__(self, key):
         try:
@@ -211,13 +208,21 @@ class InProcessParamStore(ParamStore):
         with self.__lock:
             return _extract_param_values(self.__params)
 
-    def get(self, key: str, commit_id: Optional[str] = None):
+    def get_value(self, key: str, commit_id: Optional[str] = None) -> object:
         with self.__lock:
             if commit_id is None:
                 return self[key]
             else:
                 commit = self.__get_commit(commit_id)
                 return commit["params"][key].value
+
+    def get_param(self, key: str, commit_id: Optional[str] = None) -> Param:
+        with self.__lock:
+            if commit_id is None:
+                return copy.deepcopy(self.__params[key])
+            else:
+                commit = self.__get_commit(commit_id)
+                return copy.deepcopy(commit["params"][key])
 
     def __remove_key_from_tags(self, key: str):
         for tag in self.__tags:
@@ -249,28 +254,51 @@ class InProcessParamStore(ParamStore):
         with self.__lock:
             if not self.__is_dirty:
                 return self.__base_commit_id
-            doc = self.__build_document(label)
+            commit_id = self.__generate_commit_id()
+            self.__stamp_dirty_params_with_commit_id(commit_id)
+            doc = self.__build_document(commit_id, label)
             doc_id = self.__db.insert(doc)
             self.__base_commit_id = doc["metadata"]["id"]
             self.__base_doc_id = doc_id
             self.__is_dirty = False
+            self.__dirty_keys.clear()
             return doc["metadata"]["id"]
 
-    def __build_document(self, label: Optional[str] = None) -> dict:
-        metadata = self.__build_metadata(label)
+    def __stamp_dirty_params_with_commit_id(self, commit_id: str):
+        for key in self.__dirty_keys:
+            if key in self.__params:
+                self.__params[key].commit_id = commit_id
+
+    @staticmethod
+    def __generate_commit_id():
+        random_string = "".join(
+            SystemRandom().choice(string.printable) for _ in range(32)
+        ).encode("utf-8")
+        return hashlib.sha1(random_string).hexdigest()
+
+    def __build_document(
+        self, commit_id: Optional[str] = None, label: Optional[str] = None
+    ) -> dict:
+        """
+        builds a document to be saved as a commit/temp in TinyDB.
+        :param commit_id: is None when saving to temp.
+        :param label: an optional label to associate the commit with.
+        :return: a dictionary describing the current state of the ParamStore
+        """
+        metadata = self.__build_metadata(commit_id, label)
         if self.__is_in_memory_mode:
             params = copy.deepcopy(self.__params)
         else:
             params = self.__params
         return dict(metadata=metadata.__dict__, params=params, tags=self.__tags)
 
-    def __build_metadata(self, label: Optional[str] = None) -> Metadata:
+    @staticmethod
+    def __build_metadata(
+        commit_id: Optional[str] = None, label: Optional[str] = None
+    ) -> Metadata:
         metadata = Metadata()
-        params_json = json.dumps(
-            self.__params, sort_keys=True, ensure_ascii=True, default=vars
-        )
-        commit_encoded = (params_json + str(metadata.timestamp)).encode("utf-8")
-        metadata.id = hashlib.sha1(commit_encoded).hexdigest()
+        metadata.id = commit_id
+        metadata.timestamp = time.time_ns()
         metadata.label = label
         return metadata
 
@@ -288,6 +316,7 @@ class InProcessParamStore(ParamStore):
             self.__base_commit_id = commit_id
             self.__base_doc_id = commit.doc_id
             self.__is_dirty = False
+            self.__dirty_keys.clear()
 
     def list_commits(self, label: Optional[str] = None) -> List[Metadata]:
         with self.__lock:
@@ -349,14 +378,14 @@ class InProcessParamStore(ParamStore):
             ours = self
             self.__merge_trees(ours, theirs, merge_strategy)
 
-    # TODO: a & b should be ParamStore (1st make ParamStore implement MutableMapping)
     def __merge_trees(
         self,
-        a: InProcessParamStore,
-        b: InProcessParamStore,
+        a: ParamStore | Dict,
+        b: ParamStore | Dict,
         merge_strategy: MergeStrategy,
-    ) -> ParamStore:
+    ) -> bool:
         """Merges `b` into `a` *in-place* using the given strategy"""
+        a_has_changed = False
         for key in b.keys():
             if key in a.keys():
                 if (
@@ -365,23 +394,39 @@ class InProcessParamStore(ParamStore):
                     and (not isinstance(b[key], Param))
                     and isinstance(b[key], dict)
                 ):
-                    self.__merge_trees(a[key], b[key], merge_strategy)
+                    """This is a special case where the values of the Params are both
+                    dictionaries. In this case we merge the dictionary from b into the
+                    dictionary from a using the given strategy."""
+                    a_has_changed = a_has_changed or self.__merge_trees(
+                        a[key], b[key], merge_strategy
+                    )
+                    if (
+                        a_has_changed
+                        and isinstance(a, ParamStore)
+                        and isinstance(b, ParamStore)
+                    ):
+                        """if the dictionary in a has been changed, this was done
+                        in-place. We therefore need mark the Param key as dirty. We only
+                        do this at the very top of the recursion - when a and b are the
+                        ParamStores being merged"""
+                        self.__is_dirty = True
+                        self.__dirty_keys.add(key)
                 elif a[key] == b[key]:
-                    pass  # same leaf value, nothing to do
-                else:  # conflict:
+                    pass  # same leaf values, nothing to do
+                else:  # diff leave values => conflict:
                     if merge_strategy == MergeStrategy.OURS:
                         pass  # a takes precedence, ignore b
                     elif merge_strategy == MergeStrategy.THEIRS:
                         a[key] = b[key]  # b takes precedence, overwrite a
-                        self.__is_dirty = True
+                        a_has_changed = True
                     else:
                         raise NotImplementedError(
                             f"MergeStrategy '{merge_strategy}' is not implemented"
                         )
             else:  # key from b is not in a:
                 a[key] = b[key]  # "copy" from b to a
-                self.__is_dirty = True
-        return a
+                a_has_changed = True
+        return a_has_changed
 
     def list_values(self, key: str) -> pd.DataFrame:
         with self.__lock:

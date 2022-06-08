@@ -4,6 +4,7 @@ from time import sleep
 import pytest
 from tinydb import Query, TinyDB
 
+from entropylab.conftest import _copy_template
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.in_process_param_store import (
     InProcessParamStore,
@@ -11,9 +12,8 @@ from entropylab.pipeline.api.in_process_param_store import (
     MergeStrategy,
     migrate_param_store_0_1_to_0_2,
     JSONPickleStorage,
-    Param,
 )
-from entropylab.conftest import _copy_template
+from entropylab.pipeline.api.param_store import Param
 
 """ ctor """
 
@@ -148,7 +148,7 @@ def test_get_when_commit_id_is_none_then_value_is_returned():
     target = InProcessParamStore()
     target["foo"] = "bar"
     # act
-    actual = target.get("foo")
+    actual = target.get_value("foo")
     # assert
     assert actual == "bar"
 
@@ -160,7 +160,7 @@ def test_get_when_commit_id_is_not_none_then_value_is_returned():
     commit_id = target.commit()
     target["foo"] = "baz"
     # act
-    actual = target.get("foo", commit_id)
+    actual = target.get_value("foo", commit_id)
     # assert
     assert actual == "bar"
 
@@ -171,7 +171,72 @@ def test_get_when_commit_id_is_bad_then_entropy_error_is_raised():
     target["foo"] = "bar"
     # act
     with pytest.raises(EntropyError):
-        target.get("foo", "oops")
+        target.get_value("foo", "oops")
+
+
+""" get_param() """
+
+
+def test_get_param_when_param_exists_then_it_is_returned():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    # act
+    actual = target.get_param("foo")
+    # assert
+    assert actual.value == "bar"
+    assert actual.commit_id is None
+
+
+def test_get_param_when_param_is_committed_then_commit_id_is_returned_in_param():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    commit_id = target.commit()
+    # act
+    actual = target.get_param("foo")
+    # assert
+    assert actual.commit_id == commit_id
+
+
+def test_get_param_when_key_is_not_in_param_store_then_keyerror_is_raised():
+    target = InProcessParamStore()
+    with pytest.raises(KeyError):
+        target.get_param("foo")
+
+
+def test_get_param_when_commit_id_is_not_none_then_value_is_returned():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    commit_id = target.commit()
+    target["foo"] = "baz"
+    # act
+    actual = target.get_param("foo", commit_id)
+    # assert
+    assert actual.value == "bar"
+
+
+def test_get_param_when_key_is_not_in_commit_then_keyerror_is_raised():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    commit_id = target.commit()
+    # act & assert
+    with pytest.raises(KeyError):
+        target.get_param("oops", commit_id)
+
+
+def test_get_param_when_commit_id_is_bad_then_entropy_error_is_raised():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = "bar"
+    # act
+    with pytest.raises(EntropyError):
+        target.get_param("foo", "oops")
+
+
+""" rename_key() """
 
 
 def test_rename_key_when_key_exists_then_it_is_renamed():
@@ -185,9 +250,7 @@ def test_rename_key_when_key_exists_then_it_is_renamed():
 
 
 def test_rename_key_when_key_does_not_exist_then_an_error_is_raised():
-    # arrange
     target = InProcessParamStore()
-    # act & assert
     with pytest.raises(KeyError):
         target.rename_key("foo", "new")
 
@@ -226,7 +289,7 @@ def test_commit_in_memory_when_param_changes_commit_doesnt_change():
     # act
     target["foo"] = "baz"
     # assert
-    assert target.get("foo", commit_id) == "bar"
+    assert target.get_value("foo", commit_id) == "bar"
 
 
 def test_commit_when_body_is_empty_does_not_throw(tinydb_file_path):
@@ -271,6 +334,22 @@ def test_commit_when_label_is_given_then_label_is_saved(tinydb_file_path):
     commit_id = target.commit("foo")
     result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
     assert result[0]["metadata"]["label"] == "foo"
+
+
+def test_commit_assert_changed_values_are_stamped_with_commit_id(tinydb_file_path):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = 42
+    target["bar"] = 42
+    commit_id1 = target.commit()
+    target["bar"] = 1337
+    target["baz"] = 1337
+    # act
+    commit_id2 = target.commit()
+    # assert
+    assert target._InProcessParamStore__params["foo"].commit_id == commit_id1
+    assert target._InProcessParamStore__params["bar"].commit_id == commit_id2
+    assert target._InProcessParamStore__params["baz"].commit_id == commit_id2
 
 
 """ checkout() """
@@ -426,9 +505,9 @@ def test_list_commits_when_label_exists_then_it_is_returned(
     target["foo"] = "exact"
     target.commit("label")
     target["foo"] = "pre"
-    target.commit("foolabel")
+    target.commit("foo-label")
     target["foo"] = "post"
-    target.commit("labelfoo")
+    target.commit("label-foo")
     target["foo"] = "no-match"
     target.commit("foo")
     target["foo"] = "empty"
@@ -443,20 +522,14 @@ def test_list_commits_when_label_exists_then_it_is_returned(
     assert len(actual) == 3
 
 
-""" _generate_metadata() """
+""" __generate_commit_id() """
 
 
-def test__generate_metadata_empty_dict():
+def test__generate_commit_id():
     target = InProcessParamStore()
-    actual = target._InProcessParamStore__build_metadata()
-    assert len(actual.id) == 40
-
-
-def test__generate_metadata_nonempty_dict():
-    target = InProcessParamStore()
-    target["foo"] = "bar"
-    actual = target._InProcessParamStore__build_metadata()
-    assert len(actual.id) == 40
+    commit_id1 = target._InProcessParamStore__generate_commit_id()
+    commit_id2 = target._InProcessParamStore__generate_commit_id()
+    assert commit_id1 != commit_id2
 
 
 """ merge() MergeStrategy.OURS """
@@ -528,6 +601,20 @@ def test_merge_strategy_ours_both_sides():
     }
 
 
+def test_merge_strategy_ours_correctly_marks_key_for_dict_as_dirty():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = {"x": {"a": 1}}
+    theirs = InProcessParamStore()
+    theirs["foo"] = {"x": {"b": 2}}
+    target.commit()  # so we start the merge in  a non-dirty state
+    # act
+    target.merge(theirs, MergeStrategy.OURS)
+    # assert
+    assert target._InProcessParamStore__dirty_keys == {"foo"}
+    assert target["foo"]["x"]["a"] == 1 and target["foo"]["x"]["b"] == 2
+
+
 def test_merge_strategy_ours_when_both_are_empty_then_store_remains_not_dirty():
     target = InProcessParamStore()
     theirs = InProcessParamStore()
@@ -579,6 +666,20 @@ def test_merge_strategy_theirs_merge_two_leaves_under_same_parent_dict():
     theirs["foo"] = {"b": 2}
     target.merge(theirs, MergeStrategy.THEIRS)
     assert target["foo"]["a"] == 1 and target["foo"]["b"] == 2
+
+
+def test_merge_strategy_theirs_correctly_marks_key_for_dict_as_dirty():
+    # arrange
+    target = InProcessParamStore()
+    target["foo"] = {"x": {"a": 1}}
+    theirs = InProcessParamStore()
+    theirs["foo"] = {"x": {"b": 2}}
+    target.commit()  # so we start the merge in  a non-dirty state
+    # act
+    target.merge(theirs, MergeStrategy.THEIRS)
+    # assert
+    assert target._InProcessParamStore__dirty_keys == {"foo"}
+    assert target["foo"]["x"]["a"] == 1 and target["foo"]["x"]["b"] == 2
 
 
 def test_merge_strategy_theirs_when_ours_is_leaf_theirs_is_dict_then_theirs_is_copied():
@@ -825,7 +926,7 @@ def test_demo(tinydb_file_path):
     print(f"second commit freq: {target['qubit1.flux_capacitor.freq']}")
     print(
         f"first commit freq from history: "
-        f"{target.get('qubit1.flux_capacitor.freq', commit_id)}"
+        f"{target.get_value('qubit1.flux_capacitor.freq', commit_id)}"
     )
 
     target.commit("warm-up")

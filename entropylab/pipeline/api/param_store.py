@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum, unique
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, MutableMapping
 
 import pandas as pd
 
@@ -13,8 +13,7 @@ class MergeStrategy(Enum):
     THEIRS = 2
 
 
-# TODO: Derive from MutableMapping (-> rename get() to get_value())
-class ParamStore(ABC):
+class ParamStore(ABC, MutableMapping):
     @abstractmethod
     def keys(self):
         pass
@@ -24,12 +23,23 @@ class ParamStore(ABC):
         pass
 
     @abstractmethod
-    def get(self, key, commit_id):
+    def get_value(self, key: str, commit_id: Optional[str] = None) -> object:
         """
-            returns the value of a param by key
+            returns the value of a param by its key
 
         :param key: the key identifying the param
-        :param commit_id: an optional commit_id. if provided, the value will be
+        :param commit_id: an optional commit_id. If provided, the value will be
+        returned from the specified commit
+        """
+        pass
+
+    @abstractmethod
+    def get_param(self, key: str, commit_id: Optional[str] = None) -> Param:
+        """
+            returns a copy of the Param instance of a value stored in ParamStore
+
+        :param key: the key identifying the param
+        :param commit_id: an optional commit_id. If provided, the Param will be
         returned from the specified commit
         """
         pass
@@ -113,3 +123,13 @@ class ParamStore(ABC):
         """True iff params have been changed since the store has last been
         initialized or checked out"""
         pass
+
+
+class Param(Dict):
+    def __init__(self, value):
+        super().__init__()
+        self.value = value
+        self.commit_id = None
+
+    def __repr__(self):
+        return f"<Param(value={self.value}, commit_id={self.commit_id})>"

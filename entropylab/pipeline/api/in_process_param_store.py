@@ -8,7 +8,7 @@ import shutil
 import string
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from random import SystemRandom
 from typing import Optional, Dict, Any, List, Callable, Set
@@ -223,6 +223,27 @@ class InProcessParamStore(ParamStore):
             else:
                 commit = self.__get_commit(commit_id)
                 return copy.deepcopy(commit["params"][key])
+
+    def set_param(self,
+                  key: str,
+                  value: object,
+                  expiration: Optional[timedelta]):
+        # if not value and not expiration:
+        #     raise EntropyError("method set_param() requires at least one of the "
+        #                        "arguments: value or expiration")
+        with self.__lock:
+            if key in self.__params:
+                param = self.get_param(key)
+            else:
+                param = Param(value)
+            param.value = value
+            if expiration:
+                param.expiration = expiration
+            else:
+                param.expiration = None
+            self.__params.__setitem__(key, param)
+            self.__is_dirty = True
+            self.__dirty_keys.add(key)
 
     def __remove_key_from_tags(self, key: str):
         for tag in self.__tags:

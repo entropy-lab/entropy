@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import timedelta
 from enum import Enum, unique
 from typing import Dict, List, Optional, MutableMapping
 
@@ -128,8 +129,11 @@ class ParamStore(ABC, MutableMapping):
 class Param(Dict):
     def __init__(self, value):
         super().__init__()
-        self.value = value
-        self.commit_id = None
+        self.value: object = value
+        self.commit_id: str = None
+        self.expiration: timedelta = None
 
     def __repr__(self):
-        return f"<Param(value={self.value}, commit_id={self.commit_id})>"
+        return f"<Param(value={self.value}, " \
+               f"commit_id={self.commit_id}, " \
+               f"expiration={self.expiration})> "

@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pprint import pprint
 from time import sleep
 
@@ -234,6 +235,52 @@ def test_get_param_when_commit_id_is_bad_then_entropy_error_is_raised():
     # act
     with pytest.raises(EntropyError):
         target.get_param("foo", "oops")
+
+
+""" set_param() """
+
+
+def test_set_param_when_param_is_new_then_value_is_set():
+    # arrange
+    target = InProcessParamStore()
+    target.set_param("foo", "bar", timedelta(seconds=42))
+    # act
+    assert target["foo"] == "bar"
+
+
+def test_set_param_when_param_is_new_then_expiration_is_set():
+    # arrange
+    target = InProcessParamStore()
+    target.set_param("foo", "bar", timedelta(seconds=42))
+    # act
+    assert target.get_param("foo").expiration == timedelta(seconds=42)
+
+
+def test_set_param_exists_then_value_is_overwritten():
+    # arrange
+    target = InProcessParamStore()
+    target.foo = "bar"
+    target.set_param("foo", "baz", timedelta(seconds=42))
+    # act
+    assert target.foo == "baz"
+
+
+def test_set_param_exists_then_expiration_is_overwritten():
+    # arrange
+    target = InProcessParamStore()
+    target.set_param("foo", "bar", timedelta(minutes=90))
+    target.set_param("foo", "bar", timedelta(seconds=42))
+    # act
+    assert target.get_param("foo").expiration == timedelta(seconds=42)
+
+
+def test_set_param_exists_and_expiration_is_none_then_expiration_is_none():
+    # arrange
+    target = InProcessParamStore()
+    target.set_param("foo", "bar", timedelta(minutes=90))
+    target.set_param("foo", "bar", None)
+    # act
+    assert not target.get_param("foo").expiration
 
 
 """ rename_key() """

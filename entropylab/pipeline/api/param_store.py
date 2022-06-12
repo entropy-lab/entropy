@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import time
 from abc import ABC, abstractmethod
+from datetime import timedelta
 from enum import Enum, unique
 from typing import Dict, List, Optional, MutableMapping
 
@@ -25,7 +27,7 @@ class ParamStore(ABC, MutableMapping):
     @abstractmethod
     def get_value(self, key: str, commit_id: Optional[str] = None) -> object:
         """
-            returns the value of a param by its key
+        Returns the value of a param by its key
 
         :param key: the key identifying the param
         :param commit_id: an optional commit_id. If provided, the value will be
@@ -36,11 +38,24 @@ class ParamStore(ABC, MutableMapping):
     @abstractmethod
     def get_param(self, key: str, commit_id: Optional[str] = None) -> Param:
         """
-            returns a copy of the Param instance of a value stored in ParamStore
+        Returns a copy of the Param instance of a value stored in ParamStore
 
         :param key: the key identifying the param
         :param commit_id: an optional commit_id. If provided, the Param will be
         returned from the specified commit
+        """
+        pass
+
+    @abstractmethod
+    def set_param(self, key: str, value: object, expiration: Optional[timedelta]):
+        """
+        Sets a Param in the ParamStore
+
+        :param key: the key identifying the param
+        :param value: the value of the param
+        :param key: an optional period of time (measured from the time the param
+        is committed) after which the prime expires (i.e. param.has_expired
+        returns True)
         """
         pass
 
@@ -59,7 +74,7 @@ class ParamStore(ABC, MutableMapping):
     @abstractmethod
     def list_commits(self, label: Optional[str]):
         """
-            returns a list of commits
+        Returns a list of commits
 
         :param label: an optional label, if given then only commits that match
         it will be returned
@@ -69,8 +84,8 @@ class ParamStore(ABC, MutableMapping):
     @abstractmethod
     def list_values(self, key: str) -> pd.DataFrame:
         """
-            list all the values of a given key taken from commit history,
-            sorted by date ascending
+        Lists all the values of a given key taken from commit history,
+        sorted by date ascending
 
         :param key: the key for which to list values
         :returns: a list of tuples where the values are, in order:
@@ -120,7 +135,8 @@ class ParamStore(ABC, MutableMapping):
     @property
     @abstractmethod
     def is_dirty(self):
-        """True iff params have been changed since the store has last been
+        """
+        True iff params have been changed since the store has last been
         initialized or checked out"""
         pass
 
@@ -128,8 +144,37 @@ class ParamStore(ABC, MutableMapping):
 class Param(Dict):
     def __init__(self, value):
         super().__init__()
-        self.value = value
-        self.commit_id = None
+        self.value: object = value
+        self.commit_id: Optional[str] = None
+        self.expiration: Optional[timedelta | int] = None
 
     def __repr__(self):
-        return f"<Param(value={self.value}, commit_id={self.commit_id})>"
+        return (
+            f"<Param(value={self.value}, "
+            f"commit_id={self.commit_id}, "
+            f"expiration={self.__expiration_repr})> "
+        )
+
+    @property
+    def __expiration_repr(self):
+        if isinstance(self.expiration, int):
+            return _ns_to_datetime(self.expiration)
+        else:
+            return False
+
+    @property
+    def has_expired(self):
+        """
+        Indicates whether the Param value has expired. Returns True iff the Param
+        has been committed and the time elapsed since the commit operation has exceeded
+        the time recorded in the `expiration` property"""
+        if isinstance(self.expiration, int):
+            return self.expiration < time.time_ns()
+        else:
+            return False
+
+
+def _ns_to_datetime(ns: int) -> pd.datetime:
+    """
+    Converts a UNIX epoch timestamp in nano-seconds to a human readable string"""
+    return pd.to_datetime(ns)

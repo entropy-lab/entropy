@@ -1,3 +1,5 @@
+import time
+from datetime import timedelta
 from pprint import pprint
 from time import sleep
 
@@ -236,6 +238,52 @@ def test_get_param_when_commit_id_is_bad_then_entropy_error_is_raised():
         target.get_param("foo", "oops")
 
 
+""" set_param() """
+
+
+def test_set_param_when_param_is_new_then_value_is_set():
+    # arrange
+    target = InProcessParamStore()
+    target.set_param("foo", "bar", timedelta(seconds=42))
+    # act
+    assert target["foo"] == "bar"
+
+
+def test_set_param_when_param_is_new_then_expiration_is_set():
+    # arrange
+    target = InProcessParamStore()
+    target.set_param("foo", "bar", timedelta(seconds=42))
+    # act
+    assert target.get_param("foo").expiration == timedelta(seconds=42)
+
+
+def test_set_param_exists_then_value_is_overwritten():
+    # arrange
+    target = InProcessParamStore()
+    target.foo = "bar"
+    target.set_param("foo", "baz", timedelta(seconds=42))
+    # act
+    assert target.foo == "baz"
+
+
+def test_set_param_exists_then_expiration_is_overwritten():
+    # arrange
+    target = InProcessParamStore()
+    target.set_param("foo", "bar", timedelta(minutes=90))
+    target.set_param("foo", "bar", timedelta(seconds=42))
+    # act
+    assert target.get_param("foo").expiration == timedelta(seconds=42)
+
+
+def test_set_param_exists_and_expiration_is_none_then_expiration_is_none():
+    # arrange
+    target = InProcessParamStore()
+    target.set_param("foo", "bar", timedelta(minutes=90))
+    target.set_param("foo", "bar", None)
+    # act
+    assert not target.get_param("foo").expiration
+
+
 """ rename_key() """
 
 
@@ -350,6 +398,20 @@ def test_commit_assert_changed_values_are_stamped_with_commit_id(tinydb_file_pat
     assert target._InProcessParamStore__params["foo"].commit_id == commit_id1
     assert target._InProcessParamStore__params["bar"].commit_id == commit_id2
     assert target._InProcessParamStore__params["baz"].commit_id == commit_id2
+
+
+def test_commit_assert_param_expiration_is_converted_to_timestamp_int(tinydb_file_path):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    now = time.time_ns()
+    target.set_param("foo", 42, timedelta(hours=5))
+    # act
+    target.commit()
+    # assert
+    assert target.get_param("foo").expiration >= now + (5 * 1e9)
+    # assert target._InProcessParamStore__params["foo"].commit_id == commit_id1
+    # assert target._InProcessParamStore__params["bar"].commit_id == commit_id2
+    # assert target._InProcessParamStore__params["baz"].commit_id == commit_id2
 
 
 """ checkout() """
@@ -962,3 +1024,30 @@ def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
     # temp is unharmed
     param_store.load_temp()
     assert param_store["qubit1.flux_capacitor.freq"] == -8.0
+
+
+""" class Param """
+
+
+def test_has_expired_when_expiration_is_int_and_has_expired_then_true():
+    target = Param(42)
+    target.expiration = time.time_ns() - 1
+    assert target.has_expired
+
+
+def test_has_expired_when_expiration_is_int_and_not_expired_then_false():
+    target = Param(42)
+    target.expiration = time.time_ns() + 1000 * 1e9
+    assert not target.has_expired
+
+
+def test_has_expired_when_expiration_is_none_then_false():
+    target = Param(42)
+    target.expiration = None
+    assert not target.has_expired
+
+
+def test_has_expired_when_expiration_is_timedelta_then_false():
+    target = Param(42)
+    target.expiration = timedelta(hours=5)
+    assert not target.has_expired

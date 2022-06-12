@@ -8,7 +8,7 @@ import shutil
 import string
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from random import SystemRandom
 from typing import Optional, Dict, Any, List, Callable, Set
@@ -33,7 +33,7 @@ VERSION_KEY = "version"
 class Metadata:
     def __init__(self, d: Dict = None):
         self.id: str = ""  # commit_id
-        self.timestamp: int = time.time_ns()  # time in nanoseconds since the Epoch
+        self.timestamp: int = time.time_ns()  # nanoseconds since epoch
         self.label: Optional[str] = None
         if d:
             self.__dict__.update(d)
@@ -224,6 +224,22 @@ class InProcessParamStore(ParamStore):
                 commit = self.__get_commit(commit_id)
                 return copy.deepcopy(commit["params"][key])
 
+    def set_param(self, key: str, value: object, expiration: Optional[timedelta]):
+
+        with self.__lock:
+            if key in self.__params:
+                param = self.get_param(key)
+            else:
+                param = Param(value)
+            param.value = value
+            if expiration:
+                param.expiration = expiration
+            else:
+                param.expiration = None
+            self.__params.__setitem__(key, param)
+            self.__is_dirty = True
+            self.__dirty_keys.add(key)
+
     def __remove_key_from_tags(self, key: str):
         for tag in self.__tags:
             if key in self.__tags[tag]:
@@ -255,7 +271,8 @@ class InProcessParamStore(ParamStore):
             if not self.__is_dirty:
                 return self.__base_commit_id
             commit_id = self.__generate_commit_id()
-            self.__stamp_dirty_params_with_commit_id(commit_id)
+            commit_timestamp = time.time_ns()  # nanoseconds since epoch
+            self.__stamp_dirty_params_with_commit(commit_id, commit_timestamp)
             doc = self.__build_document(commit_id, label)
             doc_id = self.__db.insert(doc)
             self.__base_commit_id = doc["metadata"]["id"]
@@ -264,10 +281,14 @@ class InProcessParamStore(ParamStore):
             self.__dirty_keys.clear()
             return doc["metadata"]["id"]
 
-    def __stamp_dirty_params_with_commit_id(self, commit_id: str):
+    def __stamp_dirty_params_with_commit(self, commit_id: str, commit_timestamp: int):
         for key in self.__dirty_keys:
             if key in self.__params:
-                self.__params[key].commit_id = commit_id
+                param = self.__params[key]
+                param.commit_id = commit_id
+                if isinstance(param.expiration, timedelta):
+                    expiration_in_ns = param.expiration.total_seconds() * 1e9
+                    param.expiration = commit_timestamp + expiration_in_ns
 
     @staticmethod
     def __generate_commit_id():

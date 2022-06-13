@@ -46,36 +46,6 @@ def register_callbacks(app, dashboard_data_reader):
         open_empty_project_modal = len(records) == 0
         return records, open_empty_project_modal
 
-    # @app.callback(
-    #     Output("experiments-table", "data"),
-    #     Output("empty-project-modal", "is_open"),
-    #     Output("success-filter-checklist", "value"),
-    #     Input("interval", "n_intervals"),
-    #     Input("success-filter-checklist", "value"),
-    # )
-    # def refresh_experiments_table(_, success_filter_checklist_value):
-    #     """Periodically refresh the experiments table (See
-    #     https://dash.plotly.com/live-updates), or when the filter on the 'success'
-    #     column is changed"""
-    #     success = checklist_value_to_bool(success_filter_checklist_value)
-    #     records = dashboard_data_reader.get_last_experiments(success=success)
-    #     open_empty_project_modal = (
-    #         len(records) == 0
-    #     ) and not callback_triggered_by_success_filter(dash.callback_context)
-    #     return records, open_empty_project_modal, success_filter_checklist_value
-    #
-    # def checklist_value_to_bool(checklist_value: [bool]) -> Optional[bool]:
-    #     """Translate the value of the success-filter Checklist component to a
-    #     value understood by the data access API"""
-    #     if True in checklist_value and False in checklist_value:
-    #         return None  # None = Both True and False
-    #     elif True in checklist_value:
-    #         return True
-    #     elif False in checklist_value:
-    #         return False
-    #     else:
-    #         return None
-
     @app.callback(
         Output("failed-plotting-alert", "is_open"),
         Input("failed-plotting-alert", "children"),

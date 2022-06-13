@@ -137,7 +137,7 @@ class Inputs:
                     f"{nodeio_context.node_name}/{name} is reached, "
                     "terminating test run of the node."
                 )
-                exit()
+                nodeio_context.terminate_node()
             if self.input_type[name] == InputType.STREAM:
                 print(f"\tENTROPYLAB - STREAM INPUT {nodeio_context.node_name}/{name}")
             else:
@@ -309,10 +309,22 @@ class Inputs:
             self.value_set[name] = False
 
     def reset_all(self):
-        """Resets all set input values to not set, keeping the input variable"""
+        """Resets all set input values to not set, keeping the input variable."""
+        if nodeio_context.entropy_identity is None:
+            return
         for name, _value in self.values.items():
             self.values[name] = None
             self.value_set[name] = False
+
+    def reset_all_dry_run_data(self):
+        """Resets dry-run data only, keeping inputs untouched if they are part
+        of the workflow. Useful when authoring node interactively in Jupyter
+        nodebook, when set might be called repeatedly by executing corresponding
+        Jupyter notebook cell."""
+        if nodeio_context.entropy_identity is None:
+            return
+        else:
+            self.reset_all()
 
     def defines(self, name):
         """Returns true if input exists and it is defined."""

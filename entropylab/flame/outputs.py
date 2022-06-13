@@ -103,6 +103,18 @@ class Outputs:
                     f" SAVE (retention = {self.retention[key]})"
                 )
                 print(f"\t{value}")
+                if nodeio_context.save_dry_run and self.retention[key] == 2:
+                    if key not in nodeio_context.dry_run_data["node"]["outputs"]:
+                        output = {}
+                        output["values"] = []
+                        output["description"] = self.description[key]
+                        output["units"] = self.units[key]
+                        nodeio_context.dry_run_data["node"]["outputs"][key] = output
+
+                    nodeio_context.dry_run_data["node"]["outputs"][key][
+                        "values"
+                    ].append(value)
+
         return
 
     # TODO: add also write that will have more controllable options when writing data

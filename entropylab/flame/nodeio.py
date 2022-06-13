@@ -1,6 +1,7 @@
 from .inputs import Inputs
 from .outputs import Outputs
 import os
+import sys
 import signal
 import json
 import __main__
@@ -114,27 +115,19 @@ class StateMachine:
 
     def exit_gracefully(self, *args):
         self.active = False
-        exit()
+        nodeio_context.terminate_node()
 
     # add status to be executable property; and allow blocking on
     # status check in case we are resolving calibration of the system
 
 
-def _is_IPython():
-    try:
-        shell = get_ipython().__class__.__name__
-        if shell == "ZMQInteractiveShell":
-            return True  # Jupyter notebook or qtconsole
-        elif shell == "TerminalInteractiveShell":
-            return False  # Terminal running IPython
-        else:
-            return False  # Other type (?)
-    except NameError:
-        return False  # Probably standard Python interpreter
+def register(save_dry_run=False):
+    """Saves this into node library, allowing it to be used in workflows.
 
-
-def register():
-    """Saves this into node library, allowing it to be used in workflows."""
+    Args:
+        save_dry_run (bool): Optional, should dry-run of the node be saved into
+        EntropyHub as a single-node workflow, with corresponding jobId and HDF5.
+    """
 
     if nodeio_context.playbook is not None:
         # wait to establish connections
@@ -224,7 +217,7 @@ def register():
 
         return  # We are running as a part of the workflow. Skip node creation.
 
-    if _is_IPython():
+    if nodeio_context.is_IPython():
         return  # this node is still being prepared for runtime
 
     bin_path = str(os.path.basename(__main__.__file__))
@@ -238,6 +231,21 @@ def register():
         "inputs": Inputs._schema(),
         "outputs": Outputs._schema(),
     }
+
+    nodeio_context.save_dry_run = save_dry_run
+    if nodeio_context.save_dry_run:
+        nodeio_context.dry_run_data = {}
+        nodeio_context.dry_run_data[
+            "job_description"
+        ] = f"Dry run of {nodeio_context.node_name}"
+        node = {}
+        node["name"] = nodeio_context.node_name
+        node["description"] = nodeio_context.node_description
+        node["bin"] = bin_path
+        node["outputs"] = {}
+        nodeio_context.dry_run_data["node"] = node
+        nodeio_context.dry_run_log = open("dry_run.log", "w")
+        sys.stdout = nodeio_context.dry_run_log
 
     destination = os.path.join(os.path.join(os.getcwd(), "entropynodes"), "schema")
     if not os.path.exists(destination):
@@ -277,20 +285,8 @@ def terminate_workflow():
         nodeio_context.runtime_db_close()
         nodeio_context.zmq_context().term()
         status.active = False
-        exit()
+        nodeio_context.terminate_node()
     else:
         # terminate just this node
         status.active = False
-        exit()
-
-
-def terminate_node():
-    if _is_IPython():
-
-        class StopExecution(Exception):
-            def _render_traceback_(self):
-                pass
-
-        raise StopExecution
-    else:
-        exit()
+        nodeio_context.terminate_node()

@@ -71,8 +71,10 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                                 dbc.Row(
                                     [
                                         html.H5("Plots and Figures", id="plots-title"),
-                                        dbc.Tabs(
-                                            id="plot-tabs",
+                                        dcc.Loading(
+                                            id="plot-tabs-loading",
+                                            children=[dbc.Tabs(id="plot-tabs")],
+                                            type="default",
                                         ),
                                     ]
                                 ),
@@ -134,18 +136,3 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
             ],
         ),
     )
-    # Disabled temporarily. See ../../assets/custom-script.js for details.
-    # dcc.Checklist(
-    #     [
-    #         {"label": "✔️", "value": True},
-    #         {"label": "❌", "value": False},
-    #     ],
-    #     [True, False],
-    #     inline=False,
-    #     inputClassName="success-filter-checklist-input",
-    #     labelClassName="success-filter-checklist-label",
-    #     labelStyle={"display": "flex"},
-    #     id="success-filter-checklist",
-    # ),
-    #     ],
-    # )

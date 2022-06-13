@@ -31,14 +31,14 @@ def serve_dashboard(
     # debug mode
     if debug:
         file_handler = _create_file_handler(dashboard_log_path(path))
-
         _set_to_debug(logger, file_handler)
         _set_to_debug(logging.getLogger("waitress"), file_handler)
         _set_to_debug(logging.getLogger("hupper"), file_handler)
-
         hupper_logger = HupperLogger(logging.DEBUG)
     else:
-        hupper_logger = None
+        logger.setLevel(logging.INFO)
+        logging.getLogger("waitress").setLevel(logging.INFO)
+        hupper_logger = HupperLogger(logging.INFO)
 
     # defaults for args
     if host is None:

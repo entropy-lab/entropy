@@ -43,9 +43,7 @@ def register_callbacks(app, dashboard_data_reader):
         https://dash.plotly.com/live-updates), or when the filter on the 'success'
         column is changed"""
         records = dashboard_data_reader.get_last_experiments()
-        open_empty_project_modal = (
-            len(records) == 0
-        ) and not callback_triggered_by_success_filter(dash.callback_context)
+        open_empty_project_modal = len(records) == 0
         return records, open_empty_project_modal
 
     # @app.callback(
@@ -84,12 +82,6 @@ def register_callbacks(app, dashboard_data_reader):
     )
     def open_failed_plotting_alert_when_its_not_empty(children):
         return children != ""
-
-    def callback_triggered_by_success_filter(callback_context) -> bool:
-        return any(
-            inputs["prop_id"] == "success-filter-checklist.value"
-            for inputs in callback_context.triggered
-        )
 
     @app.callback(
         Output("plot-tabs", "children"),

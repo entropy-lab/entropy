@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import abc
 from typing import List, Dict
+from entropylab.logger import logger
 
-# import numpy as np
 import pandas as pd
 
 from entropylab import SqlAlchemyDB
@@ -31,6 +31,7 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
     def __init__(self, connector: SqlAlchemyDB) -> None:
         super().__init__()
         self._db: SqlAlchemyDB = connector
+        self._figures_cache = {}
 
     def get_last_experiments(
         self,
@@ -58,7 +59,12 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
 
     def get_plot_and_figure_data(self, exp_id: int) -> List[PlotRecord | FigureRecord]:
         plots = self._db.get_plots(exp_id)
-        figures = self._db.get_figures(exp_id)
+        if exp_id not in self._figures_cache:
+            logger.debug(f"Figures cache miss. exp_id=[{exp_id}]")
+            self._figures_cache[exp_id] = self._db.get_figures(exp_id)
+        else:
+            logger.debug(f"Figures cache hit. exp_id=[{exp_id}]")
+        figures = self._figures_cache[exp_id]
         if len(plots) > 0 or len(figures) > 0:
             return [*plots, *figures]
         else:

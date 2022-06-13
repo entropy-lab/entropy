@@ -1,15 +1,16 @@
 [tool.poetry]
 name = "entropylab"
-version = "0.10.0"
+version = "0.11.0"
 description = ""
 license = "BSD-3-Clause"
 authors = [
-    "Guy Kerem <guy@quantum-machines.co>",
-    "Ilan Mitnikov <ilan@quantum-machines.co>",
-    "Gal Winer <gal@quantum-machines.co>",
     "Tal Shani <tal@quantum-machines.co>",
+    "Guy Kerem <guy@quantum-machines.co>",
+    "Gal Winer <gal@quantum-machines.co>",
+    "Uri Goldstein <uri.goldstein@gmail.com>",
     "Nikola Šibalić  <nikola@quantum-machines.co>",
-    "Satya Bade <satya@quantum-machines.co> "
+    "Satya Bade <satya@quantum-machines.co> ",
+    "Ilan Mitnikov <ilan@quantum-machines.co>"
 ]
 packages = [
     { include = "entropylab" }

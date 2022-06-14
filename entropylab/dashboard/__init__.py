@@ -61,7 +61,7 @@ def serve_dashboard(
     hupper.start_reloader(
         "entropylab.dashboard.serve_dashboard",
         worker_kwargs=worker_kwargs,
-        reload_interval=0,
+        reload_interval=1,
         logger=hupper_logger,
     )
 

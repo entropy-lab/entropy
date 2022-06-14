@@ -1,5 +1,8 @@
 import zmq
 import json
+import os
+import subprocess
+import platform
 from sqlalchemy import create_engine
 
 __all__ = [
@@ -73,10 +76,24 @@ def is_IPython():
 
 
 def terminate_node():
-    if save_dry_run:
+    if save_dry_run and runtime_data is None:
         with open("dry_run_data.json", "w") as outfile:
             json.dump(dry_run_data, outfile)
         dry_run_log.close()
+        # save to entropyhub
+        env = os.environ
+        env["PYTHONPATH"] = os.getcwd()
+        if platform.system() == "Windows":
+            python_cmd = "python"
+        else:
+            python_cmd = "python3"
+        subprocess.run(
+            f"{python_cmd} -m entropyhub.submit_dry_run",
+            env=env,
+            shell=True,
+            universal_newlines=True,
+            start_new_session=True,
+        )
 
     if is_IPython():
 

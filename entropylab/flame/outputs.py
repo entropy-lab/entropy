@@ -1,5 +1,6 @@
 import zmq
 import msgpack
+import datetime
 from . import nodeio_context
 import psycopg2
 
@@ -107,6 +108,7 @@ class Outputs:
                     if key not in nodeio_context.dry_run_data["node"]["outputs"]:
                         output = {}
                         output["values"] = []
+                        output["values_time"] = []
                         output["description"] = self.description[key]
                         output["units"] = self.units[key]
                         nodeio_context.dry_run_data["node"]["outputs"][key] = output
@@ -114,6 +116,9 @@ class Outputs:
                     nodeio_context.dry_run_data["node"]["outputs"][key][
                         "values"
                     ].append(value)
+                    nodeio_context.dry_run_data["node"]["outputs"][key][
+                        "values_time"
+                    ].append(datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))
 
         return
 

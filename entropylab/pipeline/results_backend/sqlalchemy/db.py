@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime
 from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
 from typing import Set
@@ -40,6 +39,7 @@ from entropylab.components.lab_topology import (
     DriverType,
     ResourceRecord,
 )
+from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import _DbInitializer
 from entropylab.components.lab_model import (
     Resources,
@@ -98,44 +98,44 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
             raise TypeError("result.label cannot be None")
         if result.label == "":
             raise ValueError("result.label cannot be empty")
-        saved_in_hdf5 = False
         if self.__hdf5_storage_enabled():
             try:
                 self._storage.save_result(experiment_id, result)
-                saved_in_hdf5 = True
-            except ValueError as ex:
+            except ValueError as ve:
                 raise ValueError(
-                    f"Result already exists (experiment_id='{experiment_id}', "
-                    f"stage='{result.stage}', label='{result.label}'"
-                ) from ex
-            except RuntimeError:
-                logging.exception("Error saving result to HDF5")
-                saved_in_hdf5 = False
-        transaction = ResultTable.from_model(experiment_id, result)
-        transaction.saved_in_hdf5 = saved_in_hdf5
-        return self._execute_transaction(transaction)
+                    f"Result already exists (experiment_id=[{experiment_id}], "
+                    f"result=[{result}])"
+                ) from ve
+            except RuntimeError as re:
+                raise EntropyError(
+                    f"Failed to write result to HDF5 file (experiment_id="
+                    f"[{experiment_id}], result=[{result}])"
+                ) from re
+        else:
+            transaction = ResultTable.from_model(experiment_id, result)
+            return self._execute_transaction(transaction)
 
     def save_metadata(self, experiment_id: int, metadata: Metadata):
         if metadata.label is None:
             raise TypeError("metadata.label cannot be None")
         if metadata.label == "":
             raise ValueError("metadata.label cannot be empty")
-        saved_in_hdf5 = False
         if self.__hdf5_storage_enabled():
             try:
                 self._storage.save_metadata(experiment_id, metadata)
-                saved_in_hdf5 = True
-            except ValueError as ex:
+            except ValueError as ve:
                 raise ValueError(
                     f"Metadata already exists (experiment_id='{experiment_id}', "
-                    f"stage='{metadata.stage}', label='{metadata.label}'"
-                ) from ex
-            except RuntimeError:
-                logging.exception("Error saving metadata to HDF5.")
-                saved_in_hdf5 = False
-        transaction = MetadataTable.from_model(experiment_id, metadata)
-        transaction.saved_in_hdf5 = saved_in_hdf5
-        return self._execute_transaction(transaction)
+                    f"result=[{metadata}])"
+                ) from ve
+            except RuntimeError as re:
+                raise EntropyError(
+                    f"Failed to write metadata to HDF5 file (experiment_id="
+                    f"[{experiment_id}], result=[{metadata}])"
+                ) from re
+        else:
+            transaction = MetadataTable.from_model(experiment_id, metadata)
+            return self._execute_transaction(transaction)
 
     def save_debug(self, experiment_id: int, debug: Debug):
         transaction = DebugTable.from_model(experiment_id, debug)

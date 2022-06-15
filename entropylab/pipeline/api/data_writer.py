@@ -59,6 +59,9 @@ class Metadata:
     stage: int
     data: Any
 
+    def __repr__(self):
+        return f"<Metadata(stage='{self.stage}', label='{self.label}')>"
+
 
 @dataclass
 class Debug:

@@ -12,7 +12,7 @@ from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import (
 
 def test_save_result_raises_when_same_result_saved_twice(initialized_project_dir_path):
     # arrange
-    db = SqlAlchemyDB(initialized_project_dir_path, enable_hdf5_storage=True)
+    db = SqlAlchemyDB(initialized_project_dir_path)
     raw_result = RawResultData(stage=1, label="foo", data=42)
     db.save_result(0, raw_result)
     with pytest.raises(ValueError):
@@ -26,7 +26,7 @@ def test_get_last_result_of_experiment_when_hdf_is_enabled_then_result_is_from_h
     # arrange
     db = SqlAlchemyDB(initialized_project_dir_path, enable_hdf5_storage=False)
     db.save_result(1, RawResultData(label="save", data="in db"))
-    db = SqlAlchemyDB(initialized_project_dir_path, enable_hdf5_storage=True)
+    db = SqlAlchemyDB(initialized_project_dir_path)
     db.save_result(1, RawResultData(label="save", data="in storage"))
     # act
     actual = db.get_last_result_of_experiment(1)
@@ -38,7 +38,7 @@ def test_get_last_result_of_experiment_when_hdf_is_disabled_then_result_is_from_
     initialized_project_dir_path,
 ):
     # arrange
-    db = SqlAlchemyDB(initialized_project_dir_path, enable_hdf5_storage=True)
+    db = SqlAlchemyDB(initialized_project_dir_path)
     db.save_result(1, RawResultData(label="save", data="in storage"))
     db = SqlAlchemyDB(initialized_project_dir_path, enable_hdf5_storage=False)
     db.save_result(1, RawResultData(label="save", data="in db"))

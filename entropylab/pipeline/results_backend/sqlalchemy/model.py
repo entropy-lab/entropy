@@ -172,6 +172,7 @@ class ResultTable(Base):
             time=datetime.now(),
             data=serialized_data,
             data_type=data_type,
+            saved_in_hdf5=False,
         )
 
 
@@ -211,6 +212,7 @@ class MetadataTable(Base):
             time=datetime.now(),
             data=serialized_data,
             data_type=data_type,
+            saved_in_hdf5=False,
         )
 
 

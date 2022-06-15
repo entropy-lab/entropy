@@ -37,7 +37,7 @@ def an_experiment(experiment: EntropyContext):
 
 
 def test_running_db_and_topology(project_dir_path):
-    db = SqlAlchemyDB(project_dir_path)
+    db = SqlAlchemyDB(project_dir_path, enable_hdf5_storage=False)
     topology = LabResources(db)
     topology.register_resource_if_not_exist("scope_1", MockScope, args=["1.1.1.1", ""])
     # topology.register_private_results_db(db)

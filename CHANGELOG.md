@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
+
+## [0.12.0]
+### Added
+* Single node dry run in Flame
+
 ## [0.11.2]
 ### Fixed
 * Resolved high CPU issue when running the dashboard in Linux (#282)
@@ -135,7 +140,8 @@ Entropy persistence backend.
 * QPU-DB - This is an extension to entropy which is built to save and manage the pieced of information describing 
 a Quantum Processing Unit. If multiple nodes are set up to calibrate the QPU, measuring decoherence times and resonant frequencies for example, then that data can be saved to a centralized store and subsequently used in the target application. Warning: this module will be replaced in future releases but a migration path will be provided. 
 
-[Unreleased]: https://github.com/entropy-lab/entropy/compare/v0.11.2...HEAD
+[Unreleased]: https://github.com/entropy-lab/entropy/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/entropy-lab/entropy/compare/v0.11.1...v0.12.0
 [0.11.2]: https://github.com/entropy-lab/entropy/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/entropy-lab/entropy/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/entropy-lab/entropy/compare/v0.10.0...v0.11.0

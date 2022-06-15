@@ -9,19 +9,21 @@ nodeio.context(
 
 inputs = nodeio.Inputs()
 # define inputs
-# inputs.stream( "input name", units="units or data type", description="some detailed explanation" )
-# inputs.state(  "state input name", units="units or data type", description="some detailed explanation" )
+# inputs.stream( "input_name", units="units or data type", description="some detailed explanation" )
+# inputs.state(  "state_input_name", units="units or data type", description="some detailed explanation" )
 
 outputs = nodeio.Outputs()
 # define outputs
-# outputs.define( "output name", units="units or data type", description="some detailed explanation" )
+# outputs.define( "output_name", units="units or data type", description="some detailed explanation" )
 
 nodeio.register()
 
 # ==================== DRY RUN DATA ====================
 
+# needed just for repeated for development with repeated runs in IPython
+inputs.reset_all_dry_run_data()
+
 # set inputs data for dry-run of the node
-inputs.reset_all()  # needed just for repeated for development with repeated runs in IPython
 # inputs.set( <input_name> = <input_value>)
 
 # =============== RUN NODE STATE MACHINE ===============

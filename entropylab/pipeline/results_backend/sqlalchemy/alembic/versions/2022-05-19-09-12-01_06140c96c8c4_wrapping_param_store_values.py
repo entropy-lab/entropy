@@ -57,7 +57,3 @@ def downgrade():
     )
     shutil.move(json_file_path, downgraded_json_file_path)
     shutil.move(backup_json_file_path, json_file_path)
-    logger.debug(
-        f"Attempting to migrate InProcessParamStore file {json_file_path} from v0.1 to "
-        f"v0.2"
-    )

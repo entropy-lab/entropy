@@ -19,8 +19,8 @@ def test_ctor_creates_up_to_date_schema_when_in_memory(path: str):
     [
         None,  # new db
         "empty.db",  # existing but empty
-        "empty_after_2022-05-19-09-12-01_06140c96c8c4_wrapping_param_store_values.db",
-        # ⬆ latest version
+        "empty_after_2022-06-16-09-26-06_7fa75ca1263f_del_results_and_metadata.db",
+        # ⬆ latest version in pipeline/results_backend/sqlalchemy/alembic/versions
     ],
     indirect=True,
 )

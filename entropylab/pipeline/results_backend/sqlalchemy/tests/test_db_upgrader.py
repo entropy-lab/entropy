@@ -150,6 +150,7 @@ def test__migrate_metadata_to_hdf5(initialized_project_dir_path):
         "empty_after_2021-08-01-14-18-43_04ae19b32c08_add_col_saved_in_hdf5.db",
         "empty_after_2022-03-17-15-57-28_f1ada2484fe2_create_figures_table.db",
         "empty_after_2022-04-10-08-26-35_9ffd2ba0d5bf_simplifying_node_id.db",
+        "empty_after_2022-05-19-09-12-01_06140c96c8c4_wrapping_param_store_values.db",
     ],
     indirect=True,
 )
@@ -185,3 +186,29 @@ def test_upgrade_db_upgrades_params_json_from_0_1_to_0_2(
     param_store = InProcessParamStore(tinydb_file_path)
     param_store.checkout("57ea4b9fb96bdc7a13fe8ec616a3c6da21f41ca0")
     assert param_store["qubit1.flux_capacitor"]["wave"] == "manifold"
+
+
+@pytest.mark.parametrize(
+    "initialized_project_dir_path",
+    [
+        "with_result_and_metadata_records_saved_in_hdf5.db",
+    ],
+    indirect=True,
+)
+def test_upgrade_db_deletes_results_and_metadata_from_sqlite(
+    initialized_project_dir_path,
+):
+    # arrange
+    target = _DbUpgrader(initialized_project_dir_path)
+    # act
+    target.upgrade_db()
+    # assert for results
+    cur = target._engine.execute("SELECT * FROM Results WHERE saved_in_hdf5 = 1")
+    res = cur.all()
+    assert len(res) == 0
+    # assert for metadata
+    cur = target._engine.execute(
+        "SELECT * FROM ExperimentMetadata WHERE saved_in_hdf5 = 1"
+    )
+    res = cur.all()
+    assert len(res) == 0

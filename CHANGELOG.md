@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 * Flame: Support for saving single node dry-runs into EntropyHub
+* Flame: Support for specifying username and password for message queue via 
+environment variables
 
 
 ## [0.12.0]

@@ -42,6 +42,8 @@ class Execute:
         runtime_id = self.metadata.get("runtime_id", -1)
         self.routing_key = f"status_updates.{runtime_id}.{_Config.job_id}"
         self.runtime_state_info = RuntimeStateInfo()
+        # env variables FLAME_MESSAGING_USER_NAME and FLAME_MESSAGING_USER_PASS
+        # describes connection credentials for message queue
         self.message_queue_info = MessageQueueInfo()
 
     def __init_workflow(self):

@@ -14,7 +14,7 @@ Migrations are later applied to user databases by the users calling Entropy's
 ## Entropy Developers
 
 ### To create a new empty migration
-1. `cd` to `entropy/entropylab/results_backend/sqlalchemy`
+1. `cd` to `entropy/entropylab/pipeline/results_backend/sqlalchemy`
 2. Run `poetry run alembic revision -m "<short description of migration>"`
 
 The new migration will be created in the `versions` directory next to this README file.
@@ -46,12 +46,12 @@ Always review auto-generated migrations and cover them with tests ensure expecte
 behavior.
 
 You will need to update a specific test called `test_ctor_ensures_latest_migration()` 
-in `entropylab/results_backend/sqlalchemy/tests/test_migrations.py`:
+in `entropylab/pipeline/results_backend/sqlalchemy/tests/test_migrations.py`:
 
-1. Under `entropylab/results_backend/sqlalchemy/tests/db_templates` find the DB template 
-file that represents the most recent version (before yours).
-2. Make a new DB template file based on the above file. It should contain an empty 
+1. Under `entropylab/pipeline/results_backend/sqlalchemy/tests/db_templates` find the 
+DB template file that represents the most recent version (before yours).
+3. Make a new DB template file based on the above file. It should contain an empty 
 database **after** your migration has been applied to it.
-3. Add the file to git.
-4. Update the last parameter for the `test_ctor_ensures_latest_migration()` test to be
+4. Add the file to git.
+5. Update the last parameter for the `test_ctor_ensures_latest_migration()` test to be
 the name of the file you created.

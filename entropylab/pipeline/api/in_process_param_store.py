@@ -224,18 +224,18 @@ class InProcessParamStore(ParamStore):
                 commit = self.__get_commit(commit_id)
                 return copy.deepcopy(commit["params"][key])
 
-    def set_param(self, key: str, value: object, expiration: Optional[timedelta]):
-
+    def set_param(self, key: str, value: object, **kwargs):
+        if "commit_id" in kwargs:
+            raise ValueError("Setting commit_id in set_param() is not allowed")
+        if "value" in kwargs:
+            raise ValueError("Value can only be set through positional argument")
         with self.__lock:
             if key in self.__params:
                 param = self.get_param(key)
             else:
                 param = Param(value)
             param.value = value
-            if expiration:
-                param.expiration = expiration
-            else:
-                param.expiration = None
+            param.__dict__.update(kwargs)
             self.__params.__setitem__(key, param)
             self.__is_dirty = True
             self.__dirty_keys.add(key)

@@ -244,44 +244,51 @@ def test_get_param_when_commit_id_is_bad_then_entropy_error_is_raised():
 def test_set_param_when_param_is_new_then_value_is_set():
     # arrange
     target = InProcessParamStore()
-    target.set_param("foo", "bar", timedelta(seconds=42))
     # act
+    target.set_param("foo", "bar")
+    # assert
     assert target["foo"] == "bar"
 
 
-def test_set_param_when_param_is_new_then_expiration_is_set():
+def test_set_param_when_param_exists_then_value_is_overwritten():
     # arrange
     target = InProcessParamStore()
-    target.set_param("foo", "bar", timedelta(seconds=42))
+    target.set_param("foo", "bar")
     # act
-    assert target.get_param("foo").expiration == timedelta(seconds=42)
+    target.set_param("foo", "baz")
+    # assert
+    assert target["foo"] == "baz"
 
 
-def test_set_param_exists_then_value_is_overwritten():
+def test_set_param_when_commit_id_is_in_kwargs_then_value_error_is_raised():
     # arrange
     target = InProcessParamStore()
-    target.foo = "bar"
-    target.set_param("foo", "baz", timedelta(seconds=42))
-    # act
-    assert target.foo == "baz"
+    with pytest.raises(ValueError):
+        target.set_param("foo", "bar", commit_id="oops")
 
 
-def test_set_param_exists_then_expiration_is_overwritten():
+@pytest.mark.parametrize(
+    "attr, value",
+    [
+        ("expiration", timedelta(seconds=1337)),
+        ("expiration", None),
+        ("description", "buzz"),
+        ("description", None),
+        ("node_id", "1"),
+        ("node_id", None),
+    ],
+)
+def test_set_param_when_an_attribute_is_in_kwargs_then_it_is_set(attr, value):
     # arrange
     target = InProcessParamStore()
-    target.set_param("foo", "bar", timedelta(minutes=90))
-    target.set_param("foo", "bar", timedelta(seconds=42))
+    target.set_param(
+        "foo", "bar", expiration=timedelta(seconds=42), description="baz", node_id=0
+    )
     # act
-    assert target.get_param("foo").expiration == timedelta(seconds=42)
-
-
-def test_set_param_exists_and_expiration_is_none_then_expiration_is_none():
-    # arrange
-    target = InProcessParamStore()
-    target.set_param("foo", "bar", timedelta(minutes=90))
-    target.set_param("foo", "bar", None)
-    # act
-    assert not target.get_param("foo").expiration
+    target.set_param("foo", "bar", **{attr: value})
+    # assert
+    actual = target.get_param("foo")
+    assert getattr(actual, attr) == value
 
 
 """ rename_key() """
@@ -404,7 +411,7 @@ def test_commit_assert_param_expiration_is_converted_to_timestamp_int(tinydb_fil
     # arrange
     target = InProcessParamStore(tinydb_file_path)
     now = time.time_ns()
-    target.set_param("foo", 42, timedelta(hours=5))
+    target.set_param("foo", 42, expiration=timedelta(hours=5))
     # act
     target.commit()
     # assert

@@ -145,8 +145,8 @@ def parse_args():
         "-t",
         "--max-execution-time",
         type=int,
-        default=60,
-        help="Maximal execution time in s",
+        default=0,
+        help="Maximal execution time in s. Default 0 (no-limit).",
     )
     parser.add_argument(
         "-d",
@@ -174,8 +174,8 @@ def parse_args():
         "-c",
         "--connection-wait",
         type=int,
-        default=5,
+        default=60,
         help="How long in seconds to wait for succesful establishment of "
-        "communication between nodes before timeout.",
+        "communication between nodes before timeout. Default 60.",
     )
     return parser.parse_args()

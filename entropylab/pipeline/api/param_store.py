@@ -147,6 +147,8 @@ class Param(Dict):
         self.value: object = value
         self.commit_id: Optional[str] = None
         self.expiration: Optional[timedelta | int] = None
+        self.description: Optional[str] = None
+        self.node_id: Optional[str] = None
 
     def __repr__(self):
         return (

@@ -1,5 +1,7 @@
+import multiprocessing
 import os
 import shutil
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -17,6 +19,33 @@ https://docs.pytest.org/en/6.2.x/fixture.html).
 This conftest.py file contains pytest test fixtures that generate project-related test
 data and, on test tear-down, remove the data from disk.
 """
+
+
+class Process(multiprocessing.Process):
+    """
+    Class which returns child Exceptions to Parent.
+    https://stackoverflow.com/a/33599967/4992248
+    """
+
+    def __init__(self, *args, **kwargs):
+        multiprocessing.Process.__init__(self, *args, **kwargs)
+        self._parent_conn, self._child_conn = multiprocessing.Pipe()
+        self._exception = None
+
+    def run(self):
+        try:
+            multiprocessing.Process.run(self)
+            self._child_conn.send(None)
+        except Exception as e:
+            tb = traceback.format_exc()
+            self._child_conn.send((e, tb))
+            # raise e  # You can still rise this exception if you need to
+
+    @property
+    def exception(self):
+        if self._parent_conn.poll():
+            self._exception = self._parent_conn.recv()
+        return self._exception
 
 
 # Test fixtures
@@ -49,7 +78,7 @@ def tinydb_file_path(request) -> str:
     dir_path = _build_project_dir_path_for_test(request)
     file_path = os.path.join(dir_path + "/" + "tiny_db.json")
     yield file_path
-    _delete_if_exists(dir_path)
+    # _delete_if_exists(dir_path)
 
 
 @pytest.fixture()

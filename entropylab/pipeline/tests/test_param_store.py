@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from datetime import timedelta
 from pprint import pprint
 from time import sleep
@@ -6,7 +7,7 @@ from time import sleep
 import pytest
 from tinydb import Query, TinyDB
 
-from entropylab.conftest import _copy_template
+from entropylab.conftest import _copy_template, Process
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.in_process_param_store import (
     InProcessParamStore,
@@ -1058,3 +1059,23 @@ def test_has_expired_when_expiration_is_timedelta_then_false():
     target = Param(42)
     target.expiration = timedelta(hours=5)
     assert not target.has_expired
+
+
+""" Testing multi-process scenarios """
+
+
+def set_foo_and_commit(path, commit_label: str):
+    target = InProcessParamStore(path)
+    for i in range(100):
+        target.foo = datetime.utcnow()
+        target.commit(commit_label)
+
+
+def test_multi_processes_do_not_conflict(tinydb_file_path):
+    proc1 = Process(target=set_foo_and_commit, args=(tinydb_file_path, "proc1"))
+    proc2 = Process(target=set_foo_and_commit, args=(tinydb_file_path, "proc2"))
+    proc1.start()
+    proc2.start()
+    proc1.join()
+    proc2.join()
+    assert proc1.exception is None and proc2.exception is None

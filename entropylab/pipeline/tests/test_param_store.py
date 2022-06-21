@@ -432,6 +432,7 @@ def test_checkout_when_commit_id_exists_value_is_reverted(tinydb_file_path):
     target.checkout(commit_id)
     # assert
     assert target["foo"] == "bar"
+    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_exists_value_remains_the_same(tinydb_file_path):
@@ -443,6 +444,7 @@ def test_checkout_when_commit_id_exists_value_remains_the_same(tinydb_file_path)
     target.checkout(commit_id)
     # assert
     assert target["foo"] == "bar"
+    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
@@ -454,9 +456,10 @@ def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
     target.checkout(commit_id)
     # assert
     assert "foo" not in target
+    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
-def test_checkout_when_commit_id_doesnt_exist_error_is_raised(tinydb_file_path):
+def test_checkout_when_commit_id_doesnt_exist_then_error_is_raised(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     with pytest.raises(EntropyError):
         target.checkout("foo")
@@ -466,12 +469,13 @@ def test_checkout_when_commit_num_exists_value_is_reverted(tinydb_file_path):
     # arrange
     target = InProcessParamStore(tinydb_file_path)
     target["foo"] = "bar"
-    target.commit()
+    commit_id = target.commit()
     target["foo"] = "baz"
     # act
     target.checkout(commit_num=1)
     # assert
     assert target["foo"] == "bar"
+    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_tag_existed_in_commit_then_it_is_added_to_store(

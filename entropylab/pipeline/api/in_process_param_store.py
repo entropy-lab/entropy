@@ -343,13 +343,16 @@ class InProcessParamStore(ParamStore):
     ) -> None:
         with self.__lock:
             commit = self.__get_commit(commit_id, commit_num, move_by)
-            self.__params.clear()
-            self.__params.update(commit["params"])
-            self.__tags = commit["tags"]
-            self.__base_commit_id = commit_id
-            self.__base_doc_id = commit.doc_id
-            self.__is_dirty = False
-            self.__dirty_keys.clear()
+            self.__checkout(commit)
+
+    def __checkout(self, commit: Document):
+        self.__params.clear()
+        self.__params.update(commit["params"])
+        self.__tags = commit["tags"]
+        self.__base_commit_id = commit["metadata"]["id"]
+        self.__base_doc_id = commit.doc_id
+        self.__is_dirty = False
+        self.__dirty_keys.clear()
 
     def list_commits(self, label: Optional[str] = None) -> List[Metadata]:
         with self.__lock:

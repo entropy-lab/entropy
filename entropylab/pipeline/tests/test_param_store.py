@@ -417,9 +417,6 @@ def test_commit_assert_param_expiration_is_converted_to_timestamp_int(tinydb_fil
     target.commit()
     # assert
     assert target.get_param("foo").expiration >= now + (5 * 1e9)
-    # assert target._InProcessParamStore__params["foo"].commit_id == commit_id1
-    # assert target._InProcessParamStore__params["bar"].commit_id == commit_id2
-    # assert target._InProcessParamStore__params["baz"].commit_id == commit_id2
 
 
 """ checkout() """
@@ -1064,23 +1061,37 @@ def test_has_expired_when_expiration_is_timedelta_then_false():
 """ Testing multi-process scenarios """
 
 
-def set_foo_and_commit(path, commit_label: str):
-    target = InProcessParamStore(path)
-    for i in range(100):
-        target.foo = str(datetime.utcnow())
-        target.commit(commit_label)
+def set_foo_and_commit(path, name: str, num_of_commits: int):
+    with InProcessParamStore(path) as target:
+        for i in range(num_of_commits):
+            target.name = name
+            target.date = str(datetime.utcnow())
+            target.commit(name)
 
 
 def test_multi_processes_do_not_conflict(tinydb_file_path):
-    proc1 = Process(target=set_foo_and_commit, args=(tinydb_file_path, "proc1"))
-    proc2 = Process(target=set_foo_and_commit, args=(tinydb_file_path, "proc2"))
-    proc3 = Process(target=set_foo_and_commit, args=(tinydb_file_path, "proc3"))
-    proc1.start()
-    proc2.start()
-    proc3.start()
-    proc1.join()
-    proc2.join()
-    proc3.join()
-    assert (
-        proc1.exception is None and proc2.exception is None and proc3.exception is None
-    )
+    # arrange
+    num_of_processes = 3
+    num_of_commits = 10
+    processes = []
+    for i in range(num_of_processes):
+        processes.append(
+            Process(
+                target=set_foo_and_commit,
+                args=(tinydb_file_path, f"proc{i}", num_of_commits),
+            )
+        )
+
+    # act
+    for p in processes:
+        p.start()
+    for p in processes:
+        p.join()
+
+    # assert no exceptions
+    assert all(p.exception is None for p in processes)
+
+    # assert all params committed by all processes
+    ps = InProcessParamStore(tinydb_file_path)
+    names = ps.list_values("name")["value"]
+    assert all(names.value_counts() == num_of_commits)

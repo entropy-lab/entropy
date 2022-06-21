@@ -281,15 +281,21 @@ class InProcessParamStore(ParamStore):
             self.__stamp_dirty_params_with_commit(commit_id, commit_timestamp)
             doc = self.__build_document(commit_id, label)
             with self.__filelock:
-                commits = self.__db.all()
-                last_doc_id = commits[-1].doc_id if commits else 0
-                doc.doc_id = last_doc_id + 1
+                doc.doc_id = self.__next_doc_id()
                 doc_id = self.__db.insert(doc)
             self.__base_commit_id = doc["metadata"]["id"]
             self.__base_doc_id = doc_id
             self.__is_dirty = False
             self.__dirty_keys.clear()
             return doc["metadata"]["id"]
+
+    def __next_doc_id(self):
+        with self.__filelock:
+            last_doc = self.__get_latest_commit()
+            if last_doc:
+                return last_doc.doc_id + 1
+            else:
+                return 1
 
     def __stamp_dirty_params_with_commit(self, commit_id: str, commit_timestamp: int):
         for key in self.__dirty_keys:
@@ -343,7 +349,8 @@ class InProcessParamStore(ParamStore):
     ) -> None:
         with self.__lock:
             commit = self.__get_commit(commit_id, commit_num, move_by)
-            self.__checkout(commit)
+            if commit:
+                self.__checkout(commit)
 
     def __checkout(self, commit: Document):
         self.__params.clear()
@@ -368,44 +375,47 @@ class InProcessParamStore(ParamStore):
         commit_id: Optional[str] = None,
         commit_num: Optional[int] = None,
         move_by: Optional[int] = None,
-    ) -> Document:
-        if commit_id is not None:
-            commit = self.__get_commit_by_id(commit_id)
-        elif commit_num is not None:
-            commit = self.__get_commit_by_num(commit_num)
-        elif move_by is not None:
-            commit = self.__get_commit_by_move_by(move_by)
-        else:
-            raise EntropyError(
-                "Please provide one of the following arguments: "
-                "commit_id, commit_num, or move_by"
-            )
-        return commit
+    ) -> Optional[Document]:
+        with self.__lock:
+            if commit_id is not None:
+                commit = self.__get_commit_by_id(commit_id)
+            elif commit_num is not None:
+                commit = self.__get_commit_by_num(commit_num)
+            elif move_by is not None:
+                commit = self.__get_commit_by_move_by(move_by)
+            else:
+                commit = self.__get_latest_commit()
+            return commit
 
-    def __get_commit_by_id(self, commit_id: str):
+    def __get_commit_by_id(self, commit_id: str) -> Document:
         with self.__filelock:
             result = self.__db.search(Query().metadata.id == commit_id)
-        if len(result) == 0:
-            raise EntropyError(f"Commit with id '{commit_id}' not found")
-        if len(result) > 1:
-            raise EntropyError(
-                f"{len(result)} commits with id '{commit_id}' found. "
-                f"Only one commit is allowed per id"
-            )
-        return result[0]
+            if len(result) == 0:
+                raise EntropyError(f"Commit with id '{commit_id}' not found")
+            if len(result) > 1:
+                raise EntropyError(
+                    f"{len(result)} commits with id '{commit_id}' found. "
+                    f"Only one commit is allowed per id"
+                )
+            return result[0]
 
-    def __get_commit_by_num(self, commit_num: int):
+    def __get_commit_by_num(self, commit_num: int) -> Document:
         with self.__filelock:
             result = self.__db.get(doc_id=commit_num)
-        if result is None:
-            raise EntropyError(f"Commit with number '{commit_num}' not found")
-        return result
+            if result is None:
+                raise EntropyError(f"Commit with number '{commit_num}' not found")
+            return result
 
-    def __get_commit_by_move_by(self, move_by: int):
+    def __get_commit_by_move_by(self, move_by: int) -> Document:
         doc_id = self.__base_doc_id + move_by
         with self.__filelock:
             result = self.__db.get(doc_id=doc_id)
-        return result
+            return result
+
+    def __get_latest_commit(self) -> Optional[Document]:
+        with self.__filelock:
+            commits = self.__db.all()
+            return commits[-1] if commits else None
 
     """ Merge """
 

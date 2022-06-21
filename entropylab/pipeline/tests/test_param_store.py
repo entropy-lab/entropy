@@ -499,8 +499,36 @@ def test_checkout_when_tag_did_not_exist_in_commit_then_it_is_removed_from_store
     target["foo"] = "bar"
     commit_id = target.commit()
     target.add_tag("tag", "foo")
+    # act
     target.checkout(commit_id)
+    # assert
     assert target.list_keys_for_tag("tag") == []
+
+
+def test_checkout_when_no_args_then_latest_commit_is_checked_out(
+    tinydb_file_path,
+):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = "bar"
+    commit_id = target.commit()
+    target["foo"] = "baz"
+    target.commit()
+    target.checkout(commit_id=commit_id)
+    # act
+    target.checkout()
+    # assert
+    assert target["foo"] == "baz"
+
+
+def test_checkout_when_no_args_and_no_commits_then_nothing_happens(
+    tinydb_file_path,
+):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = "bar"
+    target.checkout()
+    assert target["foo"] == "bar"
 
 
 @pytest.mark.parametrize(

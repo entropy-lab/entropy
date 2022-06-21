@@ -1067,15 +1067,20 @@ def test_has_expired_when_expiration_is_timedelta_then_false():
 def set_foo_and_commit(path, commit_label: str):
     target = InProcessParamStore(path)
     for i in range(100):
-        target.foo = datetime.utcnow()
+        target.foo = str(datetime.utcnow())
         target.commit(commit_label)
 
 
 def test_multi_processes_do_not_conflict(tinydb_file_path):
     proc1 = Process(target=set_foo_and_commit, args=(tinydb_file_path, "proc1"))
     proc2 = Process(target=set_foo_and_commit, args=(tinydb_file_path, "proc2"))
+    proc3 = Process(target=set_foo_and_commit, args=(tinydb_file_path, "proc3"))
     proc1.start()
     proc2.start()
+    proc3.start()
     proc1.join()
     proc2.join()
-    assert proc1.exception is None and proc2.exception is None
+    proc3.join()
+    assert (
+        proc1.exception is None and proc2.exception is None and proc3.exception is None
+    )

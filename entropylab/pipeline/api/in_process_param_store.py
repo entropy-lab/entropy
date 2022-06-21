@@ -15,9 +15,11 @@ from typing import Optional, Dict, Any, List, Callable, Set
 
 import jsonpickle as jsonpickle
 import pandas as pd
+from filelock import FileLock
 from tinydb import TinyDB, Query
 from tinydb.storages import MemoryStorage, Storage
 from tinydb.table import Document
+from tinydb.table import Table
 
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
@@ -103,6 +105,7 @@ class InProcessParamStore(ParamStore):
         if path is None:
             self.__is_in_memory_mode = True
             self.__db = TinyDB(storage=MemoryStorage)
+            self.__filelock = contextlib.nullcontext()
         else:
             self.__is_in_memory_mode = False
             if isinstance(path, Path):
@@ -113,6 +116,8 @@ class InProcessParamStore(ParamStore):
                     f"A new, empty file will be created."
                 )
             self.__db = TinyDB(path, storage=JSONPickleStorage)
+            Table.default_query_cache_capacity = 0
+            self.__filelock = FileLock(path + ".lock")
         if theirs is not None:
             self.merge(theirs, merge_strategy)
 
@@ -274,7 +279,11 @@ class InProcessParamStore(ParamStore):
             commit_timestamp = time.time_ns()  # nanoseconds since epoch
             self.__stamp_dirty_params_with_commit(commit_id, commit_timestamp)
             doc = self.__build_document(commit_id, label)
-            doc_id = self.__db.insert(doc)
+            with self.__filelock:
+                commits = self.__db.all()
+                last_doc_id = commits[-1].doc_id if commits else 0
+                doc.doc_id = last_doc_id + 1
+                doc_id = self.__db.insert(doc)
             self.__base_commit_id = doc["metadata"]["id"]
             self.__base_doc_id = doc_id
             self.__is_dirty = False
@@ -299,7 +308,7 @@ class InProcessParamStore(ParamStore):
 
     def __build_document(
         self, commit_id: Optional[str] = None, label: Optional[str] = None
-    ) -> dict:
+    ) -> Document:
         """
         builds a document to be saved as a commit/temp in TinyDB.
         :param commit_id: is None when saving to temp.
@@ -311,7 +320,9 @@ class InProcessParamStore(ParamStore):
             params = copy.deepcopy(self.__params)
         else:
             params = self.__params
-        return dict(metadata=metadata.__dict__, params=params, tags=self.__tags)
+        return Document(
+            dict(metadata=metadata.__dict__, params=params, tags=self.__tags), doc_id=0
+        )
 
     @staticmethod
     def __build_metadata(
@@ -341,9 +352,10 @@ class InProcessParamStore(ParamStore):
 
     def list_commits(self, label: Optional[str] = None) -> List[Metadata]:
         with self.__lock:
-            documents = self.__db.search(
-                Query().metadata.label.test(_test_if_value_contains(label))
-            )
+            with self.__filelock:
+                documents = self.__db.search(
+                    Query().metadata.label.test(_test_if_value_contains(label))
+                )
             metadata = map(_extract_metadata, documents)
             return list(metadata)
 
@@ -367,7 +379,8 @@ class InProcessParamStore(ParamStore):
         return commit
 
     def __get_commit_by_id(self, commit_id: str):
-        result = self.__db.search(Query().metadata.id == commit_id)
+        with self.__filelock:
+            result = self.__db.search(Query().metadata.id == commit_id)
         if len(result) == 0:
             raise EntropyError(f"Commit with id '{commit_id}' not found")
         if len(result) > 1:
@@ -378,14 +391,16 @@ class InProcessParamStore(ParamStore):
         return result[0]
 
     def __get_commit_by_num(self, commit_num: int):
-        result = self.__db.get(doc_id=commit_num)
+        with self.__filelock:
+            result = self.__db.get(doc_id=commit_num)
         if result is None:
             raise EntropyError(f"Commit with number '{commit_num}' not found")
         return result
 
     def __get_commit_by_move_by(self, move_by: int):
         doc_id = self.__base_doc_id + move_by
-        result = self.__db.get(doc_id=doc_id)
+        with self.__filelock:
+            result = self.__db.get(doc_id=doc_id)
         return result
 
     """ Merge """
@@ -452,7 +467,8 @@ class InProcessParamStore(ParamStore):
     def list_values(self, key: str) -> pd.DataFrame:
         with self.__lock:
             values = []
-            commits = self.__db.all()
+            with self.__filelock:
+                commits = self.__db.all()
             commits.sort(key=lambda x: x["metadata"]["timestamp"])
             for commit in commits:
                 try:
@@ -513,9 +529,11 @@ class InProcessParamStore(ParamStore):
         Saves the state of params to a temporary location
         """
         with self.__lock:
-            table = self.__db.table(TEMP_TABLE)
-            doc = self.__build_document()
-            table.upsert(Document(doc, doc_id=1))
+            with self.__filelock:
+                table = self.__db.table(TEMP_TABLE)
+                doc = self.__build_document()
+                doc.doc_id = TEMP_DOC_ID
+                table.upsert(doc)
 
     def load_temp(self) -> None:
         """
@@ -523,7 +541,8 @@ class InProcessParamStore(ParamStore):
         location
         """
         with self.__lock:
-            table = self.__db.table(TEMP_TABLE)
+            with self.__filelock:
+                table = self.__db.table(TEMP_TABLE)
             doc = table.get(doc_id=1)
             if not doc:
                 raise EntropyError(

@@ -835,21 +835,24 @@ def test_list_values_when_key_is_dirty_in_store_then_one_value_is_returned():
     target = InProcessParamStore()
     target["foo"] = "bar"
     actual = target.list_values("foo")
-    assert actual.iloc[0]["value"] == "bar"
-    assert actual.iloc[0]["time"] is None
-    assert actual.iloc[0]["commit_id"] is None
-    assert actual.iloc[0]["label"] is None
+    assert len(actual) == 1
+    value = actual.iloc[-1]
+    assert value["value"] == "bar"
+    assert value["time"] is None
+    assert value["commit_id"] is None
+    assert value["label"] is None
 
 
-def test_list_values_when_store_is_not_dirty_then_value_is_full():
+def test_list_values_when_store_is_not_dirty_then_last_value_is_full():
     target = InProcessParamStore()
     target["foo"] = "bar"
     target.commit("label")
     actual = target.list_values("foo")
-    assert actual.iloc[0]["value"] == "bar"
-    assert actual.iloc[0]["time"] is not None
-    assert actual.iloc[0]["commit_id"] is not None
-    assert actual.iloc[0]["label"] == "label"
+    last_value = actual.iloc[-1]
+    assert last_value["value"] == "bar"
+    assert last_value["time"] is not None
+    assert last_value["commit_id"] is not None
+    assert last_value["label"] == "label"
 
 
 def test_list_values_when_key_is_dirty_and_in_commit_then_two_values_are_returned():

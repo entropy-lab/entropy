@@ -495,7 +495,7 @@ class InProcessParamStore(ParamStore):
                     values.append(value)
                 except KeyError:
                     pass
-            if key in self.__params.keys():
+            if self.__is_dirty and key in self.__params.keys():
                 values.append((self[key], None, None, None))
             df = pd.DataFrame(values)
             if not df.empty:

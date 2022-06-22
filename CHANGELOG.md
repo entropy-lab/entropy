@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+* Flame: expose terminate_node from nodeio
 * Flame: hotfix, incread default timeout value for inital connection.
 
 ## [0.13.0] - 2022-06-19

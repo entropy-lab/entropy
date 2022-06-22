@@ -5,9 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
+## [0.14.0] - 2022-06-22
+
 ### Fixed
 * Flame: expose terminate_node from nodeio
 * Flame: hotfix, incread default timeout value for inital connection.
+* paramstore: Params now have description & node_id attributes settable in set_param()
+* paramstore: InProcessParamStore multi-processing-safe using lock file
 
 ## [0.13.0] - 2022-06-19
 

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "entropylab"
-version = "0.13.0"
+version = "0.14.0"
 description = ""
 license = "BSD-3-Clause"
 authors = [

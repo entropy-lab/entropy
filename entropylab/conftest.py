@@ -78,7 +78,7 @@ def tinydb_file_path(request) -> str:
     dir_path = _build_project_dir_path_for_test(request)
     file_path = os.path.join(dir_path + "/" + "tiny_db.json")
     yield file_path
-    # _delete_if_exists(dir_path)
+    _delete_if_exists(dir_path)
 
 
 @pytest.fixture()

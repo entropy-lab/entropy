@@ -21,9 +21,20 @@ from entropylab.pipeline.api.param_store import Param
 """ ctor """
 
 
-def test_ctor_is_dirty_is_true():
+def test_ctor_when_store_is_empty_then_is_dirty_is_false():
     target = InProcessParamStore()
-    assert target.is_dirty is True
+    assert target.is_dirty is False
+
+
+def test_ctor_when_store_is_empty_then_latest_commit_is_checked_out(tinydb_file_path):
+    # arrange
+    with InProcessParamStore(tinydb_file_path) as param_store:
+        param_store.foo = "bar"
+        param_store.commit()
+    # act
+    target = InProcessParamStore(tinydb_file_path)
+    # assert
+    assert target.foo == "bar"
 
 
 """ MutableMapping """
@@ -102,6 +113,7 @@ def test___setitem___when_key_starts_with_dunder_then_key_is_not_saved_to_db(
 ):
     with InProcessParamStore(tinydb_file_path) as target:
         target.__foo = "bar"
+        target.foo = "baz"
         target.commit()
     with open(tinydb_file_path) as f:
         assert "__foo" not in f.read()
@@ -350,6 +362,7 @@ def test_commit_in_memory_when_param_changes_commit_doesnt_change():
 
 def test_commit_when_body_is_empty_does_not_throw(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
+    target.foo = "bar"
     assert len(target.commit()) == 40
 
 
@@ -380,6 +393,7 @@ def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
 
 def test_commit_when_label_is_not_given_then_null_label_is_saved(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
+    target.foo = "bar"
     commit_id = target.commit()
     result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
     assert result[0]["metadata"]["label"] is None
@@ -387,6 +401,7 @@ def test_commit_when_label_is_not_given_then_null_label_is_saved(tinydb_file_pat
 
 def test_commit_when_label_is_given_then_label_is_saved(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
+    target.foo = "bar"
     commit_id = target.commit("foo")
     result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
     assert result[0]["metadata"]["label"] == "foo"
@@ -450,12 +465,13 @@ def test_checkout_when_commit_id_exists_value_remains_the_same(tinydb_file_path)
 def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
     # arrange
     target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = "bar"
     commit_id = target.commit()
-    target["foo"] = "baz"
+    target["baz"] = "buzz"
     # act
     target.checkout(commit_id)
     # assert
-    assert "foo" not in target
+    assert "baz" not in target
     assert target._InProcessParamStore__base_commit_id == commit_id
 
 

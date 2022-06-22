@@ -100,7 +100,7 @@ class InProcessParamStore(ParamStore):
         self.__base_doc_id: Optional[int] = None  # tinydb document id of last commit...
         self.__params: Dict[str, Param] = dict()  # where current params are stored
         self.__tags: Dict[str, List[str]] = dict()  # tags that are mapped to keys
-        self.__is_dirty: bool = True  # can the store be committed at this time?
+        self.__is_dirty: bool = False  # can the store be committed at this time?
         self.__dirty_keys: Set[str] = set()  # updated keys not committed yet
 
         if path is None:
@@ -114,11 +114,13 @@ class InProcessParamStore(ParamStore):
             if not os.path.isfile(path):
                 logger.debug(
                     f"Could not find a ParamStore JSON file at '{path}'. "
-                    f"A new, empty file will be created."
+                    f"A new, empty, file will be created."
                 )
             self.__db = TinyDB(path, storage=JSONPickleStorage)
             Table.default_query_cache_capacity = 0
             self.__filelock = FileLock(path + ".lock")
+            with self.__filelock:
+                self.checkout()
         if theirs is not None:
             self.merge(theirs, merge_strategy)
 

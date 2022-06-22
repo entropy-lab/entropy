@@ -13,13 +13,9 @@ import zmq
 import msgpack
 import platform
 from . import nodeio_context
+from .nodeio_context import terminate_node
 
-__all__ = [
-    "Inputs",
-    "Outputs",
-    "register",
-    "terminate_workflow",
-]
+__all__ = ["Inputs", "Outputs", "register", "terminate_workflow", "terminate_node"]
 
 
 def context(name="", description="", icon=""):
@@ -115,7 +111,7 @@ class StateMachine:
 
     def exit_gracefully(self, *args):
         self.active = False
-        nodeio_context.terminate_node()
+        terminate_node()
 
     # add status to be executable property; and allow blocking on
     # status check in case we are resolving calibration of the system
@@ -285,8 +281,8 @@ def terminate_workflow():
         nodeio_context.runtime_db_close()
         nodeio_context.zmq_context().term()
         status.active = False
-        nodeio_context.terminate_node()
+        terminate_node()
     else:
         # terminate just this node
         status.active = False
-        nodeio_context.terminate_node()
+        terminate_node()

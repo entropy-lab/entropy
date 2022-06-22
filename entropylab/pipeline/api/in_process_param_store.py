@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import copy
 import hashlib
 import json
@@ -15,9 +16,11 @@ from typing import Optional, Dict, Any, List, Callable, Set
 
 import jsonpickle as jsonpickle
 import pandas as pd
+from filelock import FileLock
 from tinydb import TinyDB, Query
 from tinydb.storages import MemoryStorage, Storage
 from tinydb.table import Document
+from tinydb.table import Table
 
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
@@ -97,12 +100,13 @@ class InProcessParamStore(ParamStore):
         self.__base_doc_id: Optional[int] = None  # tinydb document id of last commit...
         self.__params: Dict[str, Param] = dict()  # where current params are stored
         self.__tags: Dict[str, List[str]] = dict()  # tags that are mapped to keys
-        self.__is_dirty: bool = True  # can the store be committed at this time?
+        self.__is_dirty: bool = False  # can the store be committed at this time?
         self.__dirty_keys: Set[str] = set()  # updated keys not committed yet
 
         if path is None:
             self.__is_in_memory_mode = True
             self.__db = TinyDB(storage=MemoryStorage)
+            self.__filelock = contextlib.nullcontext()
         else:
             self.__is_in_memory_mode = False
             if isinstance(path, Path):
@@ -110,9 +114,13 @@ class InProcessParamStore(ParamStore):
             if not os.path.isfile(path):
                 logger.debug(
                     f"Could not find a ParamStore JSON file at '{path}'. "
-                    f"A new, empty file will be created."
+                    f"A new, empty, file will be created."
                 )
             self.__db = TinyDB(path, storage=JSONPickleStorage)
+            Table.default_query_cache_capacity = 0
+            self.__filelock = FileLock(path + ".lock")
+            with self.__filelock:
+                self.checkout()
         if theirs is not None:
             self.merge(theirs, merge_strategy)
 
@@ -274,12 +282,22 @@ class InProcessParamStore(ParamStore):
             commit_timestamp = time.time_ns()  # nanoseconds since epoch
             self.__stamp_dirty_params_with_commit(commit_id, commit_timestamp)
             doc = self.__build_document(commit_id, label)
-            doc_id = self.__db.insert(doc)
+            with self.__filelock:
+                doc.doc_id = self.__next_doc_id()
+                doc_id = self.__db.insert(doc)
             self.__base_commit_id = doc["metadata"]["id"]
             self.__base_doc_id = doc_id
             self.__is_dirty = False
             self.__dirty_keys.clear()
             return doc["metadata"]["id"]
+
+    def __next_doc_id(self):
+        with self.__filelock:
+            last_doc = self.__get_latest_commit()
+            if last_doc:
+                return last_doc.doc_id + 1
+            else:
+                return 1
 
     def __stamp_dirty_params_with_commit(self, commit_id: str, commit_timestamp: int):
         for key in self.__dirty_keys:
@@ -299,7 +317,7 @@ class InProcessParamStore(ParamStore):
 
     def __build_document(
         self, commit_id: Optional[str] = None, label: Optional[str] = None
-    ) -> dict:
+    ) -> Document:
         """
         builds a document to be saved as a commit/temp in TinyDB.
         :param commit_id: is None when saving to temp.
@@ -311,7 +329,9 @@ class InProcessParamStore(ParamStore):
             params = copy.deepcopy(self.__params)
         else:
             params = self.__params
-        return dict(metadata=metadata.__dict__, params=params, tags=self.__tags)
+        return Document(
+            dict(metadata=metadata.__dict__, params=params, tags=self.__tags), doc_id=0
+        )
 
     @staticmethod
     def __build_metadata(
@@ -331,19 +351,24 @@ class InProcessParamStore(ParamStore):
     ) -> None:
         with self.__lock:
             commit = self.__get_commit(commit_id, commit_num, move_by)
-            self.__params.clear()
-            self.__params.update(commit["params"])
-            self.__tags = commit["tags"]
-            self.__base_commit_id = commit_id
-            self.__base_doc_id = commit.doc_id
-            self.__is_dirty = False
-            self.__dirty_keys.clear()
+            if commit:
+                self.__checkout(commit)
+
+    def __checkout(self, commit: Document):
+        self.__params.clear()
+        self.__params.update(commit["params"])
+        self.__tags = commit["tags"]
+        self.__base_commit_id = commit["metadata"]["id"]
+        self.__base_doc_id = commit.doc_id
+        self.__is_dirty = False
+        self.__dirty_keys.clear()
 
     def list_commits(self, label: Optional[str] = None) -> List[Metadata]:
         with self.__lock:
-            documents = self.__db.search(
-                Query().metadata.label.test(_test_if_value_contains(label))
-            )
+            with self.__filelock:
+                documents = self.__db.search(
+                    Query().metadata.label.test(_test_if_value_contains(label))
+                )
             metadata = map(_extract_metadata, documents)
             return list(metadata)
 
@@ -352,41 +377,47 @@ class InProcessParamStore(ParamStore):
         commit_id: Optional[str] = None,
         commit_num: Optional[int] = None,
         move_by: Optional[int] = None,
-    ) -> Document:
-        if commit_id is not None:
-            commit = self.__get_commit_by_id(commit_id)
-        elif commit_num is not None:
-            commit = self.__get_commit_by_num(commit_num)
-        elif move_by is not None:
-            commit = self.__get_commit_by_move_by(move_by)
-        else:
-            raise EntropyError(
-                "Please provide one of the following arguments: "
-                "commit_id, commit_num, or move_by"
-            )
-        return commit
+    ) -> Optional[Document]:
+        with self.__lock:
+            if commit_id is not None:
+                commit = self.__get_commit_by_id(commit_id)
+            elif commit_num is not None:
+                commit = self.__get_commit_by_num(commit_num)
+            elif move_by is not None:
+                commit = self.__get_commit_by_move_by(move_by)
+            else:
+                commit = self.__get_latest_commit()
+            return commit
 
-    def __get_commit_by_id(self, commit_id: str):
-        result = self.__db.search(Query().metadata.id == commit_id)
-        if len(result) == 0:
-            raise EntropyError(f"Commit with id '{commit_id}' not found")
-        if len(result) > 1:
-            raise EntropyError(
-                f"{len(result)} commits with id '{commit_id}' found. "
-                f"Only one commit is allowed per id"
-            )
-        return result[0]
+    def __get_commit_by_id(self, commit_id: str) -> Document:
+        with self.__filelock:
+            result = self.__db.search(Query().metadata.id == commit_id)
+            if len(result) == 0:
+                raise EntropyError(f"Commit with id '{commit_id}' not found")
+            if len(result) > 1:
+                raise EntropyError(
+                    f"{len(result)} commits with id '{commit_id}' found. "
+                    f"Only one commit is allowed per id"
+                )
+            return result[0]
 
-    def __get_commit_by_num(self, commit_num: int):
-        result = self.__db.get(doc_id=commit_num)
-        if result is None:
-            raise EntropyError(f"Commit with number '{commit_num}' not found")
-        return result
+    def __get_commit_by_num(self, commit_num: int) -> Document:
+        with self.__filelock:
+            result = self.__db.get(doc_id=commit_num)
+            if result is None:
+                raise EntropyError(f"Commit with number '{commit_num}' not found")
+            return result
 
-    def __get_commit_by_move_by(self, move_by: int):
+    def __get_commit_by_move_by(self, move_by: int) -> Document:
         doc_id = self.__base_doc_id + move_by
-        result = self.__db.get(doc_id=doc_id)
-        return result
+        with self.__filelock:
+            result = self.__db.get(doc_id=doc_id)
+            return result
+
+    def __get_latest_commit(self) -> Optional[Document]:
+        with self.__filelock:
+            commits = self.__db.all()
+            return commits[-1] if commits else None
 
     """ Merge """
 
@@ -452,7 +483,8 @@ class InProcessParamStore(ParamStore):
     def list_values(self, key: str) -> pd.DataFrame:
         with self.__lock:
             values = []
-            commits = self.__db.all()
+            with self.__filelock:
+                commits = self.__db.all()
             commits.sort(key=lambda x: x["metadata"]["timestamp"])
             for commit in commits:
                 try:
@@ -465,7 +497,7 @@ class InProcessParamStore(ParamStore):
                     values.append(value)
                 except KeyError:
                     pass
-            if key in self.__params.keys():
+            if self.__is_dirty and key in self.__params.keys():
                 values.append((self[key], None, None, None))
             df = pd.DataFrame(values)
             if not df.empty:
@@ -513,9 +545,11 @@ class InProcessParamStore(ParamStore):
         Saves the state of params to a temporary location
         """
         with self.__lock:
-            table = self.__db.table(TEMP_TABLE)
-            doc = self.__build_document()
-            table.upsert(Document(doc, doc_id=1))
+            with self.__filelock:
+                table = self.__db.table(TEMP_TABLE)
+                doc = self.__build_document()
+                doc.doc_id = TEMP_DOC_ID
+                table.upsert(doc)
 
     def load_temp(self) -> None:
         """
@@ -523,7 +557,8 @@ class InProcessParamStore(ParamStore):
         location
         """
         with self.__lock:
-            table = self.__db.table(TEMP_TABLE)
+            with self.__filelock:
+                table = self.__db.table(TEMP_TABLE)
             doc = table.get(doc_id=1)
             if not doc:
                 raise EntropyError(

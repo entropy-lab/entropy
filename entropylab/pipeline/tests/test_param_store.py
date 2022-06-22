@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 from datetime import timedelta
 from pprint import pprint
 from time import sleep
@@ -6,7 +7,7 @@ from time import sleep
 import pytest
 from tinydb import Query, TinyDB
 
-from entropylab.conftest import _copy_template
+from entropylab.conftest import _copy_template, Process
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.in_process_param_store import (
     InProcessParamStore,
@@ -20,9 +21,20 @@ from entropylab.pipeline.api.param_store import Param
 """ ctor """
 
 
-def test_ctor_is_dirty_is_true():
+def test_ctor_when_store_is_empty_then_is_dirty_is_false():
     target = InProcessParamStore()
-    assert target.is_dirty is True
+    assert target.is_dirty is False
+
+
+def test_ctor_when_store_is_empty_then_latest_commit_is_checked_out(tinydb_file_path):
+    # arrange
+    with InProcessParamStore(tinydb_file_path) as param_store:
+        param_store.foo = "bar"
+        param_store.commit()
+    # act
+    target = InProcessParamStore(tinydb_file_path)
+    # assert
+    assert target.foo == "bar"
 
 
 """ MutableMapping """
@@ -101,6 +113,7 @@ def test___setitem___when_key_starts_with_dunder_then_key_is_not_saved_to_db(
 ):
     with InProcessParamStore(tinydb_file_path) as target:
         target.__foo = "bar"
+        target.foo = "baz"
         target.commit()
     with open(tinydb_file_path) as f:
         assert "__foo" not in f.read()
@@ -349,6 +362,7 @@ def test_commit_in_memory_when_param_changes_commit_doesnt_change():
 
 def test_commit_when_body_is_empty_does_not_throw(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
+    target.foo = "bar"
     assert len(target.commit()) == 40
 
 
@@ -379,6 +393,7 @@ def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
 
 def test_commit_when_label_is_not_given_then_null_label_is_saved(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
+    target.foo = "bar"
     commit_id = target.commit()
     result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
     assert result[0]["metadata"]["label"] is None
@@ -386,6 +401,7 @@ def test_commit_when_label_is_not_given_then_null_label_is_saved(tinydb_file_pat
 
 def test_commit_when_label_is_given_then_label_is_saved(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
+    target.foo = "bar"
     commit_id = target.commit("foo")
     result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
     assert result[0]["metadata"]["label"] == "foo"
@@ -416,9 +432,6 @@ def test_commit_assert_param_expiration_is_converted_to_timestamp_int(tinydb_fil
     target.commit()
     # assert
     assert target.get_param("foo").expiration >= now + (5 * 1e9)
-    # assert target._InProcessParamStore__params["foo"].commit_id == commit_id1
-    # assert target._InProcessParamStore__params["bar"].commit_id == commit_id2
-    # assert target._InProcessParamStore__params["baz"].commit_id == commit_id2
 
 
 """ checkout() """
@@ -434,6 +447,7 @@ def test_checkout_when_commit_id_exists_value_is_reverted(tinydb_file_path):
     target.checkout(commit_id)
     # assert
     assert target["foo"] == "bar"
+    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_exists_value_remains_the_same(tinydb_file_path):
@@ -445,20 +459,23 @@ def test_checkout_when_commit_id_exists_value_remains_the_same(tinydb_file_path)
     target.checkout(commit_id)
     # assert
     assert target["foo"] == "bar"
+    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
     # arrange
     target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = "bar"
     commit_id = target.commit()
-    target["foo"] = "baz"
+    target["baz"] = "buzz"
     # act
     target.checkout(commit_id)
     # assert
-    assert "foo" not in target
+    assert "baz" not in target
+    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
-def test_checkout_when_commit_id_doesnt_exist_error_is_raised(tinydb_file_path):
+def test_checkout_when_commit_id_doesnt_exist_then_error_is_raised(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     with pytest.raises(EntropyError):
         target.checkout("foo")
@@ -468,12 +485,13 @@ def test_checkout_when_commit_num_exists_value_is_reverted(tinydb_file_path):
     # arrange
     target = InProcessParamStore(tinydb_file_path)
     target["foo"] = "bar"
-    target.commit()
+    commit_id = target.commit()
     target["foo"] = "baz"
     # act
     target.checkout(commit_num=1)
     # assert
     assert target["foo"] == "bar"
+    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_tag_existed_in_commit_then_it_is_added_to_store(
@@ -497,8 +515,36 @@ def test_checkout_when_tag_did_not_exist_in_commit_then_it_is_removed_from_store
     target["foo"] = "bar"
     commit_id = target.commit()
     target.add_tag("tag", "foo")
+    # act
     target.checkout(commit_id)
+    # assert
     assert target.list_keys_for_tag("tag") == []
+
+
+def test_checkout_when_no_args_then_latest_commit_is_checked_out(
+    tinydb_file_path,
+):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = "bar"
+    commit_id = target.commit()
+    target["foo"] = "baz"
+    target.commit()
+    target.checkout(commit_id=commit_id)
+    # act
+    target.checkout()
+    # assert
+    assert target["foo"] == "baz"
+
+
+def test_checkout_when_no_args_and_no_commits_then_nothing_happens(
+    tinydb_file_path,
+):
+    # arrange
+    target = InProcessParamStore(tinydb_file_path)
+    target["foo"] = "bar"
+    target.checkout()
+    assert target["foo"] == "bar"
 
 
 @pytest.mark.parametrize(
@@ -805,21 +851,24 @@ def test_list_values_when_key_is_dirty_in_store_then_one_value_is_returned():
     target = InProcessParamStore()
     target["foo"] = "bar"
     actual = target.list_values("foo")
-    assert actual.iloc[0]["value"] == "bar"
-    assert actual.iloc[0]["time"] is None
-    assert actual.iloc[0]["commit_id"] is None
-    assert actual.iloc[0]["label"] is None
+    assert len(actual) == 1
+    value = actual.iloc[-1]
+    assert value["value"] == "bar"
+    assert value["time"] is None
+    assert value["commit_id"] is None
+    assert value["label"] is None
 
 
-def test_list_values_when_store_is_not_dirty_then_value_is_full():
+def test_list_values_when_store_is_not_dirty_then_last_value_is_full():
     target = InProcessParamStore()
     target["foo"] = "bar"
     target.commit("label")
     actual = target.list_values("foo")
-    assert actual.iloc[0]["value"] == "bar"
-    assert actual.iloc[0]["time"] is not None
-    assert actual.iloc[0]["commit_id"] is not None
-    assert actual.iloc[0]["label"] == "label"
+    last_value = actual.iloc[-1]
+    assert last_value["value"] == "bar"
+    assert last_value["time"] is not None
+    assert last_value["commit_id"] is not None
+    assert last_value["label"] == "label"
 
 
 def test_list_values_when_key_is_dirty_and_in_commit_then_two_values_are_returned():
@@ -1058,3 +1107,42 @@ def test_has_expired_when_expiration_is_timedelta_then_false():
     target = Param(42)
     target.expiration = timedelta(hours=5)
     assert not target.has_expired
+
+
+""" Testing multi-process scenarios """
+
+
+def set_foo_and_commit(path, name: str, num_of_commits: int):
+    with InProcessParamStore(path) as target:
+        for i in range(num_of_commits):
+            target.name = name
+            target.date = str(datetime.utcnow())
+            target.commit(name)
+
+
+def test_multi_processes_do_not_conflict(tinydb_file_path):
+    # arrange
+    num_of_processes = 3
+    num_of_commits = 10
+    processes = []
+    for i in range(num_of_processes):
+        processes.append(
+            Process(
+                target=set_foo_and_commit,
+                args=(tinydb_file_path, f"proc{i}", num_of_commits),
+            )
+        )
+
+    # act
+    for p in processes:
+        p.start()
+    for p in processes:
+        p.join()
+
+    # assert no exceptions
+    assert all(p.exception is None for p in processes)
+
+    # assert all params committed by all processes
+    ps = InProcessParamStore(tinydb_file_path)
+    names = ps.list_values("name")["value"]
+    assert all(names.value_counts() == num_of_commits)

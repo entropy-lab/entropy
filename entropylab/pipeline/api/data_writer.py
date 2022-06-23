@@ -214,3 +214,12 @@ class DataWriter(ABC):
         saves graph's node data to the db, according to NodeData class
         """
         pass
+
+    @abstractmethod
+    def update_experiment_favorite(self, experiment_id: int, favorite: bool) -> None:
+        """
+        sets the value in the "favorite" column of an 'Experiments' table record
+        :param experiment_id: The id of the record to update
+        :param favorite: A bool value indicating if the experiment is a favorite
+        """
+        pass

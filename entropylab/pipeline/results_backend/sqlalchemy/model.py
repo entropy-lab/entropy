@@ -21,6 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
+from entropylab.logger import logger
 from entropylab.pipeline.api.data_reader import (
     ExperimentRecord,
     ScriptViewer,
@@ -39,7 +40,6 @@ from entropylab.pipeline.api.data_writer import (
     NodeData,
 )
 from entropylab.pipeline.api.errors import EntropyError
-from entropylab.logger import logger
 
 
 def _get_class(module_name, class_name):
@@ -95,6 +95,7 @@ class ExperimentTable(Base):
     user = Column(String)
     story = Column(String)
     success = Column(Boolean, default=False)
+    favorite = Column(Boolean, default=False)
     results = relationship("ResultTable", cascade="all, delete-orphan")
     experiment_metadata = relationship("MetadataTable", cascade="all, delete-orphan")
     debug = relationship("DebugTable", cascade="all, delete-orphan")

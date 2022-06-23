@@ -204,3 +204,6 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
                 return None
         else:
             return None
+
+    def update_experiment_favorite(self, experiment_id: int, favorite: bool) -> None:
+        raise NotImplementedError()

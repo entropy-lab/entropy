@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import abc
 from typing import List, Dict
-from entropylab.logger import logger
 
 import pandas as pd
 
 from entropylab import SqlAlchemyDB
-from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
 from entropylab.dashboard.pages.results.auto_plot import auto_plot
+from entropylab.logger import logger
+from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
 
 MAX_EXPERIMENTS_NUM = 10000
 
@@ -27,7 +27,13 @@ class DashboardDataReader(abc.ABC):
         pass
 
 
-class SqlalchemyDashboardDataReader(DashboardDataReader):
+class DashboardDataWriter(abc.ABC):
+    @abc.abstractmethod
+    def update_experiment_favorite(self, experiment_id: int, favorite: bool) -> None:
+        pass
+
+
+class SqlalchemyDashboardDataReader(DashboardDataReader, DashboardDataWriter):
     def __init__(self, connector: SqlAlchemyDB) -> None:
         super().__init__()
         self._db: SqlAlchemyDB = connector
@@ -75,3 +81,6 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
                 return [plot]
             else:
                 return []
+
+    def update_experiment_favorite(self, experiment_id: int, favorite: bool) -> None:
+        self._db.update_experiment_favorite(experiment_id, favorite)

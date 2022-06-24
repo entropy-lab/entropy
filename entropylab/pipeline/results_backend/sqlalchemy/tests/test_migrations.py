@@ -1,6 +1,6 @@
 import pytest
 
-from entropylab import SqlAlchemyDB
+from entropylab.pipeline import SqlAlchemyDB
 
 
 @pytest.mark.parametrize("path", [None, ":memory:"])

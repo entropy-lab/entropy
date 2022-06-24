@@ -1,6 +1,6 @@
 from dash import Dash, html, dcc, callback, Output, Input
 
-from entropylab import SqlAlchemyDB
+from entropylab.pipeline import SqlAlchemyDB
 from entropylab.dashboard.pages import results, params
 from entropylab.dashboard.pages.results.dashboard_data import (
     SqlalchemyDashboardDataReader,

@@ -3,7 +3,7 @@ from datetime import datetime
 
 import pytest
 
-from entropylab import ExperimentResources, SqlAlchemyDB, PyNode, Graph
+from entropylab.pipeline import ExperimentResources, SqlAlchemyDB, PyNode, Graph
 
 
 @pytest.mark.skipif(

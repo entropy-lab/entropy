@@ -3,7 +3,7 @@
 #
 # from qcodes.instrument.base import InstrumentBase as qcodes_InstrumentBase
 #
-# from entropylab import SqlAlchemyDB, LabResources
+# from entropylab.pipeline import SqlAlchemyDB, LabResources
 # from entropylab.components.qcodes_adapter import QcodesAdapter
 #
 #

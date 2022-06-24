@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 import pytest
 
-from entropylab import RawResultData
+from entropylab.pipeline import RawResultData
 from entropylab.pipeline.api.data_writer import Metadata
 from entropylab.conftest import _copy_template
 from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import (

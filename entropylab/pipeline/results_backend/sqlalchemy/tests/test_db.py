@@ -3,7 +3,7 @@ import os.path
 import pytest
 from plotly import express as px
 
-from entropylab import SqlAlchemyDB, RawResultData
+from entropylab.pipeline import SqlAlchemyDB, RawResultData
 from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import (
     _ENTROPY_DIRNAME,
     _HDF5_DIRNAME,

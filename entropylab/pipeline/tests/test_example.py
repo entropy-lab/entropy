@@ -1,4 +1,4 @@
-from entropylab import Script, Graph
+from entropylab.pipeline import Script, Graph
 from entropylab.pipeline.api.data_reader import ExperimentReader
 from entropylab.pipeline.api.execution import EntropyContext
 from entropylab.pipeline.graph_experiment import PyNode

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from entropylab import Script
+from entropylab.pipeline import Script
 from entropylab.pipeline.api.execution import EntropyContext
 from entropylab.components.lab_topology import LabResources, ExperimentResources
 from entropylab.pipeline.results_backend.sqlalchemy.db import SqlAlchemyDB

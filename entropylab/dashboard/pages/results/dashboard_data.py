@@ -6,7 +6,7 @@ from entropylab.logger import logger
 
 import pandas as pd
 
-from entropylab import SqlAlchemyDB
+from entropylab.pipeline import SqlAlchemyDB
 from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
 from entropylab.dashboard.pages.results.auto_plot import auto_plot
 

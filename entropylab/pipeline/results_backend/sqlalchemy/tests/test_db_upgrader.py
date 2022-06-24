@@ -4,7 +4,7 @@ import shutil
 import pytest
 from sqlalchemy import create_engine
 
-from entropylab import SqlAlchemyDB, RawResultData
+from entropylab.pipeline import SqlAlchemyDB, RawResultData
 from entropylab.conftest import _copy_template
 from entropylab.logger import logger
 from entropylab.pipeline.api.data_writer import Metadata

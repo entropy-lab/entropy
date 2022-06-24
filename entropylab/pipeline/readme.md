@@ -9,7 +9,7 @@ Pipeline provides and API and execution engine for connecting and running nodes.
 ## Hello world
 
 ```python
-from entropylab import *
+from entropylab.pipeline import *
 
 def my_func():
     return {'res': 1}

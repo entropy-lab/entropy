@@ -7,7 +7,7 @@ from typing import Optional, Any, Iterable, TypeVar, Callable, List
 import h5py
 import numpy as np
 
-from entropylab import RawResultData
+from entropylab.pipeline import RawResultData
 from entropylab.pipeline.api.data_reader import ResultRecord, MetadataRecord
 from entropylab.pipeline.api.data_writer import Metadata
 from entropylab.logger import logger

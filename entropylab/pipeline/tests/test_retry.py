@@ -1,4 +1,4 @@
-from entropylab import PyNode, Graph
+from entropylab.pipeline import PyNode, Graph
 from entropylab.pipeline.api.graph import RetryBehavior
 from entropylab.logger import logger
 

@@ -26,7 +26,7 @@ def _setup_runtime_db(db_url, runtimedata_info):
                 """
                     )
                 )
-                db.execute(sql_text(f"DROP DATABASE {runtimedata_info[3]}"))
+                db.execute(sql_text(f"DROP DATABASE IF EXISTS {runtimedata_info[3]}"))
                 db.execute(sql_text("DROP OWNED BY workflow"))
                 db.execute(sql_text("DROP USER workflow"))
         except Exception:

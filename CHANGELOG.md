@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
+### Fixed
+* Few performnance fixes for flame, including reuse of node schema upon re-run
+of dry-run. Most significantly moving all `entropylab.pipeline` imports from
+__init__.py of entropylab root directory to corresponding `entropylab.pipeline`
+directory.
+
 ## [0.14.0] - 2022-06-22
 
 ### Fixed

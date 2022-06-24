@@ -246,8 +246,15 @@ def register(save_dry_run=False):
     destination = os.path.join(os.path.join(os.getcwd(), "entropynodes"), "schema")
     if not os.path.exists(destination):
         os.makedirs(destination)
+    full_path = os.path.join(destination, f"{nodeio_context.node_name}.json")
+    if os.path.exists(full_path):
+        with open(full_path, encoding="utf-8", mode="r") as f:
+            if f.read() == json.dumps(schema):
+                # same schema already written in the past
+                # skip re-generation of Python class
+                return
     with open(
-        os.path.join(destination, f"{nodeio_context.node_name}.json"),
+        full_path,
         encoding="utf-8",
         mode="w",
     ) as f:

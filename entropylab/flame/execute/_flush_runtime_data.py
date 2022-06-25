@@ -2,6 +2,7 @@ import json
 from sqlalchemy import text as sql_text
 
 # typing
+from collections import Mapping
 from typing import Tuple, Optional, NoReturn, Dict, Any, Iterable, Union, List
 from h5py import File, Group
 from sqlalchemy.engine import Connection
@@ -24,6 +25,33 @@ def _flush_into_hdf5(
         dset = grp.create_dataset(output_name, data=r)
     dset.attrs["description"] = node_info_outputs["description"][output_name]
     dset.attrs["units"] = node_info_outputs["units"][output_name]
+
+
+def _simplify_output_json_structure(structure):
+    if not isinstance(structure, Iterable) or isinstance(structure, str):
+        return None
+    if isinstance(structure, Mapping):
+        return {
+            key: _simplify_output_json_structure(value)
+            for key, value in structure.items()
+        }
+    # iterable items
+    structure = [_simplify_output_json_structure(item) for item in structure]
+    if all(item is None for item in structure):
+        return None
+    return structure
+
+
+def _flush_structure_into_json(
+    json_structure: Dict,
+    node_name: str,
+    output_name: str,
+    results: Any,
+    results_time: Union[str, List[str]],
+):
+    json_structure.update(
+        {node_name: {output_name: results, f"{output_name}_time": results_time}}
+    )
 
 
 def _get_node_output(
@@ -59,12 +87,12 @@ def update_node(
     node_name: str,
     node: object,
     node_info: Dict[str, Any],
-) -> NoReturn:
+) -> Dict[str, Any]:
+    node_output_data_structure = {}
     grp = f.create_group(f"{node_name}")
     grp.attrs["type"] = node_info["name"]
     grp.attrs["description"] = node_info["description"]
     grp.attrs["bin"] = node_info["bin"]
-
     for output_name in node._outputs._outputs:
         node_info_outputs = node_info["outputs"][0]
         result = _get_node_output(
@@ -72,3 +100,10 @@ def update_node(
         )
         if result is not None:
             _flush_into_hdf5(grp, node_info_outputs, output_name, result[0], result[1])
+            _flush_structure_into_json(
+                node_output_data_structure, node_name, output_name, result[0], result[1]
+            )
+    print(node_output_data_structure)
+    simplified = _simplify_output_json_structure(node_output_data_structure)
+    print(simplified)
+    return simplified

@@ -410,12 +410,22 @@ class Execute:
     def __flush_runtimedata_into_hdf5_and_json(self):
         # Flush the runtimedata into data_store HDF5 file
         logger.debug("Execute. Flush runtime data into hdf5.")
+        output_data_structure = {}
         with execute_utils.get_runtimedata(_Config.DATABASE_NAME) as db:
             with h5py.File(f"./{_Config.job_id}.hdf5", "w") as f:
                 execute_utils.write_metadata_to_h5(f, self.metadata)
                 for node_name, node in self.workflow._nodes.items():
                     node_info = self.workflow._node_details(node)
-                    update_node(f, db, node_name, node, node_info)
+                    node_output_data_structure = update_node(
+                        f,
+                        db,
+                        node_name,
+                        node,
+                        node_info,
+                    )
+                    output_data_structure.update(node_output_data_structure)
+        with open("./data_index.json", "w") as data_structure_file:
+            json.dump(output_data_structure, data_structure_file)
 
     def __clean_the_playbook(self):
         logger.debug("Execute. Clean the playbook.")

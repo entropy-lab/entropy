@@ -103,7 +103,4 @@ def update_node(
             _flush_structure_into_json(
                 node_output_data_structure, node_name, output_name, result[0], result[1]
             )
-    print(node_output_data_structure)
-    simplified = _simplify_output_json_structure(node_output_data_structure)
-    print(simplified)
-    return simplified
+    return _simplify_output_json_structure(node_output_data_structure)

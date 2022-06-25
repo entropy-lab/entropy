@@ -19,15 +19,13 @@ class QuAMCore(object):
 
 
 class QuAMManager(QuAMCore):
-    def __init__(self, path: str, host: str = "127.0.0.1"):
+    def __init__(self, path: str, **qmm_kwargs):
         """Admin
         :param path: Path of the entropy DB
         :type path: str
-        :param host: QM manager url
-        :type host: str
         """
         super().__init__(path=path)
-        self.host = host
+        self._qmm_kwargs = qmm_kwargs
         self._config_builder = ConfigBuilder()
         self._config_vars = ConfigVars()
 
@@ -67,23 +65,24 @@ class QuAMManager(QuAMCore):
         :rtype: QuAM
         """
         self._set_config_vars()
-        return QuAM(path=self.path, config=self.generate_config())
+        return QuAM(
+            path=self.path,
+            config=self.generate_config(),
+            **self._qmm_kwargs
+        )
 
 
 class QuAM(QuAMCore):
-    def __init__(self, path: str, config: dict = None, host: str = "127.0.0.1"):
+    def __init__(self, path: str, config: dict = None, **qmm_kwargs):
         """User class to facilitate writing and execution of QUA programs
         :param path: path to the entropy DB
         :type path: str
         :param config: a QUA configuration, defaults to an empty dictionary
         :type config: Dict, optional
-        :param host: host url for Quantum Machine Manager, defaults to local host
-        :type host: str, optional
         """
         super().__init__(path=path)
         self.config = config if config is not None else {}
-        self.host = host
-        self.qmm = QuantumMachinesManager(host)
+        self.qmm = QuantumMachinesManager(**qmm_kwargs)
 
     @property
     def elements(self):

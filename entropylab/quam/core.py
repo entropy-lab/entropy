@@ -65,11 +65,7 @@ class QuAMManager(QuAMCore):
         :rtype: QuAM
         """
         self._set_config_vars()
-        return QuAM(
-            path=self.path,
-            config=self.generate_config(),
-            **self._qmm_kwargs
-        )
+        return QuAM(path=self.path, config=self.generate_config(), **self._qmm_kwargs)
 
 
 class QuAM(QuAMCore):

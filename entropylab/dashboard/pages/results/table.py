@@ -17,13 +17,13 @@ def table(records):
             dict(name="start_time", id="start_time", type="datetime"),
             dict(name="end_time", id="end_time", type="datetime"),
             dict(name="user", id="user", type="text"),
-            # dict(name="success", id="success"),
+            dict(name="⭐", id="favorite"),
         ],
         data=records,
         persistence=True,
         persistence_type="session",
         row_selectable="multi",
-        cell_selectable=False,
+        cell_selectable=True,
         sort_action="native",
         filter_action="native",
         style_data=table_style_data,
@@ -33,18 +33,25 @@ def table(records):
         style_cell_conditional=[
             {"if": {"column_id": "id"}, "width": "9%"},
             {"if": {"column_id": "label"}, "width": "20%"},
-            {"if": {"column_id": "start_time"}, "width": "26%"},
-            {"if": {"column_id": "end_time"}, "width": "26%"},
+            {"if": {"column_id": "start_time"}, "width": "23%"},
+            {"if": {"column_id": "end_time"}, "width": "23%"},
             {"if": {"column_id": "user"}, "width": "13%"},
             {"if": {"column_id": "success"}, "width": "6%"},
+            {"if": {"column_id": "favorite"}, "width": "6%"},
         ],
         style_data_conditional=[
             {
+                "if": {"state": "selected"},
+                "backgroundColor": "inherit !important",
+                "border": "inherit !important",
+            },
+            {
                 "if": {
-                    "column_id": "success",
+                    "column_id": "favorite",
                 },
                 "textAlign": "center",
-            }
+                "cursor": "pointer",
+            },
         ],
         # tooltip_data=[
         #     {

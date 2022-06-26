@@ -10,6 +10,7 @@ from dash.dependencies import Input, Output, State, ALL
 from plotly import graph_objects as go
 from plotly.subplots import make_subplots
 
+from entropylab.dashboard.pages.results.dashboard_data import FAVORITE_TRUE
 from entropylab.dashboard.theme import (
     colors,
     dark_plot_layout,
@@ -36,15 +37,28 @@ def register_callbacks(app, dashboard_data_reader):
     @app.callback(
         Output("experiments-table", "data"),
         Output("empty-project-modal", "is_open"),
+        Output("experiments-table", "active_cell"),
         Input("interval", "n_intervals"),
+        Input("experiments-table", "active_cell"),
+        State("experiments-table", "data"),
     )
-    def refresh_experiments_table(_):
+    def refresh_experiments_table(_, active_cell, data):
         """Periodically refresh the experiments table (See
-        https://dash.plotly.com/live-updates), or when the filter on the 'success'
-        column is changed"""
+        https://dash.plotly.com/live-updates), or when a user clicks a "favorite"
+        column star"""
         records = dashboard_data_reader.get_last_experiments()
+        if active_cell and active_cell["column_id"] == "favorite":
+            update_favorite_by_active_cell(active_cell, data)
         open_empty_project_modal = len(records) == 0
-        return records, open_empty_project_modal
+        return records, open_empty_project_modal, None  # <- cancels active_cell!
+
+    def update_favorite_by_active_cell(active_cell, data):
+        exp_id = active_cell["row_id"]
+        record = [record for record in data if record["id"] == exp_id][0]
+        if record["favorite"] == FAVORITE_TRUE:
+            dashboard_data_reader.update_experiment_favorite(exp_id, False)
+        else:
+            dashboard_data_reader.update_experiment_favorite(exp_id, True)
 
     @app.callback(
         Output("failed-plotting-alert", "is_open"),

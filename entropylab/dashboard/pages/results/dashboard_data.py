@@ -10,6 +10,8 @@ from entropylab.dashboard.pages.results.auto_plot import auto_plot
 from entropylab.logger import logger
 from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
 
+FAVORITE_TRUE = "⭐"
+FAVORITE_FALSE = "✰"
 MAX_EXPERIMENTS_NUM = 10000
 
 
@@ -45,8 +47,8 @@ class SqlalchemyDashboardDataReader(DashboardDataReader, DashboardDataWriter):
         success: bool = None,
     ) -> List[Dict]:
         experiments = self._db.get_last_experiments(max_num_of_experiments, success)
-        experiments["success"] = experiments["success"].apply(
-            lambda x: "✔️" if x else "❌"
+        experiments["favorite"] = experiments["favorite"].apply(
+            lambda x: FAVORITE_TRUE if x else FAVORITE_FALSE
         )
         experiments["start_time"] = pd.DatetimeIndex(
             experiments["start_time"]

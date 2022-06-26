@@ -169,6 +169,7 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 ExperimentTable.end_time,
                 ExperimentTable.user,
                 ExperimentTable.success,
+                ExperimentTable.favorite,
             )
             if success is not None:
                 query = query.filter(ExperimentTable.success == success)
@@ -508,7 +509,7 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
     def update_experiment_favorite(self, experiment_id: int, favorite: bool) -> None:
         with self._session_maker() as sess:
             sess.query(ExperimentTable).filter(
-                ExperimentTable.experiment_id == experiment_id
+                ExperimentTable.id == experiment_id
             ).update({"favorite": favorite})
             sess.commit()
 

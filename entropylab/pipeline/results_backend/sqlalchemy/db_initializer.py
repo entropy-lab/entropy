@@ -10,8 +10,8 @@ from alembic.runtime import migration
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from entropylab.pipeline.api.errors import EntropyError
 from entropylab.logger import logger
+from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.results_backend.sqlalchemy.model import (
     Base,
     ResultTable,
@@ -164,6 +164,11 @@ class _DbUpgrader:
             # "per experiment" hdf5 files
             self._migrate_results_from_db_to_hdf5()
             self._migrate_metadata_from_db_to_hdf5()
+        self.log_success()
+
+    def log_success(self):
+        at = f"at [{self._path}] " if self._path != _SQL_ALCHEMY_MEMORY else ""
+        logger.info(f"The Entropy project {at}was updated successfully.")
 
     def _path_doesnt_exist(self):
         return not os.path.isdir(self._path) and not os.path.isfile(self._path)

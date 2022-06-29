@@ -1,0 +1,1383 @@
+{
+	"_default": {
+		"1": {
+			"metadata": {
+				"ns": 1652693761626811069,
+				"id": "6267b66672be10e81880f35ad962d590f41f732f",
+				"label": "added initial params"
+			},
+			"params": {
+				"q0_f_if_01": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 90000000.0
+					}
+				},
+				"q0_anharmonicity": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -300000000.0
+					}
+				},
+				"q1_f_if_01": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 90000000.0
+					}
+				},
+				"q1_anharmonicity": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -300000000.0
+					}
+				},
+				"q2_f_if_01": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 90000000.0
+					}
+				},
+				"q2_anharmonicity": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -300000000.0
+					}
+				},
+				"q3_f_if_01": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 90000000.0
+					}
+				},
+				"q3_anharmonicity": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -300000000.0
+					}
+				},
+				"q4_f_if_01": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 90000000.0
+					}
+				},
+				"q4_anharmonicity": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -300000000.0
+					}
+				},
+				"q0_f_lo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 5510000.0
+					}
+				},
+				"q1_f_lo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 6410000000.0
+					}
+				},
+				"q2_f_lo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 6410000000.0
+					}
+				},
+				"q3_f_lo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 4610000000.0
+					}
+				},
+				"q4_f_lo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 4610000000.0
+					}
+				},
+				"q5_f_rr_if": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -250000000.0
+					}
+				},
+				"q0_f_rr_if": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -150000000.0
+					}
+				},
+				"q1_f_rr_if": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 50000000.0
+					}
+				},
+				"q2_f_rr_if": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 250000000.0
+					}
+				},
+				"q3_f_rr_if": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -50000000.0
+					}
+				},
+				"q4_f_rr_if": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 150000000.0
+					}
+				},
+				"q5_f_rr_lo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 7250000000.0
+					}
+				},
+				"q0_f_rr_lo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 7750000000.0
+					}
+				},
+				"q1_f_rr_lo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 7750000000.0
+					}
+				},
+				"q2_f_rr_lo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 7750000000.0
+					}
+				},
+				"q3_f_rr_lo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 7250000000.0
+					}
+				},
+				"q4_f_rr_lo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 7250000000.0
+					}
+				},
+				"q0_rr_mixer_g": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_rr_mixer_phi": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_rr_mixer_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_rr_mixer_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_rr_mixer_g": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_rr_mixer_phi": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_rr_mixer_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_rr_mixer_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_rr_mixer_g": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_rr_mixer_phi": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_rr_mixer_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_rr_mixer_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_rr_mixer_g": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_rr_mixer_phi": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_rr_mixer_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_rr_mixer_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_rr_mixer_g": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_rr_mixer_phi": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_rr_mixer_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_rr_mixer_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q5_rr_mixer_g": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q5_rr_mixer_phi": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q5_rr_mixer_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q5_rr_mixer_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_xy_mixer_g": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_xy_mixer_phi": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_xy_mixer_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_xy_mixer_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_xy_delay": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_z_delay": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_z_ff_taps": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": null
+					}
+				},
+				"q0_z_fb_taps": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": null
+					}
+				},
+				"q1_xy_mixer_g": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_xy_mixer_phi": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_xy_mixer_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_xy_mixer_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_xy_delay": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_z_delay": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_z_ff_taps": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": null
+					}
+				},
+				"q1_z_fb_taps": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": null
+					}
+				},
+				"q2_xy_mixer_g": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_xy_mixer_phi": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_xy_mixer_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_xy_mixer_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_xy_delay": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_z_delay": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_z_ff_taps": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": null
+					}
+				},
+				"q2_z_fb_taps": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": null
+					}
+				},
+				"q3_xy_mixer_g": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_xy_mixer_phi": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_xy_mixer_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_xy_mixer_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_xy_delay": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_z_delay": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_z_ff_taps": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": null
+					}
+				},
+				"q3_z_fb_taps": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": null
+					}
+				},
+				"q4_xy_mixer_g": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_xy_mixer_phi": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_xy_mixer_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_xy_mixer_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_xy_delay": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_z_delay": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_z_ff_taps": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": null
+					}
+				},
+				"q4_z_fb_taps": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": null
+					}
+				},
+				"con1_ai1_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"con2_ai1_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"con1_ai2_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"con2_ai2_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q0_iw_rotation_angle": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_ro_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 500
+					}
+				},
+				"q0_ro_amplitude": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 1
+					}
+				},
+				"q0_tof": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 200
+					}
+				},
+				"q0_input_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q0_input_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q0_input_i_gain_db": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_input_q_gain_db": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_iw_rotation_angle": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_ro_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 500
+					}
+				},
+				"q1_ro_amplitude": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 1
+					}
+				},
+				"q1_tof": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 200
+					}
+				},
+				"q1_input_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q1_input_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q1_input_i_gain_db": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q1_input_q_gain_db": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_iw_rotation_angle": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_ro_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 500
+					}
+				},
+				"q2_ro_amplitude": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 1
+					}
+				},
+				"q2_tof": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 200
+					}
+				},
+				"q2_input_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q2_input_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q2_input_i_gain_db": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q2_input_q_gain_db": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_iw_rotation_angle": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_ro_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 500
+					}
+				},
+				"q3_ro_amplitude": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 1
+					}
+				},
+				"q3_tof": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 200
+					}
+				},
+				"q3_input_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q3_input_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q3_input_i_gain_db": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q3_input_q_gain_db": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_iw_rotation_angle": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_ro_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 500
+					}
+				},
+				"q4_ro_amplitude": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 1
+					}
+				},
+				"q4_tof": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 200
+					}
+				},
+				"q4_input_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q4_input_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q4_input_i_gain_db": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q4_input_q_gain_db": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q5_iw_rotation_angle": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q5_ro_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 500
+					}
+				},
+				"q5_ro_amplitude": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 1
+					}
+				},
+				"q5_tof": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 200
+					}
+				},
+				"q5_input_i_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q5_input_q_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q5_input_i_gain_db": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q5_input_q_gain_db": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0
+					}
+				},
+				"q0_pi_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 1.0
+					}
+				},
+				"q0_half_pi_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.5
+					}
+				},
+				"q0_drag_coeff": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.1
+					}
+				},
+				"q0_pi_pulse_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 80
+					}
+				},
+				"q0_cw_pulse_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 320
+					}
+				},
+				"q0_cw_pulse_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.4
+					}
+				},
+				"q0_ac_stark": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q0_idle_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q0_cz_detuning_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -0.1
+					}
+				},
+				"q0_cz_gate_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 80
+					}
+				},
+				"q0_t1": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q0_t2_ramsey": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q0_t2_echo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q1_pi_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 1.0
+					}
+				},
+				"q1_half_pi_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.5
+					}
+				},
+				"q1_drag_coeff": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.1
+					}
+				},
+				"q1_pi_pulse_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 80
+					}
+				},
+				"q1_cw_pulse_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 320
+					}
+				},
+				"q1_cw_pulse_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.4
+					}
+				},
+				"q1_ac_stark": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q1_idle_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q1_cz_detuning_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -0.1
+					}
+				},
+				"q1_cz_gate_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 80
+					}
+				},
+				"q1_t1": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q1_t2_ramsey": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q1_t2_echo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q2_pi_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 1.0
+					}
+				},
+				"q2_half_pi_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.5
+					}
+				},
+				"q2_drag_coeff": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.1
+					}
+				},
+				"q2_pi_pulse_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 80
+					}
+				},
+				"q2_cw_pulse_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 320
+					}
+				},
+				"q2_cw_pulse_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.4
+					}
+				},
+				"q2_ac_stark": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q2_idle_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q2_cz_detuning_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -0.1
+					}
+				},
+				"q2_cz_gate_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 80
+					}
+				},
+				"q2_t1": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q2_t2_ramsey": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q2_t2_echo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q3_pi_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 1.0
+					}
+				},
+				"q3_half_pi_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.5
+					}
+				},
+				"q3_drag_coeff": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.1
+					}
+				},
+				"q3_pi_pulse_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 80
+					}
+				},
+				"q3_cw_pulse_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 320
+					}
+				},
+				"q3_cw_pulse_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.4
+					}
+				},
+				"q3_ac_stark": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q3_idle_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q3_cz_detuning_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -0.1
+					}
+				},
+				"q3_cz_gate_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 80
+					}
+				},
+				"q3_t1": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q3_t2_ramsey": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q3_t2_echo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q4_pi_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 1.0
+					}
+				},
+				"q4_half_pi_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.5
+					}
+				},
+				"q4_drag_coeff": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.1
+					}
+				},
+				"q4_pi_pulse_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 80
+					}
+				},
+				"q4_cw_pulse_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 320
+					}
+				},
+				"q4_cw_pulse_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.4
+					}
+				},
+				"q4_ac_stark": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q4_idle_offset": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 0.0
+					}
+				},
+				"q4_cz_detuning_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -0.1
+					}
+				},
+				"q4_cz_gate_duration": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 80
+					}
+				},
+				"q4_t1": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q4_t2_ramsey": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q4_t2_echo": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": 100
+					}
+				},
+				"q0_park_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -0.3
+					}
+				},
+				"q1_park_amp": {
+					"py/object": "entropylab.api.in_process_param_store.Param",
+					"__dict__": {
+						"value": -0.3
+					}
+				}
+			},
+			"tags": {
+				"f_if": [
+					"q0_f_if_01",
+					"q1_f_if_01",
+					"q2_f_if_01",
+					"q3_f_if_01",
+					"q4_f_if_01"
+				],
+				"anharmonicity": [
+					"q0_f_if_01",
+					"q1_f_if_01",
+					"q2_f_if_01",
+					"q3_f_if_01",
+					"q4_f_if_01"
+				],
+				"f_lo": [
+					"q0_f_lo",
+					"q1_f_lo",
+					"q2_f_lo",
+					"q3_f_lo",
+					"q4_f_lo"
+				],
+				"iw_rotation_angle": [
+					"q0_iw_rotation_angle",
+					"q1_iw_rotation_angle",
+					"q2_iw_rotation_angle",
+					"q3_iw_rotation_angle",
+					"q4_iw_rotation_angle",
+					"q5_iw_rotation_angle"
+				],
+				"ro_duration": [
+					"q0_ro_duration",
+					"q1_ro_duration",
+					"q2_ro_duration",
+					"q3_ro_duration",
+					"q4_ro_duration",
+					"q5_ro_duration"
+				],
+				"ro_amplitude": [
+					"q0_ro_amplitude",
+					"q1_ro_amplitude",
+					"q2_ro_amplitude",
+					"q3_ro_amplitude",
+					"q4_ro_amplitude",
+					"q5_ro_amplitude"
+				],
+				"pi_amp": [
+					"q0_pi_amp",
+					"q1_pi_amp",
+					"q2_pi_amp",
+					"q3_pi_amp",
+					"q4_pi_amp"
+				],
+				"half_pi_amp": [
+					"q0_half_pi_amp",
+					"q1_half_pi_amp",
+					"q2_half_pi_amp",
+					"q3_half_pi_amp",
+					"q4_half_pi_amp"
+				],
+				"drag_coeff": [
+					"q0_drag_coeff",
+					"q1_drag_coeff",
+					"q2_drag_coeff",
+					"q3_drag_coeff",
+					"q4_drag_coeff"
+				],
+				"pi_pulse_duration": [
+					"q0_pi_pulse_duration",
+					"q1_pi_pulse_duration",
+					"q2_pi_pulse_duration",
+					"q3_pi_pulse_duration",
+					"q4_pi_pulse_duration"
+				],
+				"cz_detuning_amp": [
+					"q0_cz_detuning_amp",
+					"q1_cz_detuning_amp",
+					"q2_cz_detuning_amp",
+					"q3_cz_detuning_amp",
+					"q4_cz_detuning_amp"
+				],
+				"cz_gate_duration": [
+					"q0_cz_gate_duration",
+					"q1_cz_gate_duration",
+					"q2_cz_gate_duration",
+					"q3_cz_gate_duration",
+					"q4_cz_gate_duration"
+				],
+				"t1": [
+					"q0_t1",
+					"q1_t1",
+					"q2_t1",
+					"q3_t1",
+					"q4_t1"
+				],
+				"t2_ramsey": [
+					"q0_t2_ramsey",
+					"q1_t2_ramsey",
+					"q2_t2_ramsey",
+					"q3_t2_ramsey",
+					"q4_t2_ramsey"
+				],
+				"t2_echo": [
+					"q0_t2_echo",
+					"q1_t2_echo",
+					"q2_t2_echo",
+					"q3_t2_echo",
+					"q4_t2_echo"
+				]
+			}
+		}
+	}
+}

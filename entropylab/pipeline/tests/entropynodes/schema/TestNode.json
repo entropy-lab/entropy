@@ -1,0 +1,1 @@
+{"name": "TestNode", "description": "test", "command": "python3", "bin": "_jb_pytest_runner.py", "icon": "bootstrap/person-circle.svg", "inputs": [{"description": {"stream_1": "desc", "state_1": "desc"}, "units": {"stream_1": "test", "state_1": "test"}, "type": {"stream_1": 2, "state_1": 1}}], "outputs": []}

@@ -15,6 +15,7 @@ from entropylab.pipeline.api.in_process_param_store import (
     MergeStrategy,
     migrate_param_store_0_1_to_0_2,
     JSONPickleStorage,
+    fix_param_qualified_name,
 )
 from entropylab.pipeline.api.param_store import Param
 
@@ -1064,7 +1065,7 @@ def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
     # arrange
     _copy_template("migrate_param_store_0_1_to_0_2.json", tinydb_file_path, request)
     # act
-    migrate_param_store_0_1_to_0_2(tinydb_file_path)
+    migrate_param_store_0_1_to_0_2(tinydb_file_path, "test_param_store.py")
     # assert
     param_store = InProcessParamStore(tinydb_file_path)
     # checkout unharmed
@@ -1080,6 +1081,17 @@ def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
     # temp is unharmed
     param_store.load_temp()
     assert param_store["qubit1.flux_capacitor.freq"] == -8.0
+
+
+def test_fix_param_qualified_name(tinydb_file_path, request):
+    # arrange
+    _copy_template("fix_param_qualified_name.json", tinydb_file_path, request)
+    # act
+    fix_param_qualified_name(tinydb_file_path, "test_param_store.py")
+    # assert
+    param_store = InProcessParamStore(tinydb_file_path)
+    actual = param_store["q0_f_if_01"]
+    assert actual == 90000000.0
 
 
 """ class Param """
@@ -1146,3 +1158,17 @@ def test_multi_processes_do_not_conflict(tinydb_file_path):
     ps = InProcessParamStore(tinydb_file_path)
     names = ps.list_values("name")["value"]
     assert all(names.value_counts() == num_of_commits)
+
+
+# def test():
+#     target = InProcessParamStore("C:\\Users\\uri_g\\Desktop\\bug\\.entropy\\params.db")
+#     actual = target["q0_f_if_01"]
+#
+#
+# def test2():
+#     target = InProcessParamStore(
+#         "C:\\Users\\uri_g\\Desktop\\bug\\.entropy\\params_new.db"
+#     )
+#     target["q0_f_if_01"] = 42.0
+#     target.commit()
+#     actual = target["q0_f_if_01"]

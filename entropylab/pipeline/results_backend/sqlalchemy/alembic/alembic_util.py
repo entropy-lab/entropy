@@ -38,7 +38,7 @@ class AlembicUtil:
             command.stamp(alembic_cfg, "head")
 
     def db_is_up_to_date(self) -> bool:
-        script_location = self._abs_path_to("alembic")
+        script_location = self._abs_path_to("")
         script_ = script.ScriptDirectory(script_location)
         with self._engine.begin() as conn:
             context = migration.MigrationContext.configure(conn)
@@ -47,8 +47,8 @@ class AlembicUtil:
             return db_version == latest_version
 
     def _alembic_build_config(self, connection: sqlalchemy.engine.Connection) -> Config:
-        config_location = self._abs_path_to("alembic.ini")
-        script_location = self._abs_path_to("alembic")
+        config_location = self._abs_path_to("../alembic.ini")
+        script_location = self._abs_path_to("")
         alembic_cfg = Config(config_location)
         alembic_cfg.set_main_option("script_location", script_location)
         """

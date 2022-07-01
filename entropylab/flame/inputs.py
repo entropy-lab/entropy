@@ -40,7 +40,10 @@ class Inputs:
 
     @classmethod
     def _connections(cls):
-        return cls.__local_instances[0].connections
+        if len(cls.__local_instances):
+            return cls.__local_instances[0].connections
+        # without check raises IndexError if node has no inputs then
+        return {}
 
     def __init__(self):
         self.__index = self._register(self)

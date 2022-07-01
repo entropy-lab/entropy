@@ -4,6 +4,7 @@ import json
 import zmq
 import msgpack
 import time
+from entropylab.flame.utils.zmq import create_socket_and_connect_or_bind
 
 __all__ = ["Inputs"]
 
@@ -103,14 +104,19 @@ class Inputs:
                 # if they are runtime variables, initialize connections
                 self.value_set[name] = False
                 context = nodeio_context.zmq_context()
-                socket = context.socket(zmq.SUB)
+                socket_options = {zmq.LINGER: 0}
                 if input_type == InputType.STATE:
                     # state variables should get only the last, up-to date
                     # variable
-                    socket.setsockopt(zmq.CONFLATE, 1)
-                socket.setsockopt(zmq.LINGER, 0)
-                socket.connect(self.values[name][0][1:])
-                socket.subscribe("")
+                    socket_options.update({zmq.CONFLATE: 1})
+                socket = create_socket_and_connect_or_bind(
+                    context,
+                    zmq.SUB,
+                    address=self.values[name][0][1:],
+                    connect=True,
+                    socket_options=socket_options,
+                    subscribe_topic="",
+                )
                 self.connections[name] = socket
 
         self.description[name] = description

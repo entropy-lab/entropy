@@ -14,6 +14,7 @@ import msgpack
 
 from sqlalchemy import text as sql_text
 
+from entropylab.flame.utils.zmq import create_socket_and_connect_or_bind
 from entropylab.flame.workflow import Workflow
 from entropylab.flame.execute import _utils as execute_utils
 from entropylab.flame.execute._config import _Config, logger
@@ -117,11 +118,14 @@ class Execute:
         port_address = f"tcp://127.0.0.1:{port_number}"
         runtime_state.set("executor_input", port_address)
 
-        self.executor_input = zmq_context.socket(zmq.SUB)
-        self.executor_input.setsockopt(zmq.LINGER, 0)
-        self.executor_input.setsockopt(zmq.RCVTIMEO, 200)  # 0.2 s timeout
-        self.executor_input.bind(port_address)  # receives from many publishers
-        self.executor_input.subscribe("")
+        self.executor_input = create_socket_and_connect_or_bind(
+            zmq_context,
+            zmq.SUB,
+            port_address,
+            bind=True,
+            socket_options={zmq.LINGER: 0, zmq.RCVTIMEO: 200},
+            subscribe_topic="",
+        )
 
         port_number = execute_utils.get_free_port(
             port_number, runtime_state, "executor_output"
@@ -134,9 +138,13 @@ class Execute:
         runtime_state.set("executor_output", port_address)
         self.port_output = port_number
 
-        self.executor_output = zmq_context.socket(zmq.PUB)
-        self.executor_output.setsockopt(zmq.LINGER, 0)
-        self.executor_output.bind(port_address)  # sends to many publishers
+        self.executor_output = create_socket_and_connect_or_bind(
+            zmq_context,
+            zmq.PUB,
+            port_address,
+            bind=True,  # sends to many publishers
+            socket_options={zmq.LINGER: 0},
+        )
 
     def __zmq_messages_status_check(
         self,

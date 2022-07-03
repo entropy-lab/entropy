@@ -27,10 +27,10 @@ def upgrade():
             "Figures",
             sa.Column("id", sa.Integer(), nullable=False),
             sa.Column("experiment_id", sa.Integer(), nullable=False),
-            sa.Column("figure", sa.String(), nullable=False),
+            sa.Column("img_src", sa.String(), nullable=False),
             sa.Column("time", sa.DATETIME(), nullable=False),
             sa.ForeignKeyConstraint(
-                ["experiment_id"], ["Experiments.id"], ondelete="CASCADE"
+                ("experiment_id",), ("Experiments.id",), ondelete="CASCADE"
             ),
             sa.PrimaryKeyConstraint("id"),
         )

@@ -34,7 +34,8 @@ from entropylab.pipeline.api.data_reader import (
     MetadataRecord,
     DebugRecord,
     PlotRecord,
-    FigureRecord, MatplotlibFigureRecord,
+    FigureRecord,
+    MatplotlibFigureRecord,
 )
 from entropylab.pipeline.api.data_writer import (
     DataWriter,
@@ -161,11 +162,7 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
     def save_matplotlib_figure(
         self, experiment_id: int, figure: matplotlib.figure.Figure
     ) -> None:
-        buf = io.BytesIO()
-        figure.savefig(buf, format="png")
-        # figure.close()
-        data = base64.b64encode(buf.getbuffer()).decode("utf8")
-        img_src = "data:image/png;base64,{}".format(data)
+        img_src = matplotlib_figure_to_img_src(figure)
         transaction = MatplotlibFigureTable.from_model(experiment_id, img_src)
         return self._execute_transaction(transaction)
 
@@ -550,3 +547,14 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         else:
             enabled = self._enable_hdf5_storage
         return enabled
+
+
+def matplotlib_figure_to_img_src(self, figure):
+    """Converts a matplotlib Figure instance into a string that can be used as the
+    'src' attribute of an HTML <img>"""
+    buf = io.BytesIO()
+    figure.savefig(buf, format="png")
+    # figure.close()
+    data = base64.b64encode(buf.getbuffer()).decode("utf8")
+    img_src = "data:image/png;base64,{}".format(data)
+    return img_src

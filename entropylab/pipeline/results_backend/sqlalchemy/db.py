@@ -1,3 +1,5 @@
+import base64
+import io
 from datetime import datetime
 from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
 from typing import Set
@@ -32,7 +34,7 @@ from entropylab.pipeline.api.data_reader import (
     MetadataRecord,
     DebugRecord,
     PlotRecord,
-    FigureRecord,
+    FigureRecord, MatplotlibFigureRecord,
 )
 from entropylab.pipeline.api.data_writer import (
     DataWriter,
@@ -159,8 +161,12 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
     def save_matplotlib_figure(
         self, experiment_id: int, figure: matplotlib.figure.Figure
     ) -> None:
-        # TODO: convert figure to base64 img_src!
-        transaction = MatplotlibFigureTable.from_model(experiment_id, "figure")
+        buf = io.BytesIO()
+        figure.savefig(buf, format="png")
+        # figure.close()
+        data = base64.b64encode(buf.getbuffer()).decode("utf8")
+        img_src = "data:image/png;base64,{}".format(data)
+        transaction = MatplotlibFigureTable.from_model(experiment_id, img_src)
         return self._execute_transaction(transaction)
 
     def save_node(self, experiment_id: int, node_data: NodeData):
@@ -302,6 +308,19 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
             query = (
                 sess.query(FigureTable)
                 .filter(FigureTable.experiment_id == int(experiment_id))
+                .all()
+            )
+            if query:
+                return [figure.to_record() for figure in query]
+        return []
+
+    def get_matplotlib_figures(
+        self, experiment_id: int
+    ) -> List[MatplotlibFigureRecord]:
+        with self._session_maker() as sess:
+            query = (
+                sess.query(MatplotlibFigureTable)
+                .filter(MatplotlibFigureTable.experiment_id == int(experiment_id))
                 .all()
             )
             if query:

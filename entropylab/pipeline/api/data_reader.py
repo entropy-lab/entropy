@@ -243,7 +243,7 @@ class DataReader(ABC):
     @abstractmethod
     def get_plots(self, experiment_id: int) -> List[PlotRecord]:
         """
-        returns a list of all plots saved in the requested experiment
+        returns a list of all plots saved with the requested experiment
         """
         warn(
             "This method will soon be deprecated. Please use get_figures() instead",
@@ -255,7 +255,16 @@ class DataReader(ABC):
     @abstractmethod
     def get_figures(self, experiment_id: int) -> List[FigureRecord]:
         """
-        returns a list of all figures saved in the requested experiment
+        returns a list of all plotly figures saved with the requested experiment
+        """
+        pass
+
+    @abstractmethod
+    def get_matplotlib_figures(
+        self, experiment_id: int
+    ) -> List[MatplotlibFigureRecord]:
+        """
+        returns a list of all matplotlib figures saved with the requested experiment
         """
         pass
 

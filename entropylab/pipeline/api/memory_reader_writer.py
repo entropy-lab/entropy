@@ -3,6 +3,7 @@ from datetime import datetime
 from time import time_ns
 from typing import List, Optional, Iterable, Any, Dict, Tuple
 
+import matplotlib.figure
 from pandas import DataFrame
 from plotly import graph_objects as go
 
@@ -15,6 +16,7 @@ from entropylab.pipeline.api.data_reader import (
     ScriptViewer,
     PlotRecord,
     FigureRecord,
+    MatplotlibFigureRecord,
 )
 from entropylab.pipeline.api.data_writer import DataWriter, PlotSpec, NodeData
 from entropylab.pipeline.api.data_writer import (
@@ -23,6 +25,9 @@ from entropylab.pipeline.api.data_writer import (
     RawResultData,
     Metadata,
     Debug,
+)
+from entropylab.pipeline.results_backend.sqlalchemy.db import (
+    matplotlib_figure_to_img_src,
 )
 
 
@@ -75,6 +80,20 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
             self._figure[experiment_id].append(figure_record)
         else:
             self._figure[experiment_id] = [figure_record]
+
+    def save_matplotlib_figure(
+        self, experiment_id: int, figure: matplotlib.figure.Figure
+    ) -> None:
+        record = MatplotlibFigureRecord(
+            experiment_id=experiment_id,
+            id=random.randint(0, 2**31 - 1),
+            img_src=matplotlib_figure_to_img_src(figure),
+            time=datetime.now(),
+        )
+        if experiment_id in self._matplotlib_figure:
+            self._matplotlib_figure[experiment_id].append(record)
+        else:
+            self._matplotlib_figure[experiment_id] = [record]
 
     def save_node(self, experiment_id: int, node_data: NodeData):
         self._nodes.append(node_data)
@@ -178,6 +197,11 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
 
     def get_figures(self, experiment_id: int) -> List[FigureRecord]:
         return self._figure[experiment_id]
+
+    def get_matplotlib_figures(
+        self, experiment_id: int
+    ) -> List[MatplotlibFigureRecord]:
+        return self._matplotlib_figure[experiment_id]
 
     def get_node_stage_ids_by_label(
         self, label: str, experiment_id: Optional[int] = None

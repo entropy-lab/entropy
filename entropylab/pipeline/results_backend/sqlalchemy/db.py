@@ -4,6 +4,7 @@ from typing import Set
 from warnings import warn
 
 import jsonpickle
+import matplotlib
 import pandas as pd
 from pandas import DataFrame
 from plotly import graph_objects as go
@@ -53,6 +54,7 @@ from entropylab.pipeline.results_backend.sqlalchemy.model import (
     MetadataTable,
     NodeTable,
     FigureTable,
+    MatplotlibFigureTable,
 )
 
 T = TypeVar(
@@ -152,6 +154,13 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
 
     def save_figure(self, experiment_id: int, figure: go.Figure) -> None:
         transaction = FigureTable.from_model(experiment_id, figure)
+        return self._execute_transaction(transaction)
+
+    def save_matplotlib_figure(
+        self, experiment_id: int, figure: matplotlib.figure.Figure
+    ) -> None:
+        # TODO: convert figure to base64 img_src!
+        transaction = MatplotlibFigureTable.from_model(experiment_id, "figure")
         return self._execute_transaction(transaction)
 
     def save_node(self, experiment_id: int, node_data: NodeData):

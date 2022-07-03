@@ -111,6 +111,18 @@ class FigureRecord:
 
 
 @dataclass
+class MatplotlibFigureRecord:
+    """
+    A single matplotlib figure image that was saved during the experiment
+    """
+
+    experiment_id: int
+    id: int
+    img_src: str
+    time: datetime
+
+
+@dataclass
 class NodeResults:
     """
     All results of a specific node

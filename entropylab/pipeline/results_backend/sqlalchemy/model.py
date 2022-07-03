@@ -310,6 +310,33 @@ class FigureTable(Base):
         )
 
 
+class MatplotlibFigureTable(Base):
+    __tablename__ = "MatplotlibFigures"
+    id = Column(Integer, primary_key=True)
+    experiment_id = Column(Integer, ForeignKey("Experiments.id", ondelete="CASCADE"))
+    img_src = Column(String)
+    time = Column(DATETIME)
+
+    def __repr__(self):
+        return f"<MatplotlibFigureTable(id='{self.id}')>"
+
+    def to_record(self) -> FigureRecord:
+        return FigureRecord(
+            experiment_id=self.experiment_id,
+            id=self.id,
+            img_src=self.img_src,
+            time=self.time,
+        )
+
+    @staticmethod
+    def from_model(experiment_id: int, img_src: str):
+        return MatplotlibFigureTable(
+            experiment_id=experiment_id,
+            img_src=img_src,
+            time=datetime.now(),
+        )
+
+
 class DebugTable(Base):
     __tablename__ = "Debug"
 

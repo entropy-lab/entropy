@@ -30,6 +30,7 @@ from entropylab.pipeline.api.data_reader import (
     DebugRecord,
     PlotRecord,
     FigureRecord,
+    MatplotlibFigureRecord,
 )
 from entropylab.pipeline.api.data_writer import (
     ExperimentInitialData,
@@ -320,8 +321,8 @@ class MatplotlibFigureTable(Base):
     def __repr__(self):
         return f"<MatplotlibFigureTable(id='{self.id}')>"
 
-    def to_record(self) -> FigureRecord:
-        return FigureRecord(
+    def to_record(self) -> MatplotlibFigureRecord:
+        return MatplotlibFigureRecord(
             experiment_id=self.experiment_id,
             id=self.id,
             img_src=self.img_src,

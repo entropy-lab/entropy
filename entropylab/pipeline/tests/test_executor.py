@@ -1,11 +1,10 @@
 from datetime import datetime
 
 import pytest
+from plotly import express as px
 
-from entropylab.pipeline.api.data_writer import PlotSpec
-from entropylab.pipeline.api.execution import EntropyContext
-from entropylab.pipeline.api.plot import CirclePlotGenerator, LinePlotGenerator
 from entropylab.components.lab_topology import LabResources, ExperimentResources
+from entropylab.pipeline.api.execution import EntropyContext
 from entropylab.pipeline.results_backend.sqlalchemy.db import SqlAlchemyDB
 from entropylab.pipeline.script_experiment import Script, script_experiment
 from entropylab.pipeline.tests.mock_instruments import MockScope
@@ -64,14 +63,10 @@ def an_experiment_with_plot(experiment: EntropyContext):
         experiment.add_result("b_result" + str(i), b1 + i + datetime.now().microsecond)
 
     micro = datetime.now().microsecond
-    experiment.add_plot(
-        PlotSpec(
-            label="plot",
-            story="created this plot in experiment",
-            generator=CirclePlotGenerator,
-        ),
-        data=[
-            [
+
+    experiment.add_figure(
+        px.scatter(
+            x=[
                 1 * micro,
                 2 * micro,
                 3 * micro,
@@ -81,20 +76,15 @@ def an_experiment_with_plot(experiment: EntropyContext):
                 7 * micro,
                 8 * micro,
             ],
-            [0, 1, 2, 3, 4, 5, 6, 7],
-        ],
+            y=[0, 1, 2, 3, 4, 5, 6, 7],
+        )
     )
 
-    experiment.add_plot(
-        PlotSpec(
-            label="another plot",
-            story="just showing off now",
-            generator=LinePlotGenerator,
-        ),
-        data=[
-            [1, 2, 3, 4, 5, 6, 7, 8],
-            [4, 5, 6, 7, 0, 1, 2, 3],
-        ],
+    experiment.add_figure(
+        px.line(
+            x=[1, 2, 3, 4, 5, 6, 7, 8],
+            y=[4, 5, 6, 7, 0, 1, 2, 3],
+        )
     )
 
 

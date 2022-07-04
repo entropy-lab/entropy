@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional, Type
-from warnings import warn
+from typing import Any
 
 import matplotlib
 from bokeh.models import Renderer
@@ -118,17 +117,6 @@ class PlotGenerator(ABC):
         pass
 
 
-@dataclass(frozen=True, eq=True)
-class PlotSpec:
-    """
-    Description and plotting instructions for a plot that will be saved
-    """
-
-    generator: Optional[Type[PlotGenerator]] = None
-    label: Optional[str] = None
-    story: Optional[str] = ""
-
-
 @dataclass
 class NodeData:
     """
@@ -183,21 +171,6 @@ class DataWriter(ABC):
         """
         save experiment debug information to the db according to the Debug class
         """
-        pass
-
-    @abstractmethod
-    def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
-        """
-            save a new plot to the db according to the PlotSpec class
-        :param experiment_id: the experiment id
-        :param plot: plotting instructions
-        :param data: the data of the plot
-        """
-        warn(
-            "This method will soon be deprecated. Please use save_figure() instead",
-            PendingDeprecationWarning,
-            stacklevel=2,
-        )
         pass
 
     def save_figure(self, experiment_id: int, figure: go.Figure) -> None:

@@ -3,7 +3,6 @@ import importlib
 import pickle
 from datetime import datetime
 from io import BytesIO
-from typing import Any
 
 import numpy as np
 from plotly import graph_objects as go
@@ -28,7 +27,6 @@ from entropylab.pipeline.api.data_reader import (
     ResultRecord,
     MetadataRecord,
     DebugRecord,
-    PlotRecord,
     FigureRecord,
     MatplotlibFigureRecord,
 )
@@ -37,7 +35,6 @@ from entropylab.pipeline.api.data_writer import (
     RawResultData,
     Metadata,
     Debug,
-    PlotSpec,
     NodeData,
 )
 from entropylab.pipeline.api.errors import EntropyError
@@ -100,7 +97,6 @@ class ExperimentTable(Base):
     results = relationship("ResultTable", cascade="all, delete-orphan")
     experiment_metadata = relationship("MetadataTable", cascade="all, delete-orphan")
     debug = relationship("DebugTable", cascade="all, delete-orphan")
-    plots = relationship("PlotTable", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<_Experiment(id='{self.id}')>"
@@ -238,49 +234,6 @@ class NodeTable(Base):
             start=node_data.start_time,
             label=node_data.label,
             is_key_node=node_data.is_key_node,
-        )
-
-
-class PlotTable(Base):
-    __tablename__ = "Plots"
-
-    id = Column(Integer, primary_key=True)
-    experiment_id = Column(Integer, ForeignKey("Experiments.id", ondelete="CASCADE"))
-    plot_data = Column(BLOB)
-    data_type = Column(Enum(ResultDataType))
-    generator_module = Column(String)
-    generator_class = Column(String)
-    time = Column(DATETIME)
-    label = Column(String)
-    story = Column(String)
-
-    def __repr__(self):
-        return f"<Plot(id='{self.id}')>"
-
-    def to_record(self) -> PlotRecord:
-        data = _decode_serialized_data(self.plot_data, self.data_type)
-        generator = _get_class(self.generator_module, self.generator_class)
-        return PlotRecord(
-            experiment_id=self.experiment_id,
-            id=self.id,
-            label=self.label,
-            story=self.story,
-            plot_data=data,
-            generator=generator(),
-        )
-
-    @staticmethod
-    def from_model(experiment_id: int, plot: PlotSpec, data: Any):
-        data_type, serialized_data = _encode_serialized_data(data)
-        return PlotTable(
-            experiment_id=experiment_id,
-            plot_data=serialized_data,
-            data_type=data_type,
-            generator_module=plot.generator.__module__,
-            generator_class=plot.generator.__qualname__,
-            time=datetime.now(),
-            label=plot.label,
-            story=plot.story,
         )
 
 

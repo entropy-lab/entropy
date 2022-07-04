@@ -2,12 +2,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Any, Optional, Iterable
-from warnings import warn
 
 from pandas import DataFrame
 from plotly import graph_objects as go
-
-from entropylab.pipeline.api.data_writer import PlotGenerator
 
 
 class ScriptViewer:
@@ -81,21 +78,6 @@ class ResultRecord:
     stage: int
     data: Any
     time: datetime
-
-
-@dataclass
-class PlotRecord:
-    """
-    A single plot information and plotting instructions that was saved during the
-    experiment
-    """
-
-    experiment_id: int
-    id: int
-    plot_data: Any = None
-    generator: Optional[PlotGenerator] = None
-    label: Optional[str] = None
-    story: Optional[str] = None
 
 
 @dataclass
@@ -239,19 +221,6 @@ class DataReader(ABC):
         """
         pass
 
-    # noinspection PyTypeChecker
-    @abstractmethod
-    def get_plots(self, experiment_id: int) -> List[PlotRecord]:
-        """
-        returns a list of all plots saved with the requested experiment
-        """
-        warn(
-            "This method will soon be deprecated. Please use get_figures() instead",
-            PendingDeprecationWarning,
-            stacklevel=2,
-        )
-        pass
-
     @abstractmethod
     def get_figures(self, experiment_id: int) -> List[FigureRecord]:
         """
@@ -357,19 +326,14 @@ class ExperimentReader:
         """
         return self._data_reader.get_results(self._experiment_id, label)
 
-    def get_plots(self) -> List[PlotRecord]:
-        """
-        returns a list of plot records that were saved for current experiment
-        """
-        warn(
-            "This method will soon be deprecated. Please use get_plots() instead",
-            PendingDeprecationWarning,
-            stacklevel=2,
-        )
-        return self._data_reader.get_plots(self._experiment_id)
-
     def get_figures(self) -> List[FigureRecord]:
         """
         returns a list of plotly figures that were saved for current experiment
         """
         return self._data_reader.get_figures(self._experiment_id)
+
+    def get_matplotlib_figures(self) -> List[MatplotlibFigureRecord]:
+        """
+        returns a list of matplotlib figures that were saved for current experiment
+        """
+        return self._data_reader.get_matplotlib_figures(self._experiment_id)

@@ -1,7 +1,6 @@
 import asyncio
 
 import numpy as np
-from bokeh.plotting import Figure
 
 from entropylab.pipeline.graph_experiment import (
     Graph,
@@ -136,11 +135,6 @@ def test_async_graph():
 
     results = graph.run().results
     print(results.get_experiment_info())
-    plots = results.get_plots()
-    for plot in plots:
-        figure = Figure()
-        plot.generator.plot_bokeh(figure, plot.plot_data)
-        # save(figure, f"try{plot.label}.html")
 
 
 def test_async_graph_run_to_node():

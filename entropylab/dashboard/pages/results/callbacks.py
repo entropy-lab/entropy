@@ -17,7 +17,6 @@ from entropylab.dashboard.theme import (
 )
 from entropylab.logger import logger
 from entropylab.pipeline.api.data_reader import (
-    PlotRecord,
     FigureRecord,
     MatplotlibFigureRecord,
 )
@@ -26,20 +25,15 @@ from entropylab.pipeline.api.errors import EntropyError
 REFRESH_INTERVAL_IN_MILLIS = 3000
 EXPERIMENTS_PAGE_SIZE = 6
 IMG_TAB_KEY = "m"
-PLOT_TAB_KEY = "p"
 FIGURE_TAB_KEY = "f"
 
 
 def register_callbacks(app, dashboard_data_reader):
-    """Initialize the results dashboard Dash app to display an Entropy project
+    """Add callbacks and helper methods to the dashboard Dash app
 
     :param app the Dash app to add the callbacks to
     :param dashboard_data_reader a DashboardDataReader instance to read dashboard
     data from"""
-
-    """ Creating and setting up our Dash app """
-
-    """ CALLBACKS and their helper functions """
 
     @app.callback(
         Output("experiments-table", "data"),
@@ -98,7 +92,7 @@ def register_callbacks(app, dashboard_data_reader):
                 alert_on_fail = row_num == added_row
                 exp_id = data[row_num]["id"]
                 try:
-                    plots_and_figures = dashboard_data_reader.get_plot_and_figure_data(
+                    figure_records = dashboard_data_reader.get_plot_and_figure_data(
                         exp_id
                     )
                 except EntropyError:
@@ -110,20 +104,20 @@ def register_callbacks(app, dashboard_data_reader):
                             f"⚠ Error when reading plot/figure data for this "
                             f"experiment. (id: {exp_id})"
                         )
-                    plots_and_figures = None
-                if plots_and_figures and len(plots_and_figures) > 0:
-                    failed_plot_ids = []
+                    figure_records = None
+                if figure_records and len(figure_records) > 0:
+                    failed_plot_keys = []
                     figures_by_key = build_plot_tabs(
                         alert_on_fail,
-                        failed_plot_ids,
+                        failed_plot_keys,
                         figures_by_key,
-                        plots_and_figures,
+                        figure_records,
                         result,
                     )
-                    if len(failed_plot_ids) > 0:
+                    if len(failed_plot_keys) > 0:
                         alert_text = (
                             f"⚠ Some plots could not be rendered. "
-                            f"(ids: {','.join(failed_plot_ids)})"
+                            f"(ids: {','.join(failed_plot_keys)})"
                         )
                 else:
                     if alert_on_fail and alert_text == "":
@@ -140,20 +134,22 @@ def register_callbacks(app, dashboard_data_reader):
         )
 
     def build_plot_tabs(
-        alert_on_fail, failed_plot_ids, figures_by_key, plots_and_figures, result
+        alert_on_fail, failed_plot_keys, figures_by_key, figure_records, result
     ):
-        for plot_or_figure in plots_and_figures:
+        for figure_record in figure_records:
             try:
                 color = colors[len(result) % len(colors)]
-                plot_tab, figures_by_key = build_plot_tab_from_plot_or_figure(
-                    figures_by_key, plot_or_figure, color
+                plot_tab, figures_by_key = build_plot_tab_from_figure(
+                    figures_by_key, figure_record, color
                 )
                 result.append(plot_tab)
             except (EntropyError, TypeError):
-                logger.exception(f"Failed to render plot id [{plot_or_figure.id}]")
+                logger.exception(
+                    f"Failed to render figure record id [{figure_record.id}]"
+                )
                 if alert_on_fail:
-                    plot_key = f"{plot_or_figure.experiment_id}/{plot_or_figure.id}"
-                    failed_plot_ids.append(plot_key)
+                    plot_key = f"{figure_record.experiment_id}/{figure_record.id}"
+                    failed_plot_keys.append(plot_key)
         return figures_by_key
 
     def build_plot_tabs_placeholder():
@@ -169,35 +165,21 @@ def register_callbacks(app, dashboard_data_reader):
             tab_id="plot-tab-placeholder",
         )
 
-    def build_plot_tab_from_plot_or_figure(
+    def build_plot_tab_from_figure(
         figures_by_key,
-        plot_or_figure: PlotRecord | FigureRecord | MatplotlibFigureRecord,
+        figure_record: FigureRecord | MatplotlibFigureRecord,
         color: str,
     ) -> (dbc.Tab, Dict):
-        if isinstance(plot_or_figure, MatplotlibFigureRecord):
-            matplotlib_rec = cast(MatplotlibFigureRecord, plot_or_figure)
-            key = f"{matplotlib_rec.experiment_id}/{matplotlib_rec.id}/{IMG_TAB_KEY}"
+        if isinstance(figure_record, MatplotlibFigureRecord):
+            record = cast(MatplotlibFigureRecord, figure_record)
+            key = f"{record.experiment_id}/{record.id}/{IMG_TAB_KEY}"
             name = f"Image {key[:-2]}"
-            return build_img_tab(matplotlib_rec.img_src, name, key), figures_by_key
+            return build_img_tab(record.img_src, name, key), figures_by_key
         else:
-            if isinstance(plot_or_figure, PlotRecord):
-                # For backwards compatibility with soon to be deprecated Plots API:
-                plot_rec = cast(PlotRecord, plot_or_figure)
-                key = f"{plot_rec.experiment_id}/{plot_rec.id}/{PLOT_TAB_KEY}"
-                name = f"Plot {key[:-2]}"
-                figure = go.Figure()
-                plot_or_figure.generator.plot_plotly(
-                    figure,
-                    plot_or_figure.plot_data,
-                    name=name,
-                    color=color,
-                    showlegend=False,
-                )
-            else:
-                figure_rec = cast(FigureRecord, plot_or_figure)
-                key = f"{figure_rec.experiment_id}/{figure_rec.id}/{FIGURE_TAB_KEY}"
-                name = f"Figure {key[:-2]}"
-                figure = figure_rec.figure
+            record = cast(FigureRecord, figure_record)
+            key = f"{record.experiment_id}/{record.id}/{FIGURE_TAB_KEY}"
+            name = f"Figure {key[:-2]}"
+            figure = record.figure
             figure.update_layout(dark_plot_layout)
             figures_by_key[key] = dict(figure=figure, color=color)
             return build_plot_tab(figure, name, key), figures_by_key
@@ -253,11 +235,11 @@ def register_callbacks(app, dashboard_data_reader):
         if plot_keys_to_combine and len(plot_keys_to_combine) > 0:
             combined_figure = make_subplots(specs=[[{"secondary_y": True}]])
             remove_buttons = []
-            for plot_id in plot_keys_to_combine:
-                figure = figures_by_key[plot_id]["figure"]
-                color = figures_by_key[plot_id]["color"]
+            for plot_key in plot_keys_to_combine:
+                figure = figures_by_key[plot_key]["figure"]
+                color = figures_by_key[plot_key]["color"]
                 combined_figure.add_trace(figure["data"][0])
-                button = build_remove_button(plot_id, color)
+                button = build_remove_button(plot_key, color)
                 remove_buttons.append(button)
             combined_figure.update_layout(dark_plot_layout)
             return (
@@ -274,19 +256,19 @@ def register_callbacks(app, dashboard_data_reader):
                 [html.Div()],
             )
 
-    def build_remove_button(plot_id, color):
+    def build_remove_button(plot_key, color):
         return dbc.Button(
             dbc.Row(
                 children=[
                     dbc.Col(
                         "✖",
                     ),
-                    dbc.Col(f"{plot_id}", className="remove-button-label"),
+                    dbc.Col(f"{plot_key}", className="remove-button-label"),
                 ],
             ),
             style={"background-color": color},
             class_name="remove-button",
-            id={"type": "remove-button", "index": plot_id},
+            id={"type": "remove-button", "index": plot_key},
         )
 
     def build_aggregate_tab_placeholder():

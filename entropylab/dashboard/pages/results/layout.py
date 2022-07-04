@@ -71,7 +71,7 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                             [
                                 dbc.Row(
                                     [
-                                        html.H5("Plots and Figures", id="plots-title"),
+                                        html.H5("Figures and Images", id="plots-title"),
                                         dcc.Loading(
                                             id="plot-tabs-loading",
                                             children=[dbc.Tabs(id="plot-tabs")],
@@ -81,7 +81,7 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                                 ),
                                 dbc.Row(
                                     dbc.Button(
-                                        "➕ Add Plot to Aggregate View",
+                                        "➕ Add Figure to Aggregate View",
                                         id="add-button",
                                     ),
                                     className="add-button-container",

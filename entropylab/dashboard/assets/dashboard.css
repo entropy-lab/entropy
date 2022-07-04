@@ -33,7 +33,7 @@ html,body {
 
 
 #experiments-title,
-#plots-title {
+#figures-title {
   margin-top:20px;
 }
 
@@ -118,7 +118,7 @@ input.current-page::placeholder {
 
 .add-button-container {
   margin-top:20px;
-  display: flex
+  display: flex;
   align-items: center;
   justify-content: center;
 }
@@ -139,7 +139,7 @@ input.current-page::placeholder {
   height: 60px;
   margin: 4px;
   border-color: #666666;
-  display: flex
+  display: flex;
   align-items: center;
   justify-content: center;
 }

@@ -25,6 +25,9 @@ from entropylab.pipeline.api.errors import EntropyError
 
 REFRESH_INTERVAL_IN_MILLIS = 3000
 EXPERIMENTS_PAGE_SIZE = 6
+IMG_TAB_KEY = "m"
+PLOT_TAB_KEY = "p"
+FIGURE_TAB_KEY = "f"
 
 
 def register_callbacks(app, dashboard_data_reader):
@@ -76,7 +79,6 @@ def register_callbacks(app, dashboard_data_reader):
         Output("figures-by-key", "data"),
         Output("prev-selected-rows", "data"),
         Output("failed-plotting-alert", "children"),
-        Output("add-button", "disabled"),
         Input("experiments-table", "selected_rows"),
         State("experiments-table", "data"),
         State("figures-by-key", "data"),
@@ -91,7 +93,6 @@ def register_callbacks(app, dashboard_data_reader):
         prev_selected_rows = prev_selected_rows or {}
         alert_text = ""
         added_row = get_added_row(prev_selected_rows, selected_rows)
-        add_button_disabled = False
         if data and selected_rows:
             for row_num in selected_rows:
                 alert_on_fail = row_num == added_row
@@ -131,13 +132,11 @@ def register_callbacks(app, dashboard_data_reader):
                         )
         if len(result) == 0:
             result = [build_plot_tabs_placeholder()]
-            add_button_disabled = True
         return (
             result,
             figures_by_key,
             selected_rows,
             alert_text,
-            add_button_disabled,
         )
 
     def build_plot_tabs(
@@ -177,14 +176,14 @@ def register_callbacks(app, dashboard_data_reader):
     ) -> (dbc.Tab, Dict):
         if isinstance(plot_or_figure, MatplotlibFigureRecord):
             matplotlib_rec = cast(MatplotlibFigureRecord, plot_or_figure)
-            key = f"{matplotlib_rec.experiment_id}/{matplotlib_rec.id}/m"
+            key = f"{matplotlib_rec.experiment_id}/{matplotlib_rec.id}/{IMG_TAB_KEY}"
             name = f"Image {key[:-2]}"
             return build_img_tab(matplotlib_rec.img_src, name, key), figures_by_key
         else:
             if isinstance(plot_or_figure, PlotRecord):
                 # For backwards compatibility with soon to be deprecated Plots API:
                 plot_rec = cast(PlotRecord, plot_or_figure)
-                key = f"{plot_rec.experiment_id}/{plot_rec.id}/p"
+                key = f"{plot_rec.experiment_id}/{plot_rec.id}/{PLOT_TAB_KEY}"
                 name = f"Plot {key[:-2]}"
                 figure = go.Figure()
                 plot_or_figure.generator.plot_plotly(
@@ -196,7 +195,7 @@ def register_callbacks(app, dashboard_data_reader):
                 )
             else:
                 figure_rec = cast(FigureRecord, plot_or_figure)
-                key = f"{figure_rec.experiment_id}/{figure_rec.id}/f"
+                key = f"{figure_rec.experiment_id}/{figure_rec.id}/{FIGURE_TAB_KEY}"
                 name = f"Figure {key[:-2]}"
                 figure = figure_rec.figure
             figure.update_layout(dark_plot_layout)
@@ -316,6 +315,13 @@ def register_callbacks(app, dashboard_data_reader):
             last_tab = len(children) - 1
             return children[last_tab]["props"]["tab_id"]
         return 0
+
+    @app.callback(
+        Output("add-button", "disabled"),
+        Input("plot-tabs", "active_tab"),
+    )
+    def disable_add_button_when_active_tab_is_img_or_placeholder(active_tab):
+        return active_tab.endswith("/m") or active_tab == "plot-tab-placeholder"
 
     @app.callback(
         Output("aggregate-clipboard", "content"),

@@ -92,9 +92,7 @@ def register_callbacks(app, dashboard_data_reader):
                 alert_on_fail = row_num == added_row
                 exp_id = data[row_num]["id"]
                 try:
-                    figure_records = dashboard_data_reader.get_plot_and_figure_data(
-                        exp_id
-                    )
+                    figure_records = dashboard_data_reader.get_figure_records(exp_id)
                 except EntropyError:
                     logger.exception(
                         f"Exception when getting figure data for exp_id={exp_id}"
@@ -196,6 +194,7 @@ def register_callbacks(app, dashboard_data_reader):
 
     def build_img_tab(img_src: str, figure_name: str, figure_key: str) -> dbc.Tab:
         return dbc.Tab(
+            # TODO: Fit img into tab dimensions
             html.Img(src=img_src),
             label=figure_name,
             id=f"figure-tab-{figure_key}",

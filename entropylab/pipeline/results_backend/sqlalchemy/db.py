@@ -1,9 +1,8 @@
 import base64
 import io
 from datetime import datetime
-from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
+from typing import List, TypeVar, Optional, ContextManager, Iterable, Union
 from typing import Set
-from warnings import warn
 
 import jsonpickle
 import matplotlib
@@ -33,7 +32,6 @@ from entropylab.pipeline.api.data_reader import (
     ResultRecord,
     MetadataRecord,
     DebugRecord,
-    PlotRecord,
     FigureRecord,
     MatplotlibFigureRecord,
 )
@@ -44,14 +42,12 @@ from entropylab.pipeline.api.data_writer import (
     RawResultData,
     Metadata,
     Debug,
-    PlotSpec,
     NodeData,
 )
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import _DbInitializer
 from entropylab.pipeline.results_backend.sqlalchemy.model import (
     ExperimentTable,
-    PlotTable,
     ResultTable,
     DebugTable,
     MetadataTable,
@@ -144,15 +140,6 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
 
     def save_debug(self, experiment_id: int, debug: Debug):
         transaction = DebugTable.from_model(experiment_id, debug)
-        return self._execute_transaction(transaction)
-
-    def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
-        warn(
-            "This method will soon be deprecated. Please use save_figure() instead",
-            PendingDeprecationWarning,
-            stacklevel=2,
-        )
-        transaction = PlotTable.from_model(experiment_id, plot, data)
         return self._execute_transaction(transaction)
 
     def save_figure(self, experiment_id: int, figure: go.Figure) -> None:
@@ -283,22 +270,6 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 .filter(ResultTable.label == name)
             )
             return self._query_pandas(query)
-
-    def get_plots(self, experiment_id: int) -> List[PlotRecord]:
-        warn(
-            "This method will soon be deprecated. Please use get_figures() instead",
-            PendingDeprecationWarning,
-            stacklevel=2,
-        )
-        with self._session_maker() as sess:
-            query = (
-                sess.query(PlotTable)
-                .filter(PlotTable.experiment_id == int(experiment_id))
-                .all()
-            )
-            if query:
-                return [plot.to_record() for plot in query]
-        return []
 
     def get_figures(self, experiment_id: int) -> List[FigureRecord]:
         with self._session_maker() as sess:

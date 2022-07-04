@@ -549,7 +549,7 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         return enabled
 
 
-def matplotlib_figure_to_img_src(self, figure):
+def matplotlib_figure_to_img_src(figure: matplotlib.figure.Figure):
     """Converts a matplotlib Figure instance into a string that can be used as the
     'src' attribute of an HTML <img>"""
     buf = io.BytesIO()

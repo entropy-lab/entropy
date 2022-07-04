@@ -16,7 +16,11 @@ from entropylab.dashboard.theme import (
     dark_plot_layout,
 )
 from entropylab.logger import logger
-from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
+from entropylab.pipeline.api.data_reader import (
+    PlotRecord,
+    FigureRecord,
+    MatplotlibFigureRecord,
+)
 from entropylab.pipeline.api.errors import EntropyError
 
 REFRESH_INTERVAL_IN_MILLIS = 3000
@@ -167,35 +171,51 @@ def register_callbacks(app, dashboard_data_reader):
         )
 
     def build_plot_tab_from_plot_or_figure(
-        figures_by_key, plot_or_figure: PlotRecord | FigureRecord, color: str
+        figures_by_key,
+        plot_or_figure: PlotRecord | FigureRecord | MatplotlibFigureRecord,
+        color: str,
     ) -> (dbc.Tab, Dict):
-        if isinstance(plot_or_figure, PlotRecord):
-            # For backwards compatibility with soon to be deprecated Plots API:
-            plot_rec = cast(PlotRecord, plot_or_figure)
-            key = f"{plot_rec.experiment_id}/{plot_rec.id}/p"
-            name = f"Plot {key[:-2]}"
-            figure = go.Figure()
-            plot_or_figure.generator.plot_plotly(
-                figure,
-                plot_or_figure.plot_data,
-                name=name,
-                color=color,
-                showlegend=False,
-            )
+        if isinstance(plot_or_figure, MatplotlibFigureRecord):
+            matplotlib_rec = cast(MatplotlibFigureRecord, plot_or_figure)
+            key = f"{matplotlib_rec.experiment_id}/{matplotlib_rec.id}/m"
+            name = f"Image {key[:-2]}"
+            return build_img_tab(matplotlib_rec.img_src, name, key), figures_by_key
         else:
-            figure_rec = cast(FigureRecord, plot_or_figure)
-            key = f"{figure_rec.experiment_id}/{figure_rec.id}/f"
-            name = f"Figure {key[:-2]}"
-            figure = figure_rec.figure
-        figure.update_layout(dark_plot_layout)
-        figures_by_key[key] = dict(figure=figure, color=color)
-        return build_plot_tab(figure, name, key), figures_by_key
+            if isinstance(plot_or_figure, PlotRecord):
+                # For backwards compatibility with soon to be deprecated Plots API:
+                plot_rec = cast(PlotRecord, plot_or_figure)
+                key = f"{plot_rec.experiment_id}/{plot_rec.id}/p"
+                name = f"Plot {key[:-2]}"
+                figure = go.Figure()
+                plot_or_figure.generator.plot_plotly(
+                    figure,
+                    plot_or_figure.plot_data,
+                    name=name,
+                    color=color,
+                    showlegend=False,
+                )
+            else:
+                figure_rec = cast(FigureRecord, plot_or_figure)
+                key = f"{figure_rec.experiment_id}/{figure_rec.id}/f"
+                name = f"Figure {key[:-2]}"
+                figure = figure_rec.figure
+            figure.update_layout(dark_plot_layout)
+            figures_by_key[key] = dict(figure=figure, color=color)
+            return build_plot_tab(figure, name, key), figures_by_key
 
     def build_plot_tab(
         plot_figure: go.Figure, plot_name: str, plot_key: str
     ) -> dbc.Tab:
         return dbc.Tab(
             dcc.Graph(figure=plot_figure, responsive=True),
+            label=plot_name,
+            id=f"plot-tab-{plot_key}",
+            tab_id=f"plot-tab-{plot_key}",
+        )
+
+    def build_img_tab(img_src: str, plot_name: str, plot_key: str) -> dbc.Tab:
+        return dbc.Tab(
+            html.Img(src=img_src),
             label=plot_name,
             id=f"plot-tab-{plot_key}",
             tab_id=f"plot-tab-{plot_key}",
@@ -230,13 +250,13 @@ def register_callbacks(app, dashboard_data_reader):
         Input("plot-keys-to-combine", "data"),
         State("figures-by-key", "data"),
     )
-    def build_combined_plot_from_plot_keys(plot_keys_to_combine, plot_figures):
+    def build_combined_plot_from_plot_keys(plot_keys_to_combine, figures_by_key):
         if plot_keys_to_combine and len(plot_keys_to_combine) > 0:
             combined_figure = make_subplots(specs=[[{"secondary_y": True}]])
             remove_buttons = []
             for plot_id in plot_keys_to_combine:
-                figure = plot_figures[plot_id]["figure"]
-                color = plot_figures[plot_id]["color"]
+                figure = figures_by_key[plot_id]["figure"]
+                color = figures_by_key[plot_id]["color"]
                 combined_figure.add_trace(figure["data"][0])
                 button = build_remove_button(plot_id, color)
                 remove_buttons.append(button)

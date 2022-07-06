@@ -4,6 +4,8 @@ import os
 import sys
 import time
 import json
+from threading import Thread
+
 import psutil
 import importlib
 import platform
@@ -14,6 +16,7 @@ import msgpack
 
 from sqlalchemy import text as sql_text
 
+from entropylab.flame.execute._async_consumer import NodeOutputsConsumer
 from entropylab.flame.utils.zmq import create_socket_and_connect_or_bind
 from entropylab.flame.workflow import Workflow
 from entropylab.flame.execute import _utils as execute_utils
@@ -35,6 +38,7 @@ class Execute:
         self.processes_list = []
         self.cwd = os.getcwd()
         self.metadata = json.loads(self.args.metadata)
+        self.zmq_context = zmq.Context()
         self.__init_workflow()
         # here store eui; not id;
         _Config.job_eui = self.metadata.get("job_eui", "#/").replace("#/", "")
@@ -105,7 +109,6 @@ class Execute:
             f"Execute. Setup executor input and output. Port number: {port_number}"
         )
         # open port for executor in and out channel
-        zmq_context = zmq.Context()
         runtime_state = self.runtime_state_info.runtime_state
         port_number = execute_utils.get_free_port(
             port_number, runtime_state, "executor_input"
@@ -119,7 +122,7 @@ class Execute:
         runtime_state.set("executor_input", port_address)
 
         self.executor_input = create_socket_and_connect_or_bind(
-            zmq_context,
+            self.zmq_context,
             zmq.SUB,
             port_address,
             bind=True,
@@ -139,7 +142,7 @@ class Execute:
         self.port_output = port_number
 
         self.executor_output = create_socket_and_connect_or_bind(
-            zmq_context,
+            self.zmq_context,
             zmq.PUB,
             port_address,
             bind=True,  # sends to many publishers
@@ -507,12 +510,20 @@ class Execute:
     def run(self):
         self.__setup_executor_input_output(_Config.port_number)
         total_node_count, node_schemas = self.__assign_relative_outputs_to_free_ports()
+        consumer = NodeOutputsConsumer(
+            self.runtime_state_info.runtime_state,
+            self.zmq_context,
+        )
+        node_output_thread = Thread(
+            target=consumer.run,
+        )
+        node_output_thread.start()
+
         self.__write_parameter_resolution_in_the_playbook()
         self.runtime_state_info.runtime_state.set("executor_pid", os.getpid())
 
         # initialize all the nodes, saving process id
         self.__init_nodes(node_schemas)
-
         # make sure all requested nodes are up before giving the green light for
         # them to start communicating
         ready_nodes_count = self.__zmq_messages_status_check(
@@ -521,7 +532,6 @@ class Execute:
             "connected",
             True,
         )
-
         execution_connection_problem = self.__start_execution_if_ready(
             ready_nodes_count, total_node_count
         )
@@ -536,4 +546,7 @@ class Execute:
             execution_timeout_event, execution_connection_problem
         )
         logger.debug(f"Execute. Run. Result: {result_message}")
+        consumer.stop()
+        if node_output_thread:
+            node_output_thread.join()
         return result_message

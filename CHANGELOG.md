@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 * Flame: Store nodes outputs structure 
 * Flame now don't raise index error if node has no inputs/outputs.
+* Flame: Allow node output subscription in runtime for debugging
 
 ## [0.15.3] - 2022-07-20
 

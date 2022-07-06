@@ -290,15 +290,16 @@ class Execute:
                     resolution[eui] = port_address
                     self.runtime_state_info.runtime_state.set(eui, port_address)
 
-                    node_class = type(node).__name__
-                    if node_class not in node_schemas:
-                        full_path_in = os.path.join(
-                            os.path.join(self.cwd, "entropynodes"), "schema"
-                        )
-                        full_path_in = os.path.join(full_path_in, f"{node_class}.json")
-                        with open(full_path_in, encoding="utf-8", mode="r") as f:
-                            schema = json.loads(f.read())
-                        node_schemas[node_class] = schema
+                # TODO: ask about this decrease tab level
+                node_class = type(node).__name__
+                if node_class not in node_schemas:
+                    full_path_in = os.path.join(
+                        os.path.join(self.cwd, "entropynodes"), "schema"
+                    )
+                    full_path_in = os.path.join(full_path_in, f"{node_class}.json")
+                    with open(full_path_in, encoding="utf-8", mode="r") as f:
+                        schema = json.loads(f.read())
+                    node_schemas[node_class] = schema
                 _Config.node_status_dict[node_name] = "resolved"
         logger.debug(
             f"Execute. Assign relative outputs to free ports."

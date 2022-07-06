@@ -83,7 +83,7 @@ class Execute:
                     self.routing_key,
                     message,
                     style,
-                    self.message_queue_info.updates_channel,
+                    self.message_queue_info.channel,
                 )
                 code = g.returncode
                 if code is not None and code != 0 and code != 15:
@@ -95,7 +95,7 @@ class Execute:
                         self.routing_key,
                         f"error, exit code {code}",
                         "error",
-                        self.message_queue_info.updates_channel,
+                        self.message_queue_info.channel,
                     )
                 self.processes_list.remove(g)
         return gone, alive
@@ -228,7 +228,7 @@ class Execute:
                     self.routing_key,
                     "initialised",
                     "initialised",
-                    self.message_queue_info.updates_channel,
+                    self.message_queue_info.channel,
                 )
 
         except OSError as e:
@@ -452,8 +452,8 @@ class Execute:
         logger.debug("Execute. Clean.")
         self.runtime_state_info.runtime_state.delete("dataserver")
 
-        if self.message_queue_info.updates_channel is not None:
-            self.message_queue_info.status_connection.close()
+        if self.message_queue_info.channel is not None:
+            self.message_queue_info.connection.close()
 
         self.runtime_state_info.runtime_state.delete("executor_output")
         self.runtime_state_info.runtime_state.delete("executor_input")

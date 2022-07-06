@@ -36,13 +36,13 @@ class Execute:
         self.cwd = os.getcwd()
         self.metadata = json.loads(self.args.metadata)
         self.__init_workflow()
-
-        _Config.job_id = self.metadata.get("job_eui", "#/").replace("#/", "")
-        if _Config.job_id == "":
+        # here store eui; not id;
+        _Config.job_eui = self.metadata.get("job_eui", "#/").replace("#/", "")
+        if _Config.job_eui == "":
             # for the Flame executed from command line without job EUI
-            _Config.job_id = "output_data"
-        runtime_id = self.metadata.get("runtime_id", -1)
-        self.routing_key = f"status_updates.{runtime_id}.{_Config.job_id}"
+            _Config.job_eui = "output_data"
+        _Config.runtime_id = self.metadata.get("runtime_id", -1)
+        self.routing_key = f"status_updates.{_Config.runtime_id}.{_Config.job_eui}"
         self.runtime_state_info = RuntimeStateInfo()
         # env variables FLAME_MESSAGING_USER_NAME and FLAME_MESSAGING_USER_PASS
         # describes connection credentials for message queue
@@ -420,7 +420,7 @@ class Execute:
         logger.debug("Execute. Flush runtime data into hdf5.")
         output_data_structure = {}
         with execute_utils.get_runtimedata(_Config.DATABASE_NAME) as db:
-            with h5py.File(f"./{_Config.job_id}.hdf5", "w") as f:
+            with h5py.File(f"./{_Config.job_eui}.hdf5", "w") as f:
                 execute_utils.write_metadata_to_h5(f, self.metadata)
                 for node_name, node in self.workflow._nodes.items():
                     node_info = self.workflow._node_details(node)

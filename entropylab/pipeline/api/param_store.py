@@ -104,6 +104,18 @@ class ParamStore(ABC, MutableMapping):
     ) -> None:
         pass
 
+    @abstractmethod
+    def diff(self) -> Dict[str, Dict]:
+        """Shows the difference between the store's current state of params and the
+        latest committed params.
+
+        :returns: A dictionary where keys are the keys of params whose values have
+            changed. Dictionary values indicate the `old_value` of the param and the
+            `new_value` of the param. A new param will only show the `new_value`. A
+            deleted param will only show the `old_value`.
+            Example: {"foo": {"old_value": "bar", "new_value": "baz"}}"""
+        pass
+
     """ Tags """
 
     @abstractmethod

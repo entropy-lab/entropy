@@ -490,6 +490,32 @@ class InProcessParamStore(ParamStore):
                 a_has_changed = True
         return a_has_changed
 
+    """ Diff """
+
+    def diff(self) -> Dict[str, Dict]:
+        with self.__lock:
+            diff = dict()
+            latest = self.__get_latest_commit()
+            old_params = latest["params"] if latest else {}
+            for key in self.__dirty_keys:
+                new_value = self.__safe_get_value_from_params(self.__params, key)
+                old_value = self.__safe_get_value_from_params(old_params, key)
+                if not old_value == new_value:
+                    if old_value and new_value:
+                        diff[key] = dict(old_value=old_value, new_value=new_value)
+                    elif old_value:
+                        diff[key] = dict(old_value=old_value)
+                    elif new_value:
+                        diff[key] = dict(new_value=new_value)
+            return diff
+
+    @staticmethod
+    def __safe_get_value_from_params(params: Dict[str, Param], key: str) -> Optional:
+        if key in params:
+            return params[key].value
+        else:
+            return None
+
     def list_values(self, key: str) -> pd.DataFrame:
         with self.__lock:
             values = []

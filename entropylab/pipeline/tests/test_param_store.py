@@ -4,6 +4,7 @@ from datetime import timedelta
 from pprint import pprint
 from time import sleep
 
+import pandas as pd
 import pytest
 from tinydb import Query, TinyDB
 
@@ -17,7 +18,7 @@ from entropylab.pipeline.api.in_process_param_store import (
     JSONPickleStorage,
     fix_param_qualified_name,
 )
-from entropylab.pipeline.api.param_store import Param
+from entropylab.pipeline.api.param_store import Param, LOCAL_TZ, _ns_to_datetime
 
 """ ctor """
 
@@ -1235,3 +1236,9 @@ def test_multi_processes_do_not_conflict(tinydb_file_path):
     ps = InProcessParamStore(tinydb_file_path)
     names = ps.list_values("name")["value"]
     assert all(names.value_counts() == num_of_commits)
+
+
+def test__ns_to_datetime():
+    expected = pd.Timestamp("2022-07-10 11:40:37.233137200+0300", tz=LOCAL_TZ)
+    actual = _ns_to_datetime(1657442437233137200)
+    assert actual == expected

@@ -24,7 +24,13 @@ from tinydb.table import Table
 
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
-from entropylab.pipeline.api.param_store import ParamStore, MergeStrategy, Param
+from entropylab.pipeline.api.param_store import (
+    ParamStore,
+    MergeStrategy,
+    Param,
+    LOCAL_TZ,
+    _ns_to_datetime,
+)
 
 CURRENT_VERSION = 0.2
 
@@ -644,11 +650,6 @@ def _json_dumps_default(value):
         return str(value)
     else:
         return value.__dict__
-
-
-def _ns_to_datetime(ns: int) -> pd.datetime:
-    """Convert a UNIX epoch timestamp in nano-seconds to a human readable string"""
-    return pd.to_datetime(ns)
 
 
 def _map_dict(f, d: Dict) -> Dict:

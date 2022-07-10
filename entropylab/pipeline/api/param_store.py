@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum, unique
 from typing import Dict, List, Optional, MutableMapping
 
 import pandas as pd
+
+LOCAL_TZ = datetime.now().astimezone().tzinfo
 
 
 @unique
@@ -196,6 +198,5 @@ class Param(Dict):
 
 
 def _ns_to_datetime(ns: int) -> pd.datetime:
-    """
-    Converts a UNIX epoch timestamp in nano-seconds to a human readable string"""
-    return pd.to_datetime(ns)
+    """Convert a UNIX epoch timestamp in nano-seconds to pandas Timestamp in local TZ"""
+    return pd.to_datetime(ns, utc=True).tz_convert(LOCAL_TZ)

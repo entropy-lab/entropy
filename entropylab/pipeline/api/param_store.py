@@ -104,6 +104,25 @@ class ParamStore(ABC, MutableMapping):
     ) -> None:
         pass
 
+    @abstractmethod
+    def diff(
+        self, old_commit_id: Optional[str] = None, new_commit_id: Optional[str] = None
+    ) -> Dict[str, Dict]:
+        """Shows the difference in Param values between two commits.
+
+        :param old_commit_id: The id of the first ("older") commit to compare. If
+            None, or not specified, defaults to the latest commit id.
+        :param new_commit_id: The id of the second  ("newer") commit to compare. If
+            None, or not specified, defaults to the current state of the store (incl.
+             "dirty" values)
+        :return: A dictionary where keys are the keys of params whose values have
+            changed. Dictionary values indicate the `old_value` of the param and the
+            `new_value` of the param. A new param will only show the `new_value`. A
+            deleted param will only show the `old_value`.
+            Example: {"foo": {"old_value": "bar", "new_value": "baz"}}
+        """
+        pass
+
     """ Tags """
 
     @abstractmethod

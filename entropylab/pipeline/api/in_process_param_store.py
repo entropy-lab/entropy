@@ -12,7 +12,7 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from random import SystemRandom
-from typing import Optional, Dict, Any, List, Callable, Set
+from typing import Optional, Dict, Any, List, Callable, Set, MutableMapping
 
 import jsonpickle as jsonpickle
 import pandas as pd
@@ -489,6 +489,51 @@ class InProcessParamStore(ParamStore):
                 a[key] = b[key]  # "copy" from b to a
                 a_has_changed = True
         return a_has_changed
+
+    """ Diff """
+
+    def diff(
+        self, old_commit_id: Optional[str] = None, new_commit_id: Optional[str] = None
+    ) -> Dict[str, Dict]:
+        with self.__lock:
+
+            # get OLD params to diff:
+            if old_commit_id:
+                old_commit = self.__get_commit(old_commit_id)
+            else:  # default to latest commit
+                old_commit = self.__get_latest_commit()
+            old_params = old_commit["params"] if old_commit else {}
+
+            # get NEW params to diff:
+            if new_commit_id:
+                new_commit = self.__get_commit(new_commit_id)
+                new_params = new_commit["params"] if new_commit else {}
+            else:  # default to dirty params
+                new_params = self.__params
+
+            return self.__diff(old_params, new_params)
+
+    def __diff(self, old: MutableMapping, new: MutableMapping) -> Dict[str, Dict]:
+        diff = dict()
+        for key in new.keys():
+            if key in old.keys():
+                old_value = old[key].value
+                new_value = new[key].value
+                if old_value != new_value:  # different values
+                    diff[key] = dict(old_value=old_value, new_value=new_value)
+            else:
+                diff[key] = dict(new_value=new[key].value)  # added
+        for key in old.keys():
+            if key not in new.keys():
+                diff[key] = dict(old_value=old[key].value)  # deleted
+        return diff
+
+    @staticmethod
+    def __safe_get_value_from_params(params: Dict[str, Param], key: str) -> Optional:
+        if key in params:
+            return params[key].value
+        else:
+            return None
 
     def list_values(self, key: str) -> pd.DataFrame:
         with self.__lock:

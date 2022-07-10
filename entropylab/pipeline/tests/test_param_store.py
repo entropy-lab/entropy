@@ -347,6 +347,83 @@ def test_rename_key_when_key_has_a_tag_then_tag_remains():
     assert "tag" not in target.list_tags_for_key("foo")
 
 
+""" diff() """
+
+
+def test_diff_existing_value_changed():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    target.commit()
+    target.foo = "baz"
+    actual = target.diff()
+    assert actual == {"foo": {"old_value": "bar", "new_value": "baz"}}
+
+
+def test_diff_existing_value_changed_and_changed_back():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    target.commit()
+    target.foo = "baz"
+    target.foo = "bar"
+    actual = target.diff()
+    assert actual == {}
+
+
+def test_diff_existing_value_deleted():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    target.commit()
+    del target["foo"]
+    actual = target.diff()
+    assert actual == {"foo": {"old_value": "bar"}}
+
+
+def test_diff_new_value_added():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    target.commit()
+    target.boo = "baz"
+    actual = target.diff()
+    assert actual == {"boo": {"new_value": "baz"}}
+
+
+def test_diff__no_previous_commit_new_value_added():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    actual = target.diff()
+    assert actual == {"foo": {"new_value": "bar"}}
+
+
+def test_diff__no_previous_commit_new_value_added_then_removed():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    del target["foo"]
+    actual = target.diff()
+    assert actual == {}
+
+
+def test_diff_when_commit_ids_are_given_then_they_are_used():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    first = target.commit()
+    target.foo = "baz"
+    second = target.commit()
+    target.foo = "buzz"
+    actual = target.diff(first, second)
+    assert actual == {"foo": {"old_value": "bar", "new_value": "baz"}}
+
+
+def test_diff_when_commit_ids_are_used_in_reverse_then_result_is_reversed():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    first = target.commit()
+    target.foo = "baz"
+    second = target.commit()
+    target.foo = "buzz"
+    actual = target.diff(second, first)
+    assert actual == {"foo": {"old_value": "baz", "new_value": "bar"}}
+
+
 """ commit() """
 
 
@@ -1158,17 +1235,3 @@ def test_multi_processes_do_not_conflict(tinydb_file_path):
     ps = InProcessParamStore(tinydb_file_path)
     names = ps.list_values("name")["value"]
     assert all(names.value_counts() == num_of_commits)
-
-
-# def test():
-#     target = InProcessParamStore("C:\\Users\\uri_g\\Desktop\\bug\\.entropy\\params.db")
-#     actual = target["q0_f_if_01"]
-#
-#
-# def test2():
-#     target = InProcessParamStore(
-#         "C:\\Users\\uri_g\\Desktop\\bug\\.entropy\\params_new.db"
-#     )
-#     target["q0_f_if_01"] = 42.0
-#     target.commit()
-#     actual = target["q0_f_if_01"]

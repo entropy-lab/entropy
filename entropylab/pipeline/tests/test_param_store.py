@@ -347,8 +347,7 @@ def test_rename_key_when_key_has_a_tag_then_tag_remains():
     assert "tag" not in target.list_tags_for_key("foo")
 
 
-""" commit() """
-# edge cases: no commit yet, value does not exist int latest commit, value deleted
+""" diff() """
 
 
 def test_diff_existing_value_changed():
@@ -401,6 +400,31 @@ def test_diff__no_previous_commit_new_value_added_then_removed():
     del target["foo"]
     actual = target.diff()
     assert actual == {}
+
+
+def test_diff_when_commit_ids_are_given_then_they_are_used():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    first = target.commit()
+    target.foo = "baz"
+    second = target.commit()
+    target.foo = "buzz"
+    actual = target.diff(first, second)
+    assert actual == {"foo": {"old_value": "bar", "new_value": "baz"}}
+
+
+def test_diff_when_commit_ids_are_used_in_reverse_then_result_is_reversed():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    first = target.commit()
+    target.foo = "baz"
+    second = target.commit()
+    target.foo = "buzz"
+    actual = target.diff(second, first)
+    assert actual == {"foo": {"old_value": "baz", "new_value": "bar"}}
+
+
+""" commit() """
 
 
 def test_commit_in_memory_when_param_changes_commit_doesnt_change():

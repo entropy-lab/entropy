@@ -9,6 +9,7 @@ import shutil
 import string
 import threading
 import time
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from random import SystemRandom
@@ -41,6 +42,23 @@ VERSION_KEY = "version"
 REVISION_KEY = "revision"
 
 
+@dataclass
+class Commit:
+    id: str  # commit_id
+    timestamp: int  # nanoseconds since epoch
+    label: Optional[str]
+    params: Dict
+    tags: Dict
+
+    def __post_init__(self):
+        self.id = self.id or ""
+        self.timestamp = self.timestamp or time.time_ns()
+        self.label = self.label or None
+        self.params = self.params or {}
+        self.tags = self.tags or {}
+
+
+# TODO: Move to TinyDBPersistence
 class Metadata:
     def __init__(self, d: Dict = None):
         self.id: str = ""  # commit_id
@@ -55,6 +73,7 @@ class Metadata:
         return f"<Metadata({_dict_to_json(d)})>"
 
 
+# TODO: Move to TinyDBPersistence
 class JSONPickleStorage(Storage):
     def __init__(self, filename):
         self.filename = filename

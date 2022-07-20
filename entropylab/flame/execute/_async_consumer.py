@@ -29,11 +29,7 @@ class NodeOutputsConsumer(object):
     CONSUME_QUEUE = "consume_output_debugging_queue"
     PUBLISH_QUEUE = "publish_output_debugging_queue"
 
-    def __init__(
-        self,
-        runtime_state,
-        zmq_context,
-    ):
+    def __init__(self, runtime_state, zmq_context, message_ttl: Optional[int] = 500):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
 
@@ -59,6 +55,7 @@ class NodeOutputsConsumer(object):
         self.PUBLISH_ROUTING_KEY = (
             f"publish_debug_output.{_Config.runtime_id}.{_Config.job_eui}"
         )
+        self.message_ttl = message_ttl
 
         self.runtime_state = runtime_state
         self.zmq_context = zmq_context
@@ -196,7 +193,14 @@ class NodeOutputsConsumer(object):
             routing_key=routing_key,
             use_bind_ok_cb=use_bind_ok_cb,
         )
-        self._channel.queue_declare(queue=queue_name, callback=cb)
+        arguments = {}
+        if self.message_ttl is not None:
+            arguments["x-message-ttl"] = self.message_ttl
+        self._channel.queue_declare(
+            queue=queue_name,
+            arguments=arguments,
+            callback=cb,
+        )
 
     def _on_queue_declare_ok(
         self, _unused_frame, queue_name, routing_key, use_bind_ok_cb
@@ -301,7 +305,8 @@ class NodeOutputsConsumer(object):
         try:
             msg = json.loads(body)
         except json.JSONDecodeError:
-            raise ValueError("Message wasn't decoded")
+            logger.error("Message wasn't decoded. Msg: %s", body)
+            return
         event = msg.get("event")
         if event == "sub":
             output_name = msg.get("output_name", "")
@@ -373,5 +378,6 @@ class NodeOutputsConsumer(object):
             if self._consuming:
                 self._stop_consuming()
             self._connection.ioloop.stop()
-            self.debug_output.stop()
+            if self.debug_output is not None:
+                self.debug_output.stop()
             logger.info("Stopped")

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import copy
 import hashlib
 import json
@@ -9,7 +8,6 @@ import shutil
 import string
 import threading
 import time
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from random import SystemRandom
@@ -17,11 +15,9 @@ from typing import Optional, Dict, Any, List, Callable, Set, MutableMapping
 
 import jsonpickle as jsonpickle
 import pandas as pd
-from filelock import FileLock
 from tinydb import TinyDB, Query
-from tinydb.storages import MemoryStorage, Storage
+from tinydb.storages import Storage
 from tinydb.table import Document
-from tinydb.table import Table
 
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
@@ -31,6 +27,7 @@ from entropylab.pipeline.api.param_store import (
     Param,
     _ns_to_datetime,
 )
+from entropylab.pipeline.api.tinydb_persistence import TinyDBPersistence, Metadata
 
 CURRENT_VERSION = "0.2"
 
@@ -42,35 +39,7 @@ VERSION_KEY = "version"
 REVISION_KEY = "revision"
 
 
-@dataclass
-class Commit:
-    id: str  # commit_id
-    timestamp: int  # nanoseconds since epoch
-    label: Optional[str]
-    params: Dict
-    tags: Dict
-
-    def __post_init__(self):
-        self.id = self.id or ""
-        self.timestamp = self.timestamp or time.time_ns()
-        self.label = self.label or None
-        self.params = self.params or {}
-        self.tags = self.tags or {}
-
-
 # TODO: Move to TinyDBPersistence
-class Metadata:
-    def __init__(self, d: Dict = None):
-        self.id: str = ""  # commit_id
-        self.timestamp: int = time.time_ns()  # nanoseconds since epoch
-        self.label: Optional[str] = None
-        if d:
-            self.__dict__.update(d)
-
-    def __repr__(self) -> str:
-        d = self.__dict__.copy()
-        d["timestamp"] = _ns_to_datetime(self.timestamp)
-        return f"<Metadata({_dict_to_json(d)})>"
 
 
 # TODO: Move to TinyDBPersistence
@@ -130,31 +99,32 @@ class InProcessParamStore(ParamStore):
         self.__is_dirty: bool = False  # can the store be committed at this time?
         self.__dirty_keys: Set[str] = set()  # updated keys not committed yet
 
-        if path is None:
-            self.__is_in_memory_mode = True
-            self.__db = TinyDB(storage=MemoryStorage)
-            self.__filelock = contextlib.nullcontext()
-            with self.__filelock:
-                _set_version(self.__db, CURRENT_VERSION)
-        else:
-            self.__is_in_memory_mode = False
-            path = str(path)
-            is_new = not os.path.isfile(path)
-            if not os.path.isfile(path):
-                logger.debug(
-                    f"Could not find a ParamStore JSON file at '{path}'. "
-                    f"A new, empty, file will be created."
-                )
-                is_new = True
-            self.__db = TinyDB(path, storage=JSONPickleStorage)
-            Table.default_query_cache_capacity = 0
-            self.__filelock = FileLock(path + ".lock")
-            with self.__filelock:
-                if is_new:
-                    logger.debug(f"Creating new ParamStore JSON file at '{path}'")
-                    _set_version(self.__db, CURRENT_VERSION)
-                else:
-                    self.checkout()
+        # if path is None:
+        #     self.__is_in_memory_mode = True
+        #     self.__db = TinyDB(storage=MemoryStorage)
+        #     self.__filelock = contextlib.nullcontext()
+        #     with self.__filelock:
+        #         _set_version(self.__db, CURRENT_VERSION)
+        # else:
+        #     self.__is_in_memory_mode = False
+        #     path = str(path)
+        #     is_new = not os.path.isfile(path)
+        #     if not os.path.isfile(path):
+        #         logger.debug(
+        #             f"Could not find a ParamStore JSON file at '{path}'. "
+        #             f"A new, empty, file will be created."
+        #         )
+        #         is_new = True
+        #     self.__db = TinyDB(path, storage=JSONPickleStorage)
+        #     Table.default_query_cache_capacity = 0
+        #     self.__filelock = FileLock(path + ".lock")
+        #     with self.__filelock:
+        #         if is_new:
+        #             logger.debug(f"Creating new ParamStore JSON file at '{path}'")
+        #             _set_version(self.__db, CURRENT_VERSION)
+        #         else:
+        #             self.checkout()
+        self.__persistence = TinyDBPersistence(path)
         if theirs is not None:
             self.merge(theirs, merge_strategy)
 
@@ -162,7 +132,7 @@ class InProcessParamStore(ParamStore):
         return self
 
     def __exit__(self, *args):
-        self.__db.close()
+        self.__persistence.close()
 
     """ Properties """
 

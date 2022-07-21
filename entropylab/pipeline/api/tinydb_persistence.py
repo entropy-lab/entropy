@@ -6,10 +6,11 @@ import hashlib
 import os
 import string
 import time
+from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
 from random import SystemRandom
-from typing import Any, Optional, Callable, List
+from typing import Any, Optional, Callable, List, Dict
 
 import jsonpickle as jsonpickle
 from filelock import FileLock
@@ -19,7 +20,7 @@ from tinydb.table import Table, Document
 
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
-from entropylab.pipeline.api.in_process_param_store import Commit, Metadata
+from entropylab.pipeline.api.param_store import _ns_to_datetime
 
 CURRENT_VERSION = "0.2"
 
@@ -29,6 +30,22 @@ TEMP_DOC_ID = 1
 TEMP_TABLE = "temp"
 VERSION_KEY = "version"
 REVISION_KEY = "revision"
+
+
+@dataclass
+class Commit:
+    id: str  # commit_id
+    timestamp: int  # nanoseconds since epoch
+    label: Optional[str]
+    params: Dict
+    tags: Dict
+
+    def __post_init__(self):
+        self.id = self.id or ""
+        self.timestamp = self.timestamp or time.time_ns()
+        self.label = self.label or None
+        self.params = self.params or {}
+        self.tags = self.tags or {}
 
 
 class JSONPickleStorage(Storage):
@@ -218,6 +235,10 @@ class TinyDBPersistence:
         pass
 
 
+def _dict_to_json(d: Dict) -> str:
+    return json.dumps(d, default=_json_dumps_default, sort_keys=True, ensure_ascii=True)
+
+
 def _set_version(db: TinyDB | str, version: str, revision: Optional[str] = ""):
     if isinstance(db, str):
         # TODO: Support locking
@@ -237,3 +258,17 @@ def _get_version(db: TinyDB):
         info_doc = info_table.get(doc_id=INFO_DOC_ID)
         return info_doc[VERSION_KEY]
     return "0.1"
+
+
+class Metadata:
+    def __init__(self, d: Dict = None):
+        self.id: str = ""  # commit_id
+        self.timestamp: int = time.time_ns()  # nanoseconds since epoch
+        self.label: Optional[str] = None
+        if d:
+            self.__dict__.update(d)
+
+    def __repr__(self) -> str:
+        d = self.__dict__.copy()
+        d["timestamp"] = _ns_to_datetime(self.timestamp)
+        return f"<Metadata({_dict_to_json(d)})>"

@@ -12,13 +12,13 @@ from entropylab.conftest import _copy_template, Process
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.in_process_param_store import (
     InProcessParamStore,
-    Metadata,
     MergeStrategy,
     migrate_param_store_0_1_to_0_2,
     JSONPickleStorage,
     fix_param_qualified_name,
 )
 from entropylab.pipeline.api.param_store import Param, LOCAL_TZ, _ns_to_datetime
+from entropylab.pipeline.api.tinydb_persistence import Metadata
 
 """ ctor """
 

@@ -4,6 +4,7 @@ from qualang_tools.config.primitive_components import *
 from qualang_tools.config import ConfigBuilder
 
 from qm.qua import *
+import pytest
 
 
 class MyManager(QuAMManager):
@@ -33,23 +34,25 @@ class MyManager(QuAMManager):
         )
 
 
+@pytest.mark.skip(reason="requires a gateway server")
 def test_quam(db_file_path):
-    manager = MyManager(path=db_file_path)
-    manager.param_store["lo"] = 5e5
-    manager.param_store.save_temp()
+    quam = MyManager(path=db_file_path)
+    quam.param_store["lo"] = 5e5
+    quam.param_store.save_temp()
 
     def voltage_setter(val: float):
         print(val)
 
-    voltage = manager.parameter("voltage", setter=voltage_setter)
+    voltage = quam.parameter("voltage", setter=voltage_setter)
     voltage(12)
-    # print(manager.generate_config())
 
-    # quam = manager.open_quam()
-    # print(quam.elements.qb)
+    print(quam.generate_config())
 
-    # with program() as prog:
-    #    play(quam.pulses.cw, quam.elements.qb)
+    print(quam.elements.qb)
 
-    # from qm.simulate import SimulationConfig
-    # res = quam.qmm.open_qm(quam.config).simulate(prog, simulate=SimulationConfig(duration=1000))
+    with program() as prog:
+        play(quam.pulses.cw, quam.elements.qb)
+
+    from qm.simulate import SimulationConfig
+
+    res = quam.open_qm().simulate(prog, simulate=SimulationConfig(duration=1000))

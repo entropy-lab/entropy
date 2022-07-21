@@ -11,6 +11,12 @@ from datetime import datetime, timezone
 
 from sqlalchemy import create_engine
 
+# typing
+from typing import Union
+from pika.channel import Channel
+from pika.adapters.blocking_connection import BlockingChannel
+
+# entropylab
 from entropylab.flame.execute._config import _Config, logger
 
 
@@ -19,6 +25,17 @@ def is_port_in_use(port, host="localhost"):
         in_use = s.connect_ex((host, port)) == 0
         logger.debug(f"Utils. Check port {port} in use. Result: {in_use}. Host: {host}")
         return in_use
+
+
+def send_amqp_message(
+    updates_channel: Union[Channel, BlockingChannel],
+    routing_key: str,
+    message: str,
+    exchange="amq.topic",
+):
+    updates_channel.basic_publish(
+        exchange=exchange, routing_key=routing_key, body=message.encode()
+    )
 
 
 def status_update(node_name, routing_key, message, style, updates_channel):
@@ -30,9 +47,7 @@ def status_update(node_name, routing_key, message, style, updates_channel):
     if updates_channel is not None:
         update = {"node": node_name, "msg": message, "style": style}
         update = json.dumps(update)
-        updates_channel.basic_publish(
-            exchange="amq.topic", routing_key=routing_key, body=update.encode()
-        )
+        send_amqp_message(updates_channel, routing_key, update)
     _Config.node_status_dict[node_name] = message
 
 

@@ -13,6 +13,17 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.sql import Selectable
 from sqlalchemy.util.compat import contextmanager
 
+from entropylab.components.instrument_driver import Function, Parameter
+from entropylab.components.lab_model import (
+    Resources,
+    ResourcesSnapshots,
+)
+from entropylab.components.lab_topology import (
+    PersistentLabDB,
+    DriverType,
+    ResourceRecord,
+)
+from entropylab.config import settings
 from entropylab.pipeline.api.data_reader import (
     DataReader,
     ExperimentRecord,
@@ -32,19 +43,8 @@ from entropylab.pipeline.api.data_writer import (
     PlotSpec,
     NodeData,
 )
-from entropylab.config import settings
-from entropylab.components.instrument_driver import Function, Parameter
-from entropylab.components.lab_topology import (
-    PersistentLabDB,
-    DriverType,
-    ResourceRecord,
-)
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import _DbInitializer
-from entropylab.components.lab_model import (
-    Resources,
-    ResourcesSnapshots,
-)
 from entropylab.pipeline.results_backend.sqlalchemy.model import (
     ExperimentTable,
     PlotTable,
@@ -169,6 +169,7 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 ExperimentTable.end_time,
                 ExperimentTable.user,
                 ExperimentTable.success,
+                ExperimentTable.favorite,
             )
             if success is not None:
                 query = query.filter(ExperimentTable.success == success)
@@ -504,6 +505,13 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
                 return {item.name for item in query}
             else:
                 return set()
+
+    def update_experiment_favorite(self, experiment_id: int, favorite: bool) -> None:
+        with self._session_maker() as sess:
+            sess.query(ExperimentTable).filter(
+                ExperimentTable.id == experiment_id
+            ).update({"favorite": favorite})
+            sess.commit()
 
     def __hdf5_storage_enabled(self) -> bool:
         """Feature toggle for 'hdf5 storage' feature

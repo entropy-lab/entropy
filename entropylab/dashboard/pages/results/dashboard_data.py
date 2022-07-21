@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import abc
 from typing import List, Dict
-from entropylab.logger import logger
 
 import pandas as pd
 
-from entropylab.pipeline import SqlAlchemyDB
-from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
-from entropylab.dashboard.pages.results.auto_plot import auto_plot
 
+from entropylab.pipeline import SqlAlchemyDB
+from entropylab.dashboard.pages.results.auto_plot import auto_plot
+from entropylab.logger import logger
+from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
+
+FAVORITE_TRUE = "⭐"
+FAVORITE_FALSE = "✰"
 MAX_EXPERIMENTS_NUM = 10000
 
 
@@ -27,7 +30,13 @@ class DashboardDataReader(abc.ABC):
         pass
 
 
-class SqlalchemyDashboardDataReader(DashboardDataReader):
+class DashboardDataWriter(abc.ABC):
+    @abc.abstractmethod
+    def update_experiment_favorite(self, experiment_id: int, favorite: bool) -> None:
+        pass
+
+
+class SqlalchemyDashboardDataReader(DashboardDataReader, DashboardDataWriter):
     def __init__(self, connector: SqlAlchemyDB) -> None:
         super().__init__()
         self._db: SqlAlchemyDB = connector
@@ -39,8 +48,8 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
         success: bool = None,
     ) -> List[Dict]:
         experiments = self._db.get_last_experiments(max_num_of_experiments, success)
-        experiments["success"] = experiments["success"].apply(
-            lambda x: "✔️" if x else "❌"
+        experiments["favorite"] = experiments["favorite"].apply(
+            lambda x: FAVORITE_TRUE if x else FAVORITE_FALSE
         )
         experiments["start_time"] = pd.DatetimeIndex(
             experiments["start_time"]
@@ -75,3 +84,6 @@ class SqlalchemyDashboardDataReader(DashboardDataReader):
                 return [plot]
             else:
                 return []
+
+    def update_experiment_favorite(self, experiment_id: int, favorite: bool) -> None:
+        self._db.update_experiment_favorite(experiment_id, favorite)

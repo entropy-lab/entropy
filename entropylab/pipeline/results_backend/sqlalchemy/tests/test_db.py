@@ -1,9 +1,12 @@
 import os.path
+from datetime import datetime
 
 import pytest
 from plotly import express as px
 
+
 from entropylab.pipeline import SqlAlchemyDB, RawResultData
+from entropylab.pipeline.api.data_writer import ExperimentInitialData, ExperimentEndData
 from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import (
     _ENTROPY_DIRNAME,
     _HDF5_DIRNAME,
@@ -12,24 +15,24 @@ from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import (
 
 def test_save_result_raises_when_same_result_saved_twice(initialized_project_dir_path):
     # arrange
-    db = SqlAlchemyDB(initialized_project_dir_path)
+    target = SqlAlchemyDB(initialized_project_dir_path)
     raw_result = RawResultData(stage=1, label="foo", data=42)
-    db.save_result(0, raw_result)
+    target.save_result(0, raw_result)
     with pytest.raises(ValueError):
         # act & assert
-        db.save_result(0, raw_result)
+        target.save_result(0, raw_result)
 
 
 def test_get_last_result_of_experiment_when_hdf_is_enabled_then_result_is_from_hdf5(
     initialized_project_dir_path,
 ):
     # arrange
-    db = SqlAlchemyDB(initialized_project_dir_path, enable_hdf5_storage=False)
-    db.save_result(1, RawResultData(label="save", data="in db"))
-    db = SqlAlchemyDB(initialized_project_dir_path)
-    db.save_result(1, RawResultData(label="save", data="in storage"))
+    target = SqlAlchemyDB(initialized_project_dir_path, enable_hdf5_storage=False)
+    target.save_result(1, RawResultData(label="save", data="in db"))
+    target = SqlAlchemyDB(initialized_project_dir_path)
+    target.save_result(1, RawResultData(label="save", data="in storage"))
     # act
-    actual = db.get_last_result_of_experiment(1)
+    actual = target.get_last_result_of_experiment(1)
     # assert
     assert actual.data == "in storage"
 
@@ -38,12 +41,12 @@ def test_get_last_result_of_experiment_when_hdf_is_disabled_then_result_is_from_
     initialized_project_dir_path,
 ):
     # arrange
-    db = SqlAlchemyDB(initialized_project_dir_path)
-    db.save_result(1, RawResultData(label="save", data="in storage"))
-    db = SqlAlchemyDB(initialized_project_dir_path, enable_hdf5_storage=False)
-    db.save_result(1, RawResultData(label="save", data="in db"))
+    target = SqlAlchemyDB(initialized_project_dir_path)
+    target.save_result(1, RawResultData(label="save", data="in storage"))
+    target = SqlAlchemyDB(initialized_project_dir_path, enable_hdf5_storage=False)
+    target.save_result(1, RawResultData(label="save", data="in db"))
     # act
-    actual = db.get_last_result_of_experiment(1)
+    actual = target.get_last_result_of_experiment(1)
     # assert
     assert actual.data == "in db"
 
@@ -52,9 +55,9 @@ def test_save_result_when_successful_then_result_is_saved_to_hdf5_dir(
     initialized_project_dir_path,
 ):
     # arrange
-    db = SqlAlchemyDB(initialized_project_dir_path)
+    target = SqlAlchemyDB(initialized_project_dir_path)
     # act
-    db.save_result(1, RawResultData(label="save", data="in storage"))
+    target.save_result(1, RawResultData(label="save", data="in storage"))
     # assert
     hdf5_path = os.path.join(
         initialized_project_dir_path, _ENTROPY_DIRNAME, _HDF5_DIRNAME, "1.hdf5"
@@ -71,3 +74,54 @@ def test_save_figure_(initialized_project_dir_path):
     # assert
     actual = db.get_figures(0)[0]
     assert actual.figure == figure
+
+
+def test_get_experiments_range_reads_all_columns():
+    # arrange
+    target = SqlAlchemyDB()
+    initial_data, end_data = __save_one_record_to(target)
+    # act
+    actual = target.get_experiments_range(0, 1)
+
+    # assert
+    record = actual.iloc[-1]
+    assert record["id"] == 1
+    assert record["label"] == initial_data.label
+    assert record["start_time"] == initial_data.start_time
+    assert record["end_time"] == end_data.end_time
+    assert record["user"] == initial_data.user
+    assert record["success"] == end_data.success
+    assert not record["favorite"]
+
+
+@pytest.mark.parametrize("is_favorite", [True, False])
+def test_update_experiment_favorite(is_favorite):
+    # arrange
+    target = SqlAlchemyDB()
+    initial_data, end_data = __save_one_record_to(target)
+
+    # act
+    target.update_experiment_favorite(1, is_favorite)
+
+    # assert
+    actual = target.get_experiments_range(0, 1)
+    record = actual.iloc[-1]
+    assert record["favorite"] == is_favorite
+
+
+def __save_one_record_to(target):
+    initial_data = ExperimentInitialData(
+        label="foo",
+        user="bar",
+        lab_topology="",
+        script="print()",
+        start_time=datetime(2022, 2, 22, 14, 22),
+        story="baz",
+    )
+    target.save_experiment_initial_data(initial_data)
+    end_data = ExperimentEndData(
+        end_time=datetime(2022, 2, 22, 14, 22),
+        success=True,
+    )
+    target.save_experiment_end_data(1, end_data)
+    return initial_data, end_data

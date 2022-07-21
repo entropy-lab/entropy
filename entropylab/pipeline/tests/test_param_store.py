@@ -4,6 +4,7 @@ from datetime import timedelta
 from pprint import pprint
 from time import sleep
 
+import pandas as pd
 import pytest
 from tinydb import Query, TinyDB
 
@@ -15,8 +16,9 @@ from entropylab.pipeline.api.in_process_param_store import (
     MergeStrategy,
     migrate_param_store_0_1_to_0_2,
     JSONPickleStorage,
+    fix_param_qualified_name,
 )
-from entropylab.pipeline.api.param_store import Param
+from entropylab.pipeline.api.param_store import Param, LOCAL_TZ, _ns_to_datetime
 
 """ ctor """
 
@@ -344,6 +346,83 @@ def test_rename_key_when_key_has_a_tag_then_tag_remains():
     # assert
     assert "tag" in target.list_tags_for_key("new")
     assert "tag" not in target.list_tags_for_key("foo")
+
+
+""" diff() """
+
+
+def test_diff_existing_value_changed():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    target.commit()
+    target.foo = "baz"
+    actual = target.diff()
+    assert actual == {"foo": {"old_value": "bar", "new_value": "baz"}}
+
+
+def test_diff_existing_value_changed_and_changed_back():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    target.commit()
+    target.foo = "baz"
+    target.foo = "bar"
+    actual = target.diff()
+    assert actual == {}
+
+
+def test_diff_existing_value_deleted():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    target.commit()
+    del target["foo"]
+    actual = target.diff()
+    assert actual == {"foo": {"old_value": "bar"}}
+
+
+def test_diff_new_value_added():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    target.commit()
+    target.boo = "baz"
+    actual = target.diff()
+    assert actual == {"boo": {"new_value": "baz"}}
+
+
+def test_diff__no_previous_commit_new_value_added():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    actual = target.diff()
+    assert actual == {"foo": {"new_value": "bar"}}
+
+
+def test_diff__no_previous_commit_new_value_added_then_removed():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    del target["foo"]
+    actual = target.diff()
+    assert actual == {}
+
+
+def test_diff_when_commit_ids_are_given_then_they_are_used():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    first = target.commit()
+    target.foo = "baz"
+    second = target.commit()
+    target.foo = "buzz"
+    actual = target.diff(first, second)
+    assert actual == {"foo": {"old_value": "bar", "new_value": "baz"}}
+
+
+def test_diff_when_commit_ids_are_used_in_reverse_then_result_is_reversed():
+    target = InProcessParamStore()
+    target.foo = "bar"
+    first = target.commit()
+    target.foo = "baz"
+    second = target.commit()
+    target.foo = "buzz"
+    actual = target.diff(second, first)
+    assert actual == {"foo": {"old_value": "baz", "new_value": "bar"}}
 
 
 """ commit() """
@@ -1064,7 +1143,7 @@ def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
     # arrange
     _copy_template("migrate_param_store_0_1_to_0_2.json", tinydb_file_path, request)
     # act
-    migrate_param_store_0_1_to_0_2(tinydb_file_path)
+    migrate_param_store_0_1_to_0_2(tinydb_file_path, "test_param_store.py")
     # assert
     param_store = InProcessParamStore(tinydb_file_path)
     # checkout unharmed
@@ -1080,6 +1159,17 @@ def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
     # temp is unharmed
     param_store.load_temp()
     assert param_store["qubit1.flux_capacitor.freq"] == -8.0
+
+
+def test_fix_param_qualified_name(tinydb_file_path, request):
+    # arrange
+    _copy_template("fix_param_qualified_name.json", tinydb_file_path, request)
+    # act
+    fix_param_qualified_name(tinydb_file_path, "test_param_store.py")
+    # assert
+    param_store = InProcessParamStore(tinydb_file_path)
+    actual = param_store["q0_f_if_01"]
+    assert actual == 90000000.0
 
 
 """ class Param """
@@ -1146,3 +1236,9 @@ def test_multi_processes_do_not_conflict(tinydb_file_path):
     ps = InProcessParamStore(tinydb_file_path)
     names = ps.list_values("name")["value"]
     assert all(names.value_counts() == num_of_commits)
+
+
+def test__ns_to_datetime():
+    expected = pd.Timestamp("2022-07-10 11:40:37.233137200+0300", tz=LOCAL_TZ)
+    actual = _ns_to_datetime(1657442437233137200)
+    assert actual == expected

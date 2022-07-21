@@ -4,6 +4,8 @@ import os
 import sys
 import time
 import json
+from threading import Thread
+
 import psutil
 import importlib
 import platform
@@ -14,9 +16,12 @@ import msgpack
 
 from sqlalchemy import text as sql_text
 
+from entropylab.flame.execute._async_consumer import NodeOutputsConsumer
+from entropylab.flame.utils.zmq import create_socket_and_connect_or_bind
 from entropylab.flame.workflow import Workflow
 from entropylab.flame.execute import _utils as execute_utils
 from entropylab.flame.execute._config import _Config, logger
+from entropylab.flame.execute._flush_runtime_data import update_node
 from entropylab.flame.execute._message_queue_info import MessageQueueInfo
 from entropylab.flame.execute._runtime_state_info import RuntimeStateInfo
 
@@ -33,14 +38,15 @@ class Execute:
         self.processes_list = []
         self.cwd = os.getcwd()
         self.metadata = json.loads(self.args.metadata)
+        self.zmq_context = zmq.Context()
         self.__init_workflow()
-
-        _Config.job_id = self.metadata.get("job_eui", "#/").replace("#/", "")
-        if _Config.job_id == "":
+        # here store eui; not id;
+        _Config.job_eui = self.metadata.get("job_eui", "#/").replace("#/", "")
+        if _Config.job_eui == "":
             # for the Flame executed from command line without job EUI
-            _Config.job_id = "output_data"
-        runtime_id = self.metadata.get("runtime_id", -1)
-        self.routing_key = f"status_updates.{runtime_id}.{_Config.job_id}"
+            _Config.job_eui = "output_data"
+        _Config.runtime_id = self.metadata.get("runtime_id", -1)
+        self.routing_key = f"status_updates.{_Config.runtime_id}.{_Config.job_eui}"
         self.runtime_state_info = RuntimeStateInfo()
         # env variables FLAME_MESSAGING_USER_NAME and FLAME_MESSAGING_USER_PASS
         # describes connection credentials for message queue
@@ -81,7 +87,7 @@ class Execute:
                     self.routing_key,
                     message,
                     style,
-                    self.message_queue_info.updates_channel,
+                    self.message_queue_info.channel,
                 )
                 code = g.returncode
                 if code is not None and code != 0 and code != 15:
@@ -93,7 +99,7 @@ class Execute:
                         self.routing_key,
                         f"error, exit code {code}",
                         "error",
-                        self.message_queue_info.updates_channel,
+                        self.message_queue_info.channel,
                     )
                 self.processes_list.remove(g)
         return gone, alive
@@ -103,7 +109,6 @@ class Execute:
             f"Execute. Setup executor input and output. Port number: {port_number}"
         )
         # open port for executor in and out channel
-        zmq_context = zmq.Context()
         runtime_state = self.runtime_state_info.runtime_state
         port_number = execute_utils.get_free_port(
             port_number, runtime_state, "executor_input"
@@ -116,11 +121,14 @@ class Execute:
         port_address = f"tcp://127.0.0.1:{port_number}"
         runtime_state.set("executor_input", port_address)
 
-        self.executor_input = zmq_context.socket(zmq.SUB)
-        self.executor_input.setsockopt(zmq.LINGER, 0)
-        self.executor_input.setsockopt(zmq.RCVTIMEO, 200)  # 0.2 s timeout
-        self.executor_input.bind(port_address)  # receives from many publishers
-        self.executor_input.subscribe("")
+        self.executor_input = create_socket_and_connect_or_bind(
+            self.zmq_context,
+            zmq.SUB,
+            port_address,
+            bind=True,
+            socket_options={zmq.LINGER: 0, zmq.RCVTIMEO: 200},
+            subscribe_topic="",
+        )
 
         port_number = execute_utils.get_free_port(
             port_number, runtime_state, "executor_output"
@@ -133,9 +141,13 @@ class Execute:
         runtime_state.set("executor_output", port_address)
         self.port_output = port_number
 
-        self.executor_output = zmq_context.socket(zmq.PUB)
-        self.executor_output.setsockopt(zmq.LINGER, 0)
-        self.executor_output.bind(port_address)  # sends to many publishers
+        self.executor_output = create_socket_and_connect_or_bind(
+            self.zmq_context,
+            zmq.PUB,
+            port_address,
+            bind=True,  # sends to many publishers
+            socket_options={zmq.LINGER: 0},
+        )
 
     def __zmq_messages_status_check(
         self,
@@ -219,7 +231,7 @@ class Execute:
                     self.routing_key,
                     "initialised",
                     "initialised",
-                    self.message_queue_info.updates_channel,
+                    self.message_queue_info.channel,
                 )
 
         except OSError as e:
@@ -278,15 +290,16 @@ class Execute:
                     resolution[eui] = port_address
                     self.runtime_state_info.runtime_state.set(eui, port_address)
 
-                    node_class = type(node).__name__
-                    if node_class not in node_schemas:
-                        full_path_in = os.path.join(
-                            os.path.join(self.cwd, "entropynodes"), "schema"
-                        )
-                        full_path_in = os.path.join(full_path_in, f"{node_class}.json")
-                        with open(full_path_in, encoding="utf-8", mode="r") as f:
-                            schema = json.loads(f.read())
-                        node_schemas[node_class] = schema
+                # TODO: ask about this decrease tab level
+                node_class = type(node).__name__
+                if node_class not in node_schemas:
+                    full_path_in = os.path.join(
+                        os.path.join(self.cwd, "entropynodes"), "schema"
+                    )
+                    full_path_in = os.path.join(full_path_in, f"{node_class}.json")
+                    with open(full_path_in, encoding="utf-8", mode="r") as f:
+                        schema = json.loads(f.read())
+                    node_schemas[node_class] = schema
                 _Config.node_status_dict[node_name] = "resolved"
         logger.debug(
             f"Execute. Assign relative outputs to free ports."
@@ -406,58 +419,25 @@ class Execute:
         logger.debug("Execute. Terminate. Wait for finish. v2")
         self.__wait_for_processes(alive2, "success", "finished")
 
-    def __flush_runtimedata_into_hdf5(self):
-        # add def for decrease tab level
-        def _update_node_output(db, node_name, o, node_info, grp):
-            eui = f"#{node_name}/{o}"
-
-            if node_info["outputs"][0]["retention"][o] == 2:
-                results = (
-                    db.execute(sql_text(f'SELECT value FROM "{eui}"')).scalars().all()
-                )
-                results_time = (
-                    db.execute(
-                        sql_text(
-                            f"""
-        SELECT to_char
-        (time::timestamp at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-        FROM "{eui}"
-        """
-                        )
-                    )
-                    .scalars()
-                    .all()
-                )
-                dset = grp.create_dataset(f"{o}_time", data=results_time)
-                try:
-                    dset = grp.create_dataset(o, data=results)
-                except TypeError:
-                    r = []
-                    for elem in results:
-                        r.append(json.dumps(elem))
-                    dset = grp.create_dataset(o, data=r)
-                dset.attrs["description"] = node_info["outputs"][0]["description"][o]
-                dset.attrs["units"] = node_info["outputs"][0]["units"][o]
-
-        # add def for decrease tab level
-        def _update_node(db, node_name, node, node_info):
-            # node_info = self.workflow._node_details(node)
-            grp = f.create_group(f"{node_name}")
-            grp.attrs["type"] = node_info["name"]
-            grp.attrs["description"] = node_info["description"]
-            grp.attrs["bin"] = node_info["bin"]
-
-            for o in node._outputs._outputs:
-                _update_node_output(db, node_name, o, node_info, grp)
-
+    def __flush_runtimedata_into_hdf5_and_json(self):
         # Flush the runtimedata into data_store HDF5 file
         logger.debug("Execute. Flush runtime data into hdf5.")
+        output_data_structure = {}
         with execute_utils.get_runtimedata(_Config.DATABASE_NAME) as db:
-            with h5py.File(f"./{_Config.job_id}.hdf5", "w") as f:
+            with h5py.File(f"./{_Config.job_eui}.hdf5", "w") as f:
                 execute_utils.write_metadata_to_h5(f, self.metadata)
                 for node_name, node in self.workflow._nodes.items():
                     node_info = self.workflow._node_details(node)
-                    _update_node(db, node_name, node, node_info)
+                    node_output_data_structure = update_node(
+                        f,
+                        db,
+                        node_name,
+                        node,
+                        node_info,
+                    )
+                    output_data_structure.update(node_output_data_structure)
+        with open("./data_index.json", "w") as data_structure_file:
+            json.dump(output_data_structure, data_structure_file)
 
     def __clean_the_playbook(self):
         logger.debug("Execute. Clean the playbook.")
@@ -476,8 +456,8 @@ class Execute:
         logger.debug("Execute. Clean.")
         self.runtime_state_info.runtime_state.delete("dataserver")
 
-        if self.message_queue_info.updates_channel is not None:
-            self.message_queue_info.status_connection.close()
+        if self.message_queue_info.channel is not None:
+            self.message_queue_info.connection.close()
 
         self.runtime_state_info.runtime_state.delete("executor_output")
         self.runtime_state_info.runtime_state.delete("executor_input")
@@ -531,12 +511,20 @@ class Execute:
     def run(self):
         self.__setup_executor_input_output(_Config.port_number)
         total_node_count, node_schemas = self.__assign_relative_outputs_to_free_ports()
+        consumer = NodeOutputsConsumer(
+            self.runtime_state_info.runtime_state,
+            self.zmq_context,
+        )
+        node_output_thread = Thread(
+            target=consumer.run,
+        )
+        node_output_thread.start()
+
         self.__write_parameter_resolution_in_the_playbook()
         self.runtime_state_info.runtime_state.set("executor_pid", os.getpid())
 
         # initialize all the nodes, saving process id
         self.__init_nodes(node_schemas)
-
         # make sure all requested nodes are up before giving the green light for
         # them to start communicating
         ready_nodes_count = self.__zmq_messages_status_check(
@@ -545,7 +533,6 @@ class Execute:
             "connected",
             True,
         )
-
         execution_connection_problem = self.__start_execution_if_ready(
             ready_nodes_count, total_node_count
         )
@@ -553,11 +540,14 @@ class Execute:
         self.__terminate()
         # clean the playbook
         self.__clean_the_playbook()
-        self.__flush_runtimedata_into_hdf5()
+        self.__flush_runtimedata_into_hdf5_and_json()
         # clean playbook reference to data storage location
         self.__clean()
         result_message = self.__result_message(
             execution_timeout_event, execution_connection_problem
         )
         logger.debug(f"Execute. Run. Result: {result_message}")
+        consumer.stop()
+        if node_output_thread:
+            node_output_thread.join()
         return result_message

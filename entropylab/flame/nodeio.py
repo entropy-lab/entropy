@@ -14,6 +14,7 @@ import msgpack
 import platform
 from . import nodeio_context
 from .nodeio_context import terminate_node
+from entropylab.flame.utils.zmq import create_socket_and_connect_or_bind
 
 __all__ = ["Inputs", "Outputs", "register", "terminate_workflow", "terminate_node"]
 
@@ -80,20 +81,26 @@ def context(name="", description="", icon=""):
         zmq_context = nodeio_context.zmq_context()
 
         executor_input_address = nodeio_context.playbook.get("executor_input").decode()
-        socket = zmq_context.socket(zmq.PUB)
-        socket.setsockopt(zmq.LINGER, 0)
-        socket.setsockopt(zmq.IMMEDIATE, 1)
-        socket.connect(executor_input_address)
+        socket = create_socket_and_connect_or_bind(
+            zmq_context,
+            zmq.PUB,
+            executor_input_address,
+            connect=True,
+            socket_options={zmq.LINGER: 0, zmq.IMMEDIATE: 1},
+        )
         nodeio_context.executor_input = socket
 
         executor_output_address = nodeio_context.playbook.get(
             "executor_output"
         ).decode()
-        socket = zmq_context.socket(zmq.SUB)
-        socket.setsockopt(zmq.LINGER, 0)
-        socket.setsockopt(zmq.IMMEDIATE, 1)
-        socket.connect(executor_output_address)
-        socket.subscribe("")
+        socket = create_socket_and_connect_or_bind(
+            zmq_context,
+            zmq.SUB,
+            executor_output_address,
+            connect=True,
+            socket_options={zmq.LINGER: 0, zmq.IMMEDIATE: 1},
+            subscribe_topic="",
+        )
         nodeio_context.executor_output = socket
 
     nodeio_context.node_name = name

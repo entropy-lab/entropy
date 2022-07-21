@@ -42,24 +42,6 @@ html,body {
   overflow-y: auto;
 }
 
-/* "success" column filter */
-
-#success-filter-checklist {
-  flex-direction: row;
-  justify-content: center;
-}
-
-.success-filter-checklist-label {
-  margin-left: 6px;
-  margin-right: 6px;
-  display: flex; !important
-}
-
-.success-filter-checklist-input {
-    width: auto !important;
-}
-
-
 /* Dash DataTable - Dark theme */
 
 .dash-cell {
@@ -99,6 +81,10 @@ input.current-page::placeholder {
   color: var(--bs-body-color) !important;
 }
 
+.experiments-table .cell--selected {
+  border-color: rgb(211, 211, 211) !important;
+}
+
 /* Tab colors */
 .nav .nav-item .active.nav-link {
   background-color: rgb(var(--bs-dark-rgb)) !important;
@@ -107,7 +93,6 @@ input.current-page::placeholder {
 .nav .nav-item .nav-link {
   background-color: #2a2a2a !important;
 }
-
 
 .tab-content {
   width:100%;

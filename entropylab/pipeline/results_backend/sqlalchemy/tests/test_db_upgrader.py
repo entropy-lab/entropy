@@ -151,6 +151,8 @@ def test__migrate_metadata_to_hdf5(initialized_project_dir_path):
         "empty_after_2022-03-17-15-57-28_f1ada2484fe2_create_figures_table.db",
         "empty_after_2022-04-10-08-26-35_9ffd2ba0d5bf_simplifying_node_id.db",
         "empty_after_2022-05-19-09-12-01_06140c96c8c4_wrapping_param_store_values.db",
+        "empty_after_2022-06-16-09-26-06_7fa75ca1263f_del_results_and_metadata.db",
+        "empty_after_2022-06-23-10-16-39_273a9fae6206_experiments_favorite_col.db",
     ],
     indirect=True,
 )
@@ -212,3 +214,24 @@ def test_upgrade_db_deletes_results_and_metadata_from_sqlite(
     )
     res = cur.all()
     assert len(res) == 0
+
+
+@pytest.mark.parametrize(
+    "initialized_project_dir_path",
+    [
+        "empty_after_2022-06-16-09-26-06_7fa75ca1263f_del_results_and_metadata.db",
+    ],
+    indirect=True,
+)
+def test_upgrade_db_adds_favorite_column_to_experiments_table(
+    initialized_project_dir_path,
+):
+    # arrange
+    target = _DbUpgrader(initialized_project_dir_path)
+    # act
+    target.upgrade_db()
+    cur = target._engine.execute(
+        "SELECT COUNT(*) FROM pragma_table_info('Experiments') WHERE name='favorite'; "
+    )
+    res = cur.all()
+    assert res[0][0] == 1

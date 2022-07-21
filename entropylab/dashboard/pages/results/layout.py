@@ -25,6 +25,7 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                 dcc.Store(id="figures-by-key", storage_type="session"),
                 dcc.Store(id="plot-keys-to-combine", storage_type="session"),
                 dcc.Store(id="prev-selected-rows", storage_type="session"),
+                dcc.Store(id="favorites", storage_type="session"),
                 dcc.Interval(
                     id="interval", interval=REFRESH_INTERVAL_IN_MILLIS, n_intervals=0
                 ),

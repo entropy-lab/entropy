@@ -4,14 +4,14 @@ from pathlib import Path
 from typing import TypeVar, Type, Tuple
 
 import sqlalchemy.engine
-from alembic import script, command
-from alembic.config import Config
-from alembic.runtime import migration
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from entropylab.pipeline.api.errors import EntropyError
 from entropylab.logger import logger
+from entropylab.pipeline.api.errors import EntropyError
+from entropylab.pipeline.results_backend.sqlalchemy.alembic.alembic_util import (
+    AlembicUtil,
+)
 from entropylab.pipeline.results_backend.sqlalchemy.model import (
     Base,
     ResultTable,
@@ -47,7 +47,7 @@ class _DbInitializer:
             logger.debug("_DbInitializer is in in-memory mode")
             self._storage = HDF5Storage()
             self._engine = create_engine("sqlite:///" + _SQL_ALCHEMY_MEMORY, echo=echo)
-            self._alembic_util = _AlembicUtil(self._engine)
+            self._alembic_util = AlembicUtil(self._engine)
         else:
             logger.debug("_DbInitializer is in project directory mode")
             creating_new = not os.path.isdir(path)
@@ -63,7 +63,7 @@ class _DbInitializer:
 
             self._engine = create_engine("sqlite:///" + db_file_path, echo=echo)
             self._storage = HDF5Storage(hdf5_dir_path)
-            self._alembic_util = _AlembicUtil(self._engine)
+            self._alembic_util = AlembicUtil(self._engine)
             if creating_new:
                 self._print_project_created(path)
 
@@ -151,7 +151,7 @@ class _DbUpgrader:
             old_global_hdf5_file_path = os.path.join(entropy_dir_path, _HDF5_FILENAME)
             self._engine = create_engine("sqlite:///" + db_file_path, echo=self._echo)
             self._storage = HDF5Storage(hdf5_dir_path)
-        self._alembic_util = _AlembicUtil(self._engine)
+        self._alembic_util = AlembicUtil(self._engine)
         self._alembic_util.upgrade()
         if old_global_hdf5_file_path and os.path.isfile(old_global_hdf5_file_path):
             # old, global hdf5 file exists so migrate from it to new "per experiment"
@@ -164,6 +164,11 @@ class _DbUpgrader:
             # "per experiment" hdf5 files
             self._migrate_results_from_db_to_hdf5()
             self._migrate_metadata_from_db_to_hdf5()
+        self.log_success()
+
+    def log_success(self):
+        at = f"at [{self._path}] " if self._path != _SQL_ALCHEMY_MEMORY else ""
+        logger.info(f"The Entropy project {at}was updated successfully.")
 
     def _path_doesnt_exist(self):
         return not os.path.isdir(self._path) and not os.path.isfile(self._path)
@@ -219,47 +224,3 @@ class _DbUpgrader:
                     f"Marked all {entity_type.name} rows in sqlite as `saved_in_hdf5`."
                     f" Done"
                 )
-
-
-class _AlembicUtil:
-    def __init__(self, engine: sqlalchemy.engine.Engine):
-        self._engine = engine
-
-    @staticmethod
-    def _abs_path_to(rel_path: str) -> str:
-        source_path = Path(__file__).resolve()
-        source_dir = source_path.parent
-        return os.path.join(source_dir, rel_path)
-
-    def upgrade(self) -> None:
-        with self._engine.connect() as connection:
-            alembic_cfg = self._alembic_build_config(connection)
-            command.upgrade(alembic_cfg, "head")
-
-    def stamp_head(self) -> None:
-        with self._engine.connect() as connection:
-            alembic_cfg = self._alembic_build_config(connection)
-            command.stamp(alembic_cfg, "head")
-
-    def db_is_up_to_date(self) -> bool:
-        script_location = self._abs_path_to("alembic")
-        script_ = script.ScriptDirectory(script_location)
-        with self._engine.begin() as conn:
-            context = migration.MigrationContext.configure(conn)
-            db_version = context.get_current_revision()
-            latest_version = script_.get_current_head()
-            return db_version == latest_version
-
-    def _alembic_build_config(self, connection: sqlalchemy.engine.Connection) -> Config:
-        config_location = self._abs_path_to("alembic.ini")
-        script_location = self._abs_path_to("alembic")
-        alembic_cfg = Config(config_location)
-        alembic_cfg.set_main_option("script_location", script_location)
-        """
-        Modified by @urig to share a single engine across multiple (typically in-memory)
-        connections, based on this cookbook recipe:
-        https://alembic.sqlalchemy.org/en/latest/cookbook.html#connection-sharing
-        """
-        alembic_cfg.set_main_option("sqlalchemy.url", "sqlite:///:memory:")
-        alembic_cfg.attributes["connection"] = connection  # overrides dummy url above
-        return alembic_cfg

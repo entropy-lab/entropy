@@ -3,6 +3,7 @@ import msgpack
 import datetime
 from . import nodeio_context
 import psycopg2
+from entropylab.flame.utils.zmq import create_socket_and_connect_or_bind
 
 __all__ = ["Outputs"]
 
@@ -33,7 +34,10 @@ class Outputs:
 
     @classmethod
     def _connections(cls):
-        return cls.__local_instances[0].connections
+        if len(cls.__local_instances):
+            return cls.__local_instances[0].connections
+        # without check raises IndexError if node has no inputs then
+        return {}
 
     def __init__(self):
         self.__index = self._register(self)
@@ -59,10 +63,13 @@ class Outputs:
             my_output = nodeio_context.playbook.get(
                 f"#{nodeio_context.entropy_identity}/{name}"
             ).decode()
-            context = nodeio_context.zmq_context()
-            socket = context.socket(zmq.PUB)
-            socket.setsockopt(zmq.LINGER, 0)
-            socket.bind(my_output)
+            socket = create_socket_and_connect_or_bind(
+                nodeio_context.zmq_context(),
+                zmq.PUB,
+                address=my_output,
+                bind=True,
+                socket_options={zmq.LINGER: 0},
+            )
             self.connections[name] = socket
 
     def set(self, **kwargs):

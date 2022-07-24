@@ -35,11 +35,11 @@ REVISION_KEY = "revision"
 
 @dataclass
 class Commit:
-    label: Optional[str]
     params: Dict
     tags: Dict
     id: Optional[str] = None  # commit_id
     timestamp: Optional[int] = None  # nanoseconds since epoch
+    label: Optional[str] = None
 
     def __post_init__(self):
         self.id = self.id or ""
@@ -137,7 +137,8 @@ class TinyDBPersistence:
         elif commit_num is not None:
             doc = self.__get_commit_by_num(commit_num)
         elif move_by is not None:
-            doc = self.__get_commit_by_move_by(move_by)
+            current_pos = 0  # TODO: Implement this!
+            doc = self.__get_commit_by_move_by(current_pos, move_by)
         else:
             doc = self.__get_latest_doc()
         return self.__doc_to_commit(doc)
@@ -175,7 +176,7 @@ class TinyDBPersistence:
                 return None
 
     @staticmethod
-    def __doc_to_commit(doc: Document) -> Commit:
+    def __doc_to_commit(doc: Optional[Document]) -> Optional[Commit]:
         if not doc:
             return None
         else:
@@ -196,7 +197,7 @@ class TinyDBPersistence:
         self,
         commit: Commit,
         label: Optional[str] = None,
-        dirty_keys: Optional[Set[str]] = [],
+        dirty_keys: Optional[Set[str]] = None,
     ) -> str:
         commit.id = self.__generate_commit_id()
         commit.timestamp = time.time_ns()  # nanoseconds since epoch
@@ -217,7 +218,7 @@ class TinyDBPersistence:
 
     @staticmethod
     def __stamp_dirty_params_with_commit(
-        commit: Commit, dirty_keys: Optional[Set[str]] = []
+        commit: Commit, dirty_keys: Optional[Set[str]] = None
     ):
         if dirty_keys:
             for key in dirty_keys:
@@ -276,11 +277,26 @@ class TinyDBPersistence:
             )
             return list(map(self.__doc_to_commit, docs))
 
-    def set_temp_commit(self):
-        pass
+    # noinspection PyShadowingNames
+    def save_temp_commit(self, commit: Commit) -> None:
+        with self.__filelock:
+            table = self.__db.table(TEMP_TABLE)
+            doc = self.__build_document(commit)
+            doc.doc_id = TEMP_DOC_ID
+            table.upsert(doc)
 
-    def get_temp_commit(self):
-        pass
+    """ Temporary State """
+
+    def load_temp_commit(self) -> Commit:
+        with self.__filelock:
+            table = self.__db.table(TEMP_TABLE)
+        doc = table.get(doc_id=1)
+        if not doc:
+            raise EntropyError(
+                "Temp is empty. Use save_temp_commit() before using load_temp_commit()"
+            )
+        else:
+            return self.__doc_to_commit(doc)
 
 
 def _dict_to_json(d: Dict) -> str:

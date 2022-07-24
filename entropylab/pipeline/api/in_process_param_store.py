@@ -11,7 +11,6 @@ import pandas as pd
 from tinydb import TinyDB
 from tinydb.table import Document
 
-from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.param_store import (
     ParamStore,
     MergeStrategy,
@@ -246,7 +245,10 @@ class InProcessParamStore(ParamStore):
                 params=self.__params,
                 tags=self.__tags,
             )
-            return self.__persistence.commit(commit, label, self.__dirty_keys)
+            commit_id = self.__persistence.commit(commit, label, self.__dirty_keys)
+            self.__is_dirty = False
+            self.__dirty_keys.clear()
+            return commit_id
             # if not self.__is_dirty:
             #     return self.__base_commit_id
             # commit_id = self.__generate_commit_id()
@@ -578,11 +580,11 @@ class InProcessParamStore(ParamStore):
         Saves the state of params to a temporary location
         """
         with self.__lock:
-            with self.__filelock:
-                table = self.__db.table(TEMP_TABLE)
-                doc = self.__build_document()
-                doc.doc_id = TEMP_DOC_ID
-                table.upsert(doc)
+            commit = Commit(
+                params=self.__params,
+                tags=self.__tags,
+            )
+            self.__persistence.save_temp_commit(commit)
 
     def load_temp(self) -> None:
         """
@@ -590,16 +592,11 @@ class InProcessParamStore(ParamStore):
         location
         """
         with self.__lock:
-            with self.__filelock:
-                table = self.__db.table(TEMP_TABLE)
-            doc = table.get(doc_id=1)
-            if not doc:
-                raise EntropyError(
-                    "Temp is empty. Call save_temp() before calling load_temp()"
-                )
+            commit = self.__persistence.load_temp_commit()
             self.__params.clear()
-            self.__params.update(doc["params"])
-            self.__tags = doc["tags"]
+            self.__params.update(commit.params)
+            self.__tags.clear()
+            self.__tags.update(commit.tags)
 
 
 """ Static helper methods """

@@ -614,7 +614,7 @@ def _extract_metadata(document: Document) -> Metadata:
 
 
 def _commit_to_metadata(commit: Commit) -> Metadata:
-    metadata = Metadata
+    metadata = Metadata()
     metadata.id = commit.id
     metadata.timestamp = commit.timestamp
     metadata.label = commit.label

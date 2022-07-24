@@ -206,7 +206,7 @@ class TinyDBPersistence:
         with self.__filelock:
             doc.doc_id = self.__next_doc_id()
             doc_id = self.__db.insert(doc)
-        return doc["metadata"]["id"]
+        return commit.id
 
     @staticmethod
     def __generate_commit_id():

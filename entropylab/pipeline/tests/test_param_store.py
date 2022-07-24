@@ -6,7 +6,7 @@ from time import sleep
 
 import pandas as pd
 import pytest
-from tinydb import Query, TinyDB
+from tinydb import TinyDB
 
 from entropylab.conftest import _copy_template, Process
 from entropylab.pipeline.api.errors import EntropyError
@@ -470,19 +470,23 @@ def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
 
 
 def test_commit_when_label_is_not_given_then_null_label_is_saved(tinydb_file_path):
+    # arrange
     target = InProcessParamStore(tinydb_file_path)
     target.foo = "bar"
-    commit_id = target.commit()
-    result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
-    assert result[0]["metadata"]["label"] is None
+    # act
+    target.commit()
+    # assert
+    commits = target.list_commits()
+    assert commits[0].label is None
 
 
 def test_commit_when_label_is_given_then_label_is_saved(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     target.foo = "bar"
-    commit_id = target.commit("foo")
-    result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
-    assert result[0]["metadata"]["label"] == "foo"
+    target.commit("baz")
+    # assert
+    commits = target.list_commits()
+    assert commits[0].label == "baz"
 
 
 def test_commit_assert_changed_values_are_stamped_with_commit_id(tinydb_file_path):

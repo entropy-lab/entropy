@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List, Callable, Set, MutableMapping
 
 import pandas as pd
-from tinydb import TinyDB, Query
+from tinydb import TinyDB
 from tinydb.table import Document
 
 from entropylab.pipeline.api.errors import EntropyError
@@ -186,16 +186,16 @@ class InProcessParamStore(ParamStore):
             if commit_id is None:
                 return self[key]
             else:
-                commit = self.__get_commit(commit_id)
-                return commit["params"][key].value
+                commit = self.__persistence.get_commit(commit_id)
+                return commit.params[key].value
 
     def get_param(self, key: str, commit_id: Optional[str] = None) -> Param:
         with self.__lock:
             if commit_id is None:
                 return copy.deepcopy(self.__params[key])
             else:
-                commit = self.__get_commit(commit_id)
-                return copy.deepcopy(commit["params"][key])
+                commit = self.__persistence.get_commit(commit_id)
+                return copy.deepcopy(commit.params[key])
 
     def set_param(self, key: str, value: object, **kwargs):
         if "commit_id" in kwargs:
@@ -246,7 +246,7 @@ class InProcessParamStore(ParamStore):
                 params=self.__params,
                 tags=self.__tags,
             )
-            return self.__persistence.commit(commit, label)
+            return self.__persistence.commit(commit, label, self.__dirty_keys)
             # if not self.__is_dirty:
             #     return self.__base_commit_id
             # commit_id = self.__generate_commit_id()
@@ -334,61 +334,59 @@ class InProcessParamStore(ParamStore):
         self.__is_dirty = False
         self.__dirty_keys.clear()
 
+    # TODO: Remove Metadata from ParamStore API? Isn't it a TinyDB impl. detail?
     def list_commits(self, label: Optional[str] = None) -> List[Metadata]:
         with self.__lock:
-            with self.__filelock:
-                documents = self.__db.search(
-                    Query().metadata.label.test(_test_if_value_contains(label))
-                )
-            metadata = map(_extract_metadata, documents)
+            commits = self.__persistence.search_commits(label)
+            metadata = map(_commit_to_metadata, commits)
             return list(metadata)
 
-    def __get_commit(
-        self,
-        commit_id: Optional[str] = None,
-        commit_num: Optional[int] = None,
-        move_by: Optional[int] = None,
-    ) -> Optional[Document]:
-        with self.__lock:
-            if commit_id is not None:
-                commit = self.__get_commit_by_id(commit_id)
-            elif commit_num is not None:
-                commit = self.__get_commit_by_num(commit_num)
-            elif move_by is not None:
-                commit = self.__get_commit_by_move_by(move_by)
-            else:
-                commit = self.__get_latest_commit()
-            return commit
-
-    def __get_commit_by_id(self, commit_id: str) -> Document:
-        with self.__filelock:
-            result = self.__db.search(Query().metadata.id == commit_id)
-            if len(result) == 0:
-                raise EntropyError(f"Commit with id '{commit_id}' not found")
-            if len(result) > 1:
-                raise EntropyError(
-                    f"{len(result)} commits with id '{commit_id}' found. "
-                    f"Only one commit is allowed per id"
-                )
-            return result[0]
-
-    def __get_commit_by_num(self, commit_num: int) -> Document:
-        with self.__filelock:
-            result = self.__db.get(doc_id=commit_num)
-            if result is None:
-                raise EntropyError(f"Commit with number '{commit_num}' not found")
-            return result
-
-    def __get_commit_by_move_by(self, move_by: int) -> Document:
-        doc_id = self.__base_doc_id + move_by
-        with self.__filelock:
-            result = self.__db.get(doc_id=doc_id)
-            return result
-
-    def __get_latest_commit(self) -> Optional[Document]:
-        with self.__filelock:
-            commits = self.__db.all()
-            return commits[-1] if commits else None
+    # def __get_commit(
+    #     self,
+    #     commit_id: Optional[str] = None,
+    #     commit_num: Optional[int] = None,
+    #     move_by: Optional[int] = None,
+    # ) -> Optional[Document]:
+    #     with self.__lock:
+    #         if commit_id is not None:
+    #             commit = self.__get_commit_by_id(commit_id)
+    #         elif commit_num is not None:
+    #             commit = self.__get_commit_by_num(commit_num)
+    #         elif move_by is not None:
+    #             commit = self.__get_commit_by_move_by(move_by)
+    #         else:
+    #             commit = self.__get_latest_commit()
+    #         return commit
+    #
+    # def __get_commit_by_id(self, commit_id: str) -> Document:
+    #     with self.__filelock:
+    #         result = self.__db.search(Query().metadata.id == commit_id)
+    #         if len(result) == 0:
+    #             raise EntropyError(f"Commit with id '{commit_id}' not found")
+    #         if len(result) > 1:
+    #             raise EntropyError(
+    #                 f"{len(result)} commits with id '{commit_id}' found. "
+    #                 f"Only one commit is allowed per id"
+    #             )
+    #         return result[0]
+    #
+    # def __get_commit_by_num(self, commit_num: int) -> Document:
+    #     with self.__filelock:
+    #         result = self.__db.get(doc_id=commit_num)
+    #         if result is None:
+    #             raise EntropyError(f"Commit with number '{commit_num}' not found")
+    #         return result
+    #
+    # def __get_commit_by_move_by(self, move_by: int) -> Document:
+    #     doc_id = self.__base_doc_id + move_by
+    #     with self.__filelock:
+    #         result = self.__db.get(doc_id=doc_id)
+    #         return result
+    #
+    # def __get_latest_commit(self) -> Optional[Document]:
+    #     with self.__filelock:
+    #         commits = self.__db.all()
+    #         return commits[-1] if commits else None
 
     """ Merge """
 
@@ -460,15 +458,15 @@ class InProcessParamStore(ParamStore):
 
             # get OLD params to diff:
             if old_commit_id:
-                old_commit = self.__get_commit(old_commit_id)
+                old_commit = self.__persistence.get_commit(old_commit_id)
             else:  # default to latest commit
-                old_commit = self.__get_latest_commit()
-            old_params = old_commit["params"] if old_commit else {}
+                old_commit = self.__persistence.get_latest_commit()
+            old_params = old_commit.params if old_commit else {}
 
             # get NEW params to diff:
             if new_commit_id:
-                new_commit = self.__get_commit(new_commit_id)
-                new_params = new_commit["params"] if new_commit else {}
+                new_commit = self.__persistence.get_commit(new_commit_id)
+                new_params = new_commit.params if new_commit else {}
             else:  # default to dirty params
                 new_params = self.__params
 
@@ -595,6 +593,14 @@ def _test_if_value_contains(label: str) -> Callable:
 
 def _extract_metadata(document: Document) -> Metadata:
     return Metadata(document.get("metadata"))
+
+
+def _commit_to_metadata(commit: Commit) -> Metadata:
+    metadata = Metadata
+    metadata.id = commit.id
+    metadata.timestamp = commit.timestamp
+    metadata.label = commit.label
+    return metadata
 
 
 def _map_dict(f, d: Dict) -> Dict:

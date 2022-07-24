@@ -8,10 +8,10 @@ import os
 import string
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from random import SystemRandom
-from typing import Any, Optional, Callable, List, Dict
+from typing import Optional, Callable, List, Dict, Set
 
 import jsonpickle as jsonpickle
 from filelock import FileLock
@@ -131,29 +131,37 @@ class TinyDBPersistence:
         commit_id: Optional[str] = None,
         commit_num: Optional[int] = None,
         move_by: Optional[int] = None,
-    ) -> Optional[Document]:
+    ) -> Optional[Commit]:
         if commit_id is not None:
-            commit = self.get_commit_by_id(commit_id)
+            doc = self.__get_commit_by_id(commit_id)
         elif commit_num is not None:
-            commit = self.get_commit_by_num(commit_num)
+            doc = self.__get_commit_by_num(commit_num)
         elif move_by is not None:
-            commit = self.get_commit_by_move_by(move_by)
+            doc = self.__get_commit_by_move_by(move_by)
         else:
-            commit = self.get_latest_commit()
-        return commit
+            doc = self.__get_latest_doc()
+        return self.__doc_to_commit(doc)
 
-    def get_commit_by_id(self, commit_id: str) -> Any:
+    def __get_commit_by_id(self, commit_id: str) -> Document:
         with self.__filelock:
-            return self.__db.search(Query().metadata.id == commit_id)
+            result = self.__db.search(Query().metadata.id == commit_id)
+            if len(result) == 0:
+                raise EntropyError(f"Commit with id '{commit_id}' not found")
+            if len(result) > 1:
+                raise EntropyError(
+                    f"{len(result)} commits with id '{commit_id}' found. "
+                    f"Only one commit is allowed per id"
+                )
+            return result[0]
 
-    def get_commit_by_num(self, commit_num: int) -> Any:
+    def __get_commit_by_num(self, commit_num: int) -> Document:
         with self.__filelock:
             result = self.__db.get(doc_id=commit_num)
             if result is None:
                 raise EntropyError(f"Commit with number '{commit_num}' not found")
             return result
 
-    def get_commit_by_move_by(self, current_pos: int, move_by: int) -> Any:
+    def __get_commit_by_move_by(self, current_pos: int, move_by: int) -> Document:
         doc_id = current_pos + move_by
         with self.__filelock:
             return self.__db.get(doc_id=doc_id)
@@ -168,24 +176,32 @@ class TinyDBPersistence:
 
     @staticmethod
     def __doc_to_commit(doc: Document) -> Commit:
-        return Commit(
-            id=doc["metadata"]["id"],
-            timestamp=doc["metadata"]["timestamp"],
-            label=doc["metadata"]["label"],
-            params=doc["params"],
-            tags=doc["tags"],
-        )
+        if not doc:
+            return None
+        else:
+            return Commit(
+                id=doc["metadata"]["id"],
+                timestamp=doc["metadata"]["timestamp"],
+                label=doc["metadata"]["label"],
+                params=doc["params"],
+                tags=doc["tags"],
+            )
 
     def __get_latest_doc(self) -> Optional[Document]:
         with self.__filelock:
             docs = self.__db.all()
             return docs[-1] if docs else None
 
-    def commit(self, commit: Commit, label: Optional[str] = None) -> str:
-        commit.id = self.generate_commit_id()
+    def commit(
+        self,
+        commit: Commit,
+        label: Optional[str] = None,
+        dirty_keys: Optional[Set[str]] = [],
+    ) -> str:
+        commit.id = self.__generate_commit_id()
         commit.timestamp = time.time_ns()  # nanoseconds since epoch
         commit.label = label
-        self.__stamp_dirty_params_with_commit(commit, commit.id, commit.timestamp)
+        self.__stamp_dirty_params_with_commit(commit, dirty_keys)
         doc = self.__build_document(commit)
         with self.__filelock:
             doc.doc_id = self.__next_doc_id()
@@ -193,24 +209,24 @@ class TinyDBPersistence:
         return doc["metadata"]["id"]
 
     @staticmethod
-    def generate_commit_id():
+    def __generate_commit_id():
         random_string = "".join(
             SystemRandom().choice(string.printable) for _ in range(32)
         ).encode("utf-8")
         return hashlib.sha1(random_string).hexdigest()
 
-    # TODO: How to lift this into ParamStore?
+    @staticmethod
     def __stamp_dirty_params_with_commit(
-        self, commit: Commit, commit_id: str, commit_timestamp: int
+        commit: Commit, dirty_keys: Optional[Set[str]] = []
     ):
-        # for key in self.__dirty_keys:
-        #     if key in self.__params:
-        #         param = self.__params[key]
-        #         param.commit_id = commit_id
-        #         if isinstance(param.expiration, timedelta):
-        #             expiration_in_ns = param.expiration.total_seconds() * 1e9
-        #             param.expiration = commit_timestamp + expiration_in_ns
-        pass
+        if dirty_keys:
+            for key in dirty_keys:
+                if key in commit.params:
+                    param = commit.params[key]
+                    param.commit_id = commit.id
+                    if isinstance(param.expiration, timedelta):
+                        expiration_in_ns = param.expiration.total_seconds() * 1e9
+                        param.expiration = commit.timestamp + expiration_in_ns
 
     def __build_document(self, commit: Commit) -> Document:
         """
@@ -244,24 +260,15 @@ class TinyDBPersistence:
             else:
                 return 1
 
-    def checkout(self, commit: Document):
-        self.__params.clear()
-        self.__params.update(commit["params"])
-        self.__tags = commit["tags"]
-        self.__base_commit_id = commit["metadata"]["id"]
-        self.__base_doc_id = commit.doc_id
-        self.__is_dirty = False
-        self.__dirty_keys.clear()
-
-    # TODO: List[Commit] instead of List[Document]
-    def search_commits(self, label: Optional[str] = None) -> List[Document]:
+    def search_commits(self, label: Optional[str] = None) -> List[Commit]:
         def test_if_value_contains(lbl: str) -> Callable:
             return lambda val: (lbl or "") in (val or "")
 
         with self.__filelock:
-            return self.__db.search(
+            docs = self.__db.search(
                 Query().metadata.label.test(test_if_value_contains(label))
             )
+            return list(map(self.__doc_to_commit, docs))
 
     def set_temp_commit(self):
         pass

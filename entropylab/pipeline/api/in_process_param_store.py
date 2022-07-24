@@ -498,26 +498,44 @@ class InProcessParamStore(ParamStore):
     def list_values(self, key: str) -> pd.DataFrame:
         with self.__lock:
             values = []
-            with self.__filelock:
-                commits = self.__db.all()
-            commits.sort(key=lambda x: x["metadata"]["timestamp"])
+            commits = self.__persistence.search_commits(key=key)
+            commits.sort(key=lambda c: c.timestamp)
             for commit in commits:
-                try:
-                    value = (
-                        commit["params"][key].value,
-                        _ns_to_datetime(commit["metadata"]["timestamp"]),
-                        commit["metadata"]["id"],
-                        commit["metadata"]["label"],
-                    )
-                    values.append(value)
-                except KeyError:
-                    pass
+                value = (
+                    commit.params[key].value,
+                    _ns_to_datetime(commit.timestamp),
+                    commit.id,
+                    commit.label,
+                )
+                values.append(value)
             if self.__is_dirty and key in self.__params.keys():
                 values.append((self[key], None, None, None))
             df = pd.DataFrame(values)
             if not df.empty:
                 df.columns = ["value", "time", "commit_id", "label"]
             return df
+
+            # values = []
+            # with self.__filelock:
+            #     commits = self.__db.all()
+            # commits.sort(key=lambda x: x["metadata"]["timestamp"])
+            # for commit in commits:
+            #     try:
+            #         value = (
+            #             commit["params"][key].value,
+            #             _ns_to_datetime(commit["metadata"]["timestamp"]),
+            #             commit["metadata"]["id"],
+            #             commit["metadata"]["label"],
+            #         )
+            #         values.append(value)
+            #     except KeyError:
+            #         pass
+            # if self.__is_dirty and key in self.__params.keys():
+            #     values.append((self[key], None, None, None))
+            # df = pd.DataFrame(values)
+            # if not df.empty:
+            #     df.columns = ["value", "time", "commit_id", "label"]
+            # return df
 
     """ Tags """
 

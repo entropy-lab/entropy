@@ -260,13 +260,19 @@ class TinyDBPersistence:
             else:
                 return 1
 
-    def search_commits(self, label: Optional[str] = None) -> List[Commit]:
-        def test_if_value_contains(lbl: str) -> Callable:
-            return lambda val: (lbl or "") in (val or "")
+    def search_commits(
+        self, label: Optional[str] = None, key: Optional[str] = None
+    ) -> List[Commit]:
+        def test_label(lbl: str) -> Callable:
+            return lambda metadata_label: metadata_label == lbl if lbl else True
+
+        def test_key(k: str) -> Callable:
+            return lambda params: k in params if k else True
 
         with self.__filelock:
             docs = self.__db.search(
-                Query().metadata.label.test(test_if_value_contains(label))
+                Query().metadata.label.test(test_label(label))
+                & Query().params.test(test_key(key))
             )
             return list(map(self.__doc_to_commit, docs))
 

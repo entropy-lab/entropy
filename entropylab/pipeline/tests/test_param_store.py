@@ -14,11 +14,10 @@ from entropylab.pipeline.api.in_process_param_store import (
     InProcessParamStore,
     MergeStrategy,
     migrate_param_store_0_1_to_0_2,
-    JSONPickleStorage,
     fix_param_qualified_name,
 )
 from entropylab.pipeline.api.param_store import Param, LOCAL_TZ, _ns_to_datetime
-from entropylab.pipeline.api.tinydb_persistence import Metadata
+from entropylab.pipeline.api.tinydb_persistence import Metadata, JSONPickleStorage
 
 """ ctor """
 

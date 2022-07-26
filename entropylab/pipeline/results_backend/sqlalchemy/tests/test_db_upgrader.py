@@ -153,6 +153,8 @@ def test__migrate_metadata_to_hdf5(initialized_project_dir_path):
         "empty_after_2022-05-19-09-12-01_06140c96c8c4_wrapping_param_store_values.db",
         "empty_after_2022-06-16-09-26-06_7fa75ca1263f_del_results_and_metadata.db",
         "empty_after_2022-06-23-10-16-39_273a9fae6206_experiments_favorite_col.db",
+        "empty_after_2022-06-28-12-13-39_09f3b5a1689c_fixing_param_qualified_name.db",
+        "empty_after_2022-07-03-08-56-23_da8d38e19ff8_matplotlib_figures.db",
     ],
     indirect=True,
 )

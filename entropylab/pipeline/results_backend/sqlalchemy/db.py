@@ -1,9 +1,11 @@
+import base64
+import io
 from datetime import datetime
-from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
+from typing import List, TypeVar, Optional, ContextManager, Iterable, Union
 from typing import Set
-from warnings import warn
 
 import jsonpickle
+import matplotlib
 import pandas as pd
 from pandas import DataFrame
 from plotly import graph_objects as go
@@ -30,8 +32,8 @@ from entropylab.pipeline.api.data_reader import (
     ResultRecord,
     MetadataRecord,
     DebugRecord,
-    PlotRecord,
     FigureRecord,
+    MatplotlibFigureRecord,
 )
 from entropylab.pipeline.api.data_writer import (
     DataWriter,
@@ -40,19 +42,18 @@ from entropylab.pipeline.api.data_writer import (
     RawResultData,
     Metadata,
     Debug,
-    PlotSpec,
     NodeData,
 )
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import _DbInitializer
 from entropylab.pipeline.results_backend.sqlalchemy.model import (
     ExperimentTable,
-    PlotTable,
     ResultTable,
     DebugTable,
     MetadataTable,
     NodeTable,
     FigureTable,
+    MatplotlibFigureTable,
 )
 
 T = TypeVar(
@@ -141,17 +142,15 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         transaction = DebugTable.from_model(experiment_id, debug)
         return self._execute_transaction(transaction)
 
-    def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
-        warn(
-            "This method will soon be deprecated. Please use save_figure() instead",
-            PendingDeprecationWarning,
-            stacklevel=2,
-        )
-        transaction = PlotTable.from_model(experiment_id, plot, data)
-        return self._execute_transaction(transaction)
-
     def save_figure(self, experiment_id: int, figure: go.Figure) -> None:
         transaction = FigureTable.from_model(experiment_id, figure)
+        return self._execute_transaction(transaction)
+
+    def save_matplotlib_figure(
+        self, experiment_id: int, figure: matplotlib.figure.Figure
+    ) -> None:
+        img_src = matplotlib_figure_to_img_src(figure)
+        transaction = MatplotlibFigureTable.from_model(experiment_id, img_src)
         return self._execute_transaction(transaction)
 
     def save_node(self, experiment_id: int, node_data: NodeData):
@@ -272,27 +271,24 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
             )
             return self._query_pandas(query)
 
-    def get_plots(self, experiment_id: int) -> List[PlotRecord]:
-        warn(
-            "This method will soon be deprecated. Please use get_figures() instead",
-            PendingDeprecationWarning,
-            stacklevel=2,
-        )
-        with self._session_maker() as sess:
-            query = (
-                sess.query(PlotTable)
-                .filter(PlotTable.experiment_id == int(experiment_id))
-                .all()
-            )
-            if query:
-                return [plot.to_record() for plot in query]
-        return []
-
     def get_figures(self, experiment_id: int) -> List[FigureRecord]:
         with self._session_maker() as sess:
             query = (
                 sess.query(FigureTable)
                 .filter(FigureTable.experiment_id == int(experiment_id))
+                .all()
+            )
+            if query:
+                return [figure.to_record() for figure in query]
+        return []
+
+    def get_matplotlib_figures(
+        self, experiment_id: int
+    ) -> List[MatplotlibFigureRecord]:
+        with self._session_maker() as sess:
+            query = (
+                sess.query(MatplotlibFigureTable)
+                .filter(MatplotlibFigureTable.experiment_id == int(experiment_id))
                 .all()
             )
             if query:
@@ -522,3 +518,14 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
         else:
             enabled = self._enable_hdf5_storage
         return enabled
+
+
+def matplotlib_figure_to_img_src(figure: matplotlib.figure.Figure):
+    """Converts a matplotlib Figure instance into a string that can be used as the
+    'src' attribute of an HTML <img>"""
+    buf = io.BytesIO()
+    figure.savefig(buf, format="png")
+    # figure.close()
+    data = base64.b64encode(buf.getbuffer()).decode("utf8")
+    img_src = "data:image/png;base64,{}".format(data)
+    return img_src

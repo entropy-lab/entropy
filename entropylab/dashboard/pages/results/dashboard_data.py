@@ -8,7 +8,10 @@ import pandas as pd
 from entropylab import SqlAlchemyDB
 from entropylab.dashboard.pages.results.auto_plot import auto_plot
 from entropylab.logger import logger
-from entropylab.pipeline.api.data_reader import PlotRecord, FigureRecord
+from entropylab.pipeline.api.data_reader import (
+    FigureRecord,
+    MatplotlibFigureRecord,
+)
 
 FAVORITE_TRUE = "⭐"
 FAVORITE_FALSE = "✰"
@@ -25,7 +28,9 @@ class DashboardDataReader(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_plot_and_figure_data(self, exp_id: int) -> List[PlotRecord]:
+    def get_figure_records(
+        self, exp_id: int
+    ) -> List[FigureRecord | MatplotlibFigureRecord]:
         pass
 
 
@@ -65,22 +70,26 @@ class SqlalchemyDashboardDataReader(DashboardDataReader, DashboardDataWriter):
     ):
         return self._db.get_last_result_of_experiment(experiment_id)
 
-    def get_plot_and_figure_data(self, exp_id: int) -> List[PlotRecord | FigureRecord]:
-        plots = self._db.get_plots(exp_id)
+    def get_figure_records(
+        self, exp_id: int
+    ) -> List[FigureRecord | MatplotlibFigureRecord]:
+        # Plotly figures
         if exp_id not in self._figures_cache:
             logger.debug(f"Figures cache miss. exp_id=[{exp_id}]")
             self._figures_cache[exp_id] = self._db.get_figures(exp_id)
         else:
             logger.debug(f"Figures cache hit. exp_id=[{exp_id}]")
         figures = self._figures_cache[exp_id]
-        if len(plots) > 0 or len(figures) > 0:
-            return [*plots, *figures]
+        # Matplotlib figures
+        # TODO: Cache matplotlib figures?
+        matplotlib_figures = self._db.get_matplotlib_figures(exp_id)
+        if len(figures) > 0 or len(matplotlib_figures) > 0:
+            return [*figures, *matplotlib_figures]
         else:
-            # TODO: auto_plot to produce figures, not plots
             last_result = self._db.get_last_result_of_experiment(exp_id)
             if last_result is not None and last_result.data is not None:
-                plot = auto_plot(exp_id, last_result.data)
-                return [plot]
+                figure = auto_plot(exp_id, last_result.data)
+                return [figure]
             else:
                 return []
 

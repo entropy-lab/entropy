@@ -37,7 +37,6 @@ class InProcessParamStore(ParamStore):
         self.__lock = threading.RLock()
         self.__params: Dict[str, Param] = dict()  # where current params are stored
         self.__tags: Dict[str, List[str]] = dict()  # tags that are mapped to keys
-        self.__is_dirty: bool = False  # can the store be committed at this time?
         self.__dirty_keys: Set[str] = set()  # updated keys not committed yet
         self.__persistence = TinyDBPersistence(path)
         self.checkout()
@@ -55,7 +54,7 @@ class InProcessParamStore(ParamStore):
     @property
     def is_dirty(self):
         with self.__lock:
-            return self.__is_dirty
+            return len(self.__dirty_keys) > 0
 
     """ MutableMapping """
 
@@ -76,7 +75,6 @@ class InProcessParamStore(ParamStore):
         else:
             with self.__lock:
                 self.__params.__setitem__(key, Param(value))
-                self.__is_dirty = True
                 self.__dirty_keys.add(key)
 
     def __getitem__(self, key: str) -> Any:
@@ -88,7 +86,6 @@ class InProcessParamStore(ParamStore):
             key = args[0]
             self.__params.__delitem__(*args, **kwargs)
             self.__remove_key_from_tags(key)
-            self.__is_dirty = True
             self.__dirty_keys.add(key)
 
     def __getattr__(self, key):
@@ -128,6 +125,8 @@ class InProcessParamStore(ParamStore):
         with self.__lock:
             return f"<InProcessParamStore({self.to_dict().__repr__()})>"
 
+    """ Params """
+
     def keys(self):
         with self.__lock:
             return self.__params.keys()
@@ -165,7 +164,6 @@ class InProcessParamStore(ParamStore):
             param.value = value
             param.__dict__.update(kwargs)
             self.__params.__setitem__(key, param)
-            self.__is_dirty = True
             self.__dirty_keys.add(key)
 
     def __remove_key_from_tags(self, key: str):
@@ -202,7 +200,6 @@ class InProcessParamStore(ParamStore):
                 tags=self.__tags,
             )
             commit_id = self.__persistence.commit(commit, label, self.__dirty_keys)
-            self.__is_dirty = False
             self.__dirty_keys.clear()
             return commit_id
 
@@ -219,7 +216,6 @@ class InProcessParamStore(ParamStore):
         self.__params.update(commit.params)
         self.__tags.clear()
         self.__tags.update(commit.tags)
-        self.__is_dirty = False
         self.__dirty_keys.clear()
 
     # TODO: Remove Metadata from ParamStore API? Isn't it a TinyDB impl. detail?
@@ -271,7 +267,6 @@ class InProcessParamStore(ParamStore):
                         in-place. We therefore need mark the Param key as dirty. We only
                         do this at the very top of the recursion - when a and b are the
                         ParamStores being merged"""
-                        self.__is_dirty = True
                         self.__dirty_keys.add(key)
                 elif a[key] == b[key]:
                     pass  # same leaf values, nothing to do
@@ -349,7 +344,7 @@ class InProcessParamStore(ParamStore):
                     commit.label,
                 )
                 values.append(value)
-            if self.__is_dirty and key in self.__params.keys():
+            if self.is_dirty and key in self.__params.keys():
                 values.append((self[key], None, None, None))
             df = pd.DataFrame(values)
             if not df.empty:
@@ -365,7 +360,6 @@ class InProcessParamStore(ParamStore):
             if tag not in self.__tags:
                 self.__tags[tag] = []
             self.__tags[tag].append(key)
-            self.__is_dirty = True
 
     def remove_tag(self, tag: str, key: str) -> None:
         with self.__lock:
@@ -374,7 +368,6 @@ class InProcessParamStore(ParamStore):
             if key not in self.__tags[tag]:
                 return
             self.__tags[tag].remove(key)
-            self.__is_dirty = True
 
     def list_keys_for_tag(self, tag: str) -> List[str]:
         with self.__lock:

@@ -17,7 +17,11 @@ from entropylab.pipeline.api.in_process_param_store import (
     fix_param_qualified_name,
 )
 from entropylab.pipeline.api.param_store import Param, LOCAL_TZ, _ns_to_datetime
-from entropylab.pipeline.api.tinydb_persistence import Metadata, JSONPickleStorage
+from entropylab.pipeline.api.tinydb_persistence import (
+    Metadata,
+    JSONPickleStorage,
+    _set_version,
+)
 
 """ ctor """
 
@@ -1137,6 +1141,7 @@ def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
     _copy_template("migrate_param_store_0_1_to_0_2.json", tinydb_file_path, request)
     # act
     migrate_param_store_0_1_to_0_2(tinydb_file_path, "test_param_store.py")
+    _set_version(tinydb_file_path, "0.2", "test")
     # assert
     param_store = InProcessParamStore(tinydb_file_path)
     # checkout unharmed
@@ -1160,9 +1165,12 @@ def test_fix_param_qualified_name(tinydb_file_path, request):
     # act
     fix_param_qualified_name(tinydb_file_path, "test_param_store.py")
     # assert
-    param_store = InProcessParamStore(tinydb_file_path)
-    actual = param_store["q0_f_if_01"]
-    assert actual == 90000000.0
+    with TinyDB(tinydb_file_path) as tinydb:
+        doc = tinydb.get(doc_id=1)
+        assert (
+            doc["params"]["q0_f_if_01"]["py/object"]
+            == "entropylab.pipeline.api.param_store.Param"
+        )
 
 
 """ class Param """
@@ -1232,6 +1240,6 @@ def test_multi_processes_do_not_conflict(tinydb_file_path):
 
 
 def test__ns_to_datetime():
-    expected = pd.Timestamp("2022-07-10 11:40:37.233137200+0300", tz=LOCAL_TZ)
+    expected = pd.Timestamp(ts_input="2022-07-10 11:40:37.233137200+0300", tz=LOCAL_TZ)
     actual = _ns_to_datetime(1657442437233137200)
     assert actual == expected

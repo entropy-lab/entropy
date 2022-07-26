@@ -22,6 +22,7 @@ from entropylab.pipeline.api.tinydb_persistence import (
     Commit,
     Metadata,
     JSONPickleStorage,
+    _check_version,
 )
 
 CURRENT_VERSION = "0.2"

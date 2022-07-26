@@ -1,15 +1,11 @@
 from __future__ import annotations
 
 import copy
-import os.path
-import shutil
 import threading
 from pathlib import Path
-from typing import Optional, Dict, Any, List, Callable, Set, MutableMapping
+from typing import Optional, Dict, Any, List, Set, MutableMapping
 
 import pandas as pd
-from tinydb import TinyDB
-from tinydb.table import Document
 
 from entropylab.pipeline.api.param_store import (
     ParamStore,
@@ -21,18 +17,7 @@ from entropylab.pipeline.api.tinydb_persistence import (
     TinyDBPersistence,
     Commit,
     Metadata,
-    JSONPickleStorage,
-    _check_version,
 )
-
-CURRENT_VERSION = "0.2"
-
-INFO_DOC_ID = 1
-INFO_TABLE = "info"
-TEMP_DOC_ID = 1
-TEMP_TABLE = "temp"
-VERSION_KEY = "version"
-REVISION_KEY = "revision"
 
 
 class InProcessParamStore(ParamStore):
@@ -48,40 +33,12 @@ class InProcessParamStore(ParamStore):
         theirs: Optional[Dict | ParamStore] = None,
         merge_strategy: Optional[MergeStrategy] = MergeStrategy.THEIRS,
     ):
-
         super().__init__()
-
         self.__lock = threading.RLock()
         self.__params: Dict[str, Param] = dict()  # where current params are stored
         self.__tags: Dict[str, List[str]] = dict()  # tags that are mapped to keys
         self.__is_dirty: bool = False  # can the store be committed at this time?
         self.__dirty_keys: Set[str] = set()  # updated keys not committed yet
-
-        # if path is None:
-        #     self.__is_in_memory_mode = True
-        #     self.__db = TinyDB(storage=MemoryStorage)
-        #     self.__filelock = contextlib.nullcontext()
-        #     with self.__filelock:
-        #         _set_version(self.__db, CURRENT_VERSION)
-        # else:
-        #     self.__is_in_memory_mode = False
-        #     path = str(path)
-        #     is_new = not os.path.isfile(path)
-        #     if not os.path.isfile(path):
-        #         logger.debug(
-        #             f"Could not find a ParamStore JSON file at '{path}'. "
-        #             f"A new, empty, file will be created."
-        #         )
-        #         is_new = True
-        #     self.__db = TinyDB(path, storage=JSONPickleStorage)
-        #     Table.default_query_cache_capacity = 0
-        #     self.__filelock = FileLock(path + ".lock")
-        #     with self.__filelock:
-        #         if is_new:
-        #             logger.debug(f"Creating new ParamStore JSON file at '{path}'")
-        #             _set_version(self.__db, CURRENT_VERSION)
-        #         else:
-        #             self.checkout()
         self.__persistence = TinyDBPersistence(path)
         self.checkout()
         if theirs is not None:
@@ -248,72 +205,6 @@ class InProcessParamStore(ParamStore):
             self.__is_dirty = False
             self.__dirty_keys.clear()
             return commit_id
-            # if not self.__is_dirty:
-            #     return self.__base_commit_id
-            # commit_id = self.__generate_commit_id()
-            # commit_timestamp = time.time_ns()  # nanoseconds since epoch
-            # self.__stamp_dirty_params_with_commit(commit_id, commit_timestamp)
-            # doc = self.__build_document(commit_id, label)
-            # with self.__filelock:
-            #     doc.doc_id = self.__next_doc_id()
-            #     doc_id = self.__db.insert(doc)
-            # self.__base_commit_id = doc["metadata"]["id"]
-            # self.__base_doc_id = doc_id
-            # self.__is_dirty = False
-            # self.__dirty_keys.clear()
-            # return doc["metadata"]["id"]
-
-    # def __next_doc_id(self):
-    #     with self.__filelock:
-    #         last_doc = self.__get_latest_commit()
-    #         if last_doc:
-    #             return last_doc.doc_id + 1
-    #         else:
-    #             return 1
-    #
-    # def __stamp_dirty_params_with_commit(self, commit_id: str, commit_timestamp: int):
-    #     for key in self.__dirty_keys:
-    #         if key in self.__params:
-    #             param = self.__params[key]
-    #             param.commit_id = commit_id
-    #             if isinstance(param.expiration, timedelta):
-    #                 expiration_in_ns = param.expiration.total_seconds() * 1e9
-    #                 param.expiration = commit_timestamp + expiration_in_ns
-
-    # @staticmethod
-    # def __generate_commit_id():
-    #     random_string = "".join(
-    #         SystemRandom().choice(string.printable) for _ in range(32)
-    #     ).encode("utf-8")
-    #     return hashlib.sha1(random_string).hexdigest()
-
-    # def __build_document(
-    #     self, commit_id: Optional[str] = None, label: Optional[str] = None
-    # ) -> Document:
-    #     """
-    #     builds a document to be saved as a commit/temp in TinyDB.
-    #     :param commit_id: is None when saving to temp.
-    #     :param label: an optional label to associate the commit with.
-    #     :return: a dictionary describing the current state of the ParamStore
-    #     """
-    #     metadata = self.__build_metadata(commit_id, label)
-    #     if self.__is_in_memory_mode:
-    #         params = copy.deepcopy(self.__params)
-    #     else:
-    #         params = self.__params
-    #     return Document(
-    #         dict(metadata=metadata.__dict__, params=params, tags=self.__tags), doc_id=0
-    #     )
-    #
-    # @staticmethod
-    # def __build_metadata(
-    #     commit_id: Optional[str] = None, label: Optional[str] = None
-    # ) -> Metadata:
-    #     metadata = Metadata()
-    #     metadata.id = commit_id
-    #     metadata.timestamp = time.time_ns()
-    #     metadata.label = label
-    #     return metadata
 
     def checkout(
         self, commit_id: Optional[str] = None, commit_num: Optional[int] = None
@@ -337,53 +228,6 @@ class InProcessParamStore(ParamStore):
             commits = self.__persistence.search_commits(label)
             metadata = map(_commit_to_metadata, commits)
             return list(metadata)
-
-    # def __get_commit(
-    #     self,
-    #     commit_id: Optional[str] = None,
-    #     commit_num: Optional[int] = None,
-    #     move_by: Optional[int] = None,
-    # ) -> Optional[Document]:
-    #     with self.__lock:
-    #         if commit_id is not None:
-    #             commit = self.__get_commit_by_id(commit_id)
-    #         elif commit_num is not None:
-    #             commit = self.__get_commit_by_num(commit_num)
-    #         elif move_by is not None:
-    #             commit = self.__get_commit_by_move_by(move_by)
-    #         else:
-    #             commit = self.__get_latest_commit()
-    #         return commit
-    #
-    # def __get_commit_by_id(self, commit_id: str) -> Document:
-    #     with self.__filelock:
-    #         result = self.__db.search(Query().metadata.id == commit_id)
-    #         if len(result) == 0:
-    #             raise EntropyError(f"Commit with id '{commit_id}' not found")
-    #         if len(result) > 1:
-    #             raise EntropyError(
-    #                 f"{len(result)} commits with id '{commit_id}' found. "
-    #                 f"Only one commit is allowed per id"
-    #             )
-    #         return result[0]
-    #
-    # def __get_commit_by_num(self, commit_num: int) -> Document:
-    #     with self.__filelock:
-    #         result = self.__db.get(doc_id=commit_num)
-    #         if result is None:
-    #             raise EntropyError(f"Commit with number '{commit_num}' not found")
-    #         return result
-    #
-    # def __get_commit_by_move_by(self, move_by: int) -> Document:
-    #     doc_id = self.__base_doc_id + move_by
-    #     with self.__filelock:
-    #         result = self.__db.get(doc_id=doc_id)
-    #         return result
-    #
-    # def __get_latest_commit(self) -> Optional[Document]:
-    #     with self.__filelock:
-    #         commits = self.__db.all()
-    #         return commits[-1] if commits else None
 
     """ Merge """
 
@@ -512,28 +356,6 @@ class InProcessParamStore(ParamStore):
                 df.columns = ["value", "time", "commit_id", "label"]
             return df
 
-            # values = []
-            # with self.__filelock:
-            #     commits = self.__db.all()
-            # commits.sort(key=lambda x: x["metadata"]["timestamp"])
-            # for commit in commits:
-            #     try:
-            #         value = (
-            #             commit["params"][key].value,
-            #             _ns_to_datetime(commit["metadata"]["timestamp"]),
-            #             commit["metadata"]["id"],
-            #             commit["metadata"]["label"],
-            #         )
-            #         values.append(value)
-            #     except KeyError:
-            #         pass
-            # if self.__is_dirty and key in self.__params.keys():
-            #     values.append((self[key], None, None, None))
-            # df = pd.DataFrame(values)
-            # if not df.empty:
-            #     df.columns = ["value", "time", "commit_id", "label"]
-            # return df
-
     """ Tags """
 
     def add_tag(self, tag: str, key: str) -> None:
@@ -597,14 +419,6 @@ class InProcessParamStore(ParamStore):
 """ Static helper methods """
 
 
-def _test_if_value_contains(label: str) -> Callable:
-    return lambda val: (label or "") in (val or "")
-
-
-def _extract_metadata(document: Document) -> Metadata:
-    return Metadata(document.get("metadata"))
-
-
 def _commit_to_metadata(commit: Commit) -> Metadata:
     metadata = Metadata()
     metadata.id = commit.id
@@ -614,6 +428,7 @@ def _commit_to_metadata(commit: Commit) -> Metadata:
 
 
 def _map_dict(f, d: Dict) -> Dict:
+    """Applies function f to all values in dict d recursively"""
     values_dict = dict()
     for item in d.items():
         k = item[0]
@@ -627,104 +442,3 @@ def _map_dict(f, d: Dict) -> Dict:
 
 def _extract_param_values(d: Dict) -> Dict:
     return _map_dict(lambda x: x.value, d)
-
-
-def _map_dict_in_place(f, d: Dict):
-    for item in d.items():
-        k = item[0]
-        v = item[1]
-        if isinstance(v, dict):
-            _map_dict_in_place(f, v)
-        else:
-            d[k] = f(v)
-
-
-def _extract_param_values_in_place(d: Dict):
-    _map_dict_in_place(lambda x: x.value, d)
-
-
-""" Migrations """
-
-
-def fix_param_qualified_name(path: str | Path, revision: str):
-    """
-    Backup and fix the fully qualified names of Param in an InProcessParamStore JSON
-    file.
-
-    :param path: path to an existing JSON TinyDB file containing params.
-    """
-    if not os.path.isfile(path):
-        return
-    OLD_NAME = "entropylab.api.in_process_param_store.Param"
-    NEW_NAME = "entropylab.pipeline.api.param_store.Param"
-    path = str(path)
-    backup_path = _backup_file(path, revision)
-    # TODO: Support locking
-    with TinyDB(backup_path) as old_db:
-        old_commits = old_db.all()
-        old_temp = old_db.table(TEMP_TABLE).get(doc_id=TEMP_DOC_ID)
-        old_info = old_db.table(INFO_TABLE).get(doc_id=INFO_DOC_ID)
-    with TinyDB(path) as new_db:
-        for old_commit in old_commits:
-            new_commit = copy.deepcopy(old_commit)
-            for param in new_commit["params"].values():
-                if "py/object" in param and param["py/object"] == OLD_NAME:
-                    param["py/object"] = NEW_NAME
-            new_db.insert(new_commit)
-        if old_temp:
-            new_temp = copy.deepcopy(old_temp)
-            new_db.table(TEMP_TABLE).insert(new_temp)
-        if old_info:
-            new_info = copy.deepcopy(old_info)
-            new_db.table(INFO_TABLE).insert(new_info)
-
-
-def migrate_param_store_0_1_to_0_2(path: str | Path, revision: str) -> None:
-    """
-    Backup and migrate an InProcessParamStore JSON file from storing values to storing
-    Params containing the values. Preserves commits, timestamps and ids.
-
-    :param path: path to an existing JSON TinyDB file containing params.
-    """
-    old_version = "0.1"
-    new_version = "0.2"
-
-    path = str(path)
-    _check_version(path, old_version, new_version)
-    backup_path = _backup_file(path, revision)
-    # TODO: Support locking
-    with TinyDB(backup_path) as old_db:
-        old_commits = old_db.all()
-        old_temp = old_db.table(TEMP_TABLE).get(doc_id=TEMP_DOC_ID)
-    with TinyDB(path, storage=JSONPickleStorage) as new_db:
-        for old_commit in old_commits:
-            new_commit = copy.deepcopy(old_commit)
-            _wrap_params(new_commit)
-            _rename_ns(new_commit)
-            new_db.insert(new_commit)
-        if old_temp:
-            new_temp = copy.deepcopy(old_temp)
-            _wrap_params(new_temp)
-            _rename_ns(new_temp)
-            new_db.table(TEMP_TABLE).insert(new_temp)
-
-
-def _backup_file(path: str, revision: str):
-    backup_path = f"{path}.{revision}.bak"
-    shutil.move(path, backup_path)
-    return backup_path
-
-
-def _wrap_params(new_commit):
-    params = new_commit["params"]
-    for key in params.keys():
-        value = params[key]
-        if not isinstance(value, Param):
-            params[key] = Param(value)
-    new_commit["params"] = params
-
-
-def _rename_ns(new_commit):
-    timestamp = new_commit["metadata"]["ns"]
-    del new_commit["metadata"]["ns"]
-    new_commit["metadata"]["timestamp"] = timestamp

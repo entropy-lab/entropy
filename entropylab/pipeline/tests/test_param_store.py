@@ -533,7 +533,6 @@ def test_checkout_when_commit_id_exists_value_is_reverted(tinydb_file_path):
     target.checkout(commit_id)
     # assert
     assert target["foo"] == "bar"
-    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_exists_value_remains_the_same(tinydb_file_path):
@@ -545,7 +544,6 @@ def test_checkout_when_commit_id_exists_value_remains_the_same(tinydb_file_path)
     target.checkout(commit_id)
     # assert
     assert target["foo"] == "bar"
-    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
@@ -558,7 +556,6 @@ def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
     target.checkout(commit_id)
     # assert
     assert "baz" not in target
-    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_doesnt_exist_then_error_is_raised(tinydb_file_path):
@@ -577,7 +574,6 @@ def test_checkout_when_commit_num_exists_value_is_reverted(tinydb_file_path):
     target.checkout(commit_num=1)
     # assert
     assert target["foo"] == "bar"
-    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_tag_existed_in_commit_then_it_is_added_to_store(
@@ -647,32 +643,6 @@ def test_checkout_when_commit_num_doesnt_exist_error_is_raised(
     # act & assert
     with pytest.raises(EntropyError):
         target.checkout(commit_num=commit_num)
-
-
-@pytest.mark.parametrize(
-    "move_by, expected_val",
-    [
-        (-1, "foo"),
-        (0, "bar"),
-        (1, "baz"),
-    ],
-)
-def test_checkout_when_move_by_exists_value_is_reverted(
-    tinydb_file_path, move_by, expected_val
-):
-    # arrange
-    target = InProcessParamStore(tinydb_file_path)
-    target["val"] = "foo"
-    target.commit()
-    target["val"] = "bar"
-    commit_id = target.commit()
-    target["val"] = "baz"
-    target.commit()
-    target.checkout(commit_id)  # commit_num == 1
-    # act
-    target.checkout(move_by=move_by)
-    # assert
-    assert target["val"] == expected_val
 
 
 """ list_commits() """

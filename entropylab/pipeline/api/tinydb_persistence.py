@@ -130,15 +130,11 @@ class TinyDBPersistence:
         self,
         commit_id: Optional[str] = None,
         commit_num: Optional[int] = None,
-        move_by: Optional[int] = None,
     ) -> Optional[Commit]:
         if commit_id is not None:
             doc = self.__get_commit_by_id(commit_id)
         elif commit_num is not None:
             doc = self.__get_commit_by_num(commit_num)
-        elif move_by is not None:
-            current_pos = 0  # TODO: Implement this!
-            doc = self.__get_commit_by_move_by(current_pos, move_by)
         else:
             doc = self.__get_latest_doc()
         return self.__doc_to_commit(doc)
@@ -161,11 +157,6 @@ class TinyDBPersistence:
             if result is None:
                 raise EntropyError(f"Commit with number '{commit_num}' not found")
             return result
-
-    def __get_commit_by_move_by(self, current_pos: int, move_by: int) -> Document:
-        doc_id = current_pos + move_by
-        with self.__filelock:
-            return self.__db.get(doc_id=doc_id)
 
     def get_latest_commit(self) -> Optional[Commit]:
         with self.__filelock:
@@ -206,7 +197,7 @@ class TinyDBPersistence:
         doc = self.__build_document(commit)
         with self.__filelock:
             doc.doc_id = self.__next_doc_id()
-            doc_id = self.__db.insert(doc)
+            self.__db.insert(doc)
         return commit.id
 
     @staticmethod

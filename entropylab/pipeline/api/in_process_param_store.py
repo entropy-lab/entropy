@@ -52,8 +52,6 @@ class InProcessParamStore(ParamStore):
         super().__init__()
 
         self.__lock = threading.RLock()
-        self.__base_commit_id: Optional[str] = None  # last commit checked out/committed
-        self.__base_doc_id: Optional[int] = None  # tinydb document id of last commit...
         self.__params: Dict[str, Param] = dict()  # where current params are stored
         self.__tags: Dict[str, List[str]] = dict()  # tags that are mapped to keys
         self.__is_dirty: bool = False  # can the store be committed at this time?
@@ -318,22 +316,18 @@ class InProcessParamStore(ParamStore):
     #     return metadata
 
     def checkout(
-        self,
-        commit_id: Optional[str] = None,
-        commit_num: Optional[int] = None,
-        move_by: Optional[int] = None,
+        self, commit_id: Optional[str] = None, commit_num: Optional[int] = None
     ) -> None:
         with self.__lock:
-            commit = self.__persistence.get_commit(commit_id, commit_num, move_by)
+            commit = self.__persistence.get_commit(commit_id, commit_num)
             if commit:
                 self.__checkout(commit)
 
     def __checkout(self, commit: Commit):
         self.__params.clear()
         self.__params.update(commit.params)
-        self.__tags = commit.tags
-        self.__base_commit_id = commit.id
-        # self.__base_doc_id = commit.doc_id  # TODO: What to do with __base_doc_id?
+        self.__tags.clear()
+        self.__tags.update(commit.tags)
         self.__is_dirty = False
         self.__dirty_keys.clear()
 

@@ -22,7 +22,7 @@ from tinydb.table import Table, Document
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.param_store import _ns_to_datetime
-from entropylab.pipeline.api.persistence import Persistence
+from entropylab.pipeline.params.persistence.persistence import Persistence
 
 CURRENT_VERSION = "0.2"
 

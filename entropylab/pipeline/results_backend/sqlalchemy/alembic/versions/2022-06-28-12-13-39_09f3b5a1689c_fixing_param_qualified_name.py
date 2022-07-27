@@ -12,7 +12,7 @@ from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.in_process_param_store import (
     _set_version,
 )
-from entropylab.pipeline.api.migrations import fix_param_qualified_name
+from entropylab.pipeline.params.migrations import fix_param_qualified_name
 from entropylab.pipeline.results_backend.sqlalchemy.alembic.alembic_util import (
     AlembicUtil,
 )

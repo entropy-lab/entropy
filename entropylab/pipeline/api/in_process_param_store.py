@@ -13,7 +13,7 @@ from entropylab.pipeline.api.param_store import (
     Param,
     _ns_to_datetime,
 )
-from entropylab.pipeline.api.tinydb_persistence import (
+from entropylab.pipeline.params.persistence.tinydb_persistence import (
     TinyDBPersistence,
     Commit,
     Metadata,

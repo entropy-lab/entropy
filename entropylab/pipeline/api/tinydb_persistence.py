@@ -22,6 +22,7 @@ from tinydb.table import Table, Document
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.param_store import _ns_to_datetime
+from entropylab.pipeline.api.persistence import Persistence
 
 CURRENT_VERSION = "0.2"
 
@@ -95,7 +96,7 @@ class JSONPickleStorage(Storage):
         pass
 
 
-class TinyDBPersistence:
+class TinyDBPersistence(Persistence):
     def __init__(self, path: Optional[str] | Optional[Path] = None):
         if path is None:
             self.__is_in_memory_mode = True

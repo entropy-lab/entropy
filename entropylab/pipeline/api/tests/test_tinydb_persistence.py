@@ -1,4 +1,4 @@
-from entropylab.pipeline.params.persistence.tinydb_persistence import TinyDBPersistence
+from entropylab.pipeline.params.persistence.tinydb.tinydb_persistence import TinyDBPersistence
 
 
 """ __generate_commit_id() """

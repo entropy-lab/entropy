@@ -11,7 +11,8 @@ import shutil
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.params.migrations import migrate_param_store_0_1_to_0_2
-from entropylab.pipeline.params.persistence.tinydb_persistence import _set_version
+from entropylab.pipeline.params.persistence.tinydb.tinydb_persistence import \
+    _set_version
 from entropylab.pipeline.results_backend.sqlalchemy.alembic.alembic_util import (
     AlembicUtil,
 )

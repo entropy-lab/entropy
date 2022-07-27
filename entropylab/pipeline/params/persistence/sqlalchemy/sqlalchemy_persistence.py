@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from entropylab.pipeline.params.persistence.persistence import Persistence
-from entropylab.pipeline.params.persistence.sqlalchemy_model import Commit
+from entropylab.pipeline.params.persistence.sqlalchemy.sqlalchemy_model import Commit
 
 
 class SqlAlchemyPersistence(Persistence):

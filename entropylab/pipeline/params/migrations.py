@@ -8,7 +8,7 @@ from pathlib import Path
 from tinydb import TinyDB
 
 from entropylab.pipeline.api.param_store import Param
-from entropylab.pipeline.params.persistence.tinydb_persistence import (
+from entropylab.pipeline.params.persistence.tinydb.tinydb_persistence import (
     _check_version,
     JSONPickleStorage,
     TEMP_TABLE,

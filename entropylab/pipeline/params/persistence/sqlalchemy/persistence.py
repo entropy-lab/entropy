@@ -5,10 +5,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from entropylab.pipeline.params.persistence.persistence import Persistence
-from entropylab.pipeline.params.persistence.sqlalchemy.sqlalchemy_model import Commit
+from entropylab.pipeline.params.persistence.sqlalchemy.model import Commit
 
 
-class SqlAlchemyPersistence(Persistence):
+class Persistence(Persistence):
     def __init__(self, url: Optional[str] = None):
         self.__session_maker = sessionmaker(
             bind=create_engine(

@@ -8,14 +8,14 @@ from pathlib import Path
 from tinydb import TinyDB
 
 from entropylab.pipeline.api.param_store import Param
-from entropylab.pipeline.params.persistence.tinydb.tinydb_persistence import (
+from entropylab.pipeline.params.persistence.tinydb.persistence import (
     _check_version,
-    JSONPickleStorage,
     TEMP_TABLE,
     TEMP_DOC_ID,
     INFO_TABLE,
     INFO_DOC_ID,
 )
+from entropylab.pipeline.params.persistence.tinydb.storage import JSONPickleStorage
 
 
 def fix_param_qualified_name(path: str | Path, revision: str):

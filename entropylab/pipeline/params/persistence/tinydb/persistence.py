@@ -13,16 +13,16 @@ from pathlib import Path
 from random import SystemRandom
 from typing import Optional, Callable, List, Dict, Set
 
-import jsonpickle as jsonpickle
 from filelock import FileLock
 from tinydb import TinyDB, Query
-from tinydb.storages import Storage, MemoryStorage
+from tinydb.storages import MemoryStorage
 from tinydb.table import Table, Document
 
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.param_store import _ns_to_datetime
 from entropylab.pipeline.params.persistence.persistence import Persistence
+from entropylab.pipeline.params.persistence.tinydb.storage import JSONPickleStorage
 
 CURRENT_VERSION = "0.2"
 
@@ -64,39 +64,7 @@ class Metadata:
         return f"<Metadata({_dict_to_json(d)})>"
 
 
-class JSONPickleStorage(Storage):
-    def __init__(self, filename):
-        self.filename = filename
-
-    def read(self):
-        if not os.path.isfile(self.filename):
-            return None
-        with open(self.filename) as handle:
-            # noinspection PyBroadException
-            try:
-                s = handle.read()
-                data = jsonpickle.decode(s)
-                return data
-            except BaseException:
-                logger.exception(
-                    f"Exception decoding TinyDB JSON file '{self.filename}'"
-                )
-                return None
-
-    def write(self, data):
-        # noinspection PyBroadException
-        try:
-            with open(self.filename, "w+") as handle:
-                s = jsonpickle.encode(data)
-                handle.write(s)
-        except BaseException:
-            logger.exception(f"Exception encoding TinyDB JSON file '{self.filename}'")
-
-    def close(self):
-        pass
-
-
-class TinyDBPersistence(Persistence):
+class Persistence(Persistence):
     def __init__(self, path: Optional[str] | Optional[Path] = None):
         if path is None:
             self.__is_in_memory_mode = True

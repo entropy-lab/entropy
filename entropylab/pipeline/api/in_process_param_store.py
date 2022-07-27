@@ -13,8 +13,8 @@ from entropylab.pipeline.api.param_store import (
     Param,
     _ns_to_datetime,
 )
-from entropylab.pipeline.params.persistence.tinydb.tinydb_persistence import (
-    TinyDBPersistence,
+from entropylab.pipeline.params.persistence.tinydb.persistence import (
+    Persistence,
     Commit,
     Metadata,
 )
@@ -38,7 +38,7 @@ class InProcessParamStore(ParamStore):
         self.__params: Dict[str, Param] = dict()  # where current params are stored
         self.__tags: Dict[str, List[str]] = dict()  # tags that are mapped to keys
         self.__dirty_keys: Set[str] = set()  # updated keys not committed yet
-        self.__persistence = TinyDBPersistence(path)
+        self.__persistence = Persistence(path)
         self.checkout()
         if theirs is not None:
             self.merge(theirs, merge_strategy)

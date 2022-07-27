@@ -17,11 +17,11 @@ from entropylab.pipeline.api.in_process_param_store import (
 from entropylab.pipeline.api.param_store import Param, LOCAL_TZ, _ns_to_datetime
 from entropylab.pipeline.params.migrations import fix_param_qualified_name, \
     migrate_param_store_0_1_to_0_2
-from entropylab.pipeline.params.persistence.tinydb.tinydb_persistence import (
+from entropylab.pipeline.params.persistence.tinydb.persistence import (
     Metadata,
-    JSONPickleStorage,
     _set_version,
 )
+from entropylab.pipeline.params.persistence.tinydb.storage import JSONPickleStorage
 
 """ ctor """
 

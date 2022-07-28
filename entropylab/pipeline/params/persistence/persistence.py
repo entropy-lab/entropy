@@ -16,7 +16,9 @@ class Persistence(ABC):
         pass
 
     @abstractmethod
-    def get_commit(self, commit_id, commit_num):
+    def get_commit(
+        self, commit_id: Optional[str] = None, commit_num: Optional[int] = None
+    ):
         pass
 
     @abstractmethod

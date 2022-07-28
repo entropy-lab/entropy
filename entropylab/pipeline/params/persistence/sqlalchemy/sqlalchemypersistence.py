@@ -26,7 +26,11 @@ class SqlAlchemyPersistence(Persistence):
 
     def get_latest_commit(self):
         with self.__session_maker() as session:
-            commit = session.query(CommitTable).order_by(CommitTable.timestamp.desc()).first()
+            commit = (
+                session.query(CommitTable)
+                .order_by(CommitTable.timestamp.desc())
+                .first()
+            )
             return commit
 
     def commit(self, commit, label, dirty_keys):

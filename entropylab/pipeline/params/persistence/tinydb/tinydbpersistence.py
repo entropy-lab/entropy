@@ -20,7 +20,6 @@ from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.params.persistence.persistence import (
     Persistence,
     Commit,
-    Metadata,
 )
 from entropylab.pipeline.params.persistence.tinydb.storage import JSONPickleStorage
 
@@ -164,7 +163,7 @@ class TinyDbPersistence(Persistence):
         :param commit:
         :return: a dictionary describing the current state of the ParamStore
         """
-        metadata = self.__build_metadata(commit)
+        metadata = commit.to_metadata()
         if self.__is_in_memory_mode:
             params = copy.deepcopy(commit.params)
         else:
@@ -173,14 +172,6 @@ class TinyDbPersistence(Persistence):
             dict(metadata=metadata.__dict__, params=params, tags=commit.tags),
             doc_id=0,
         )
-
-    @staticmethod
-    def __build_metadata(commit: Commit) -> Metadata:
-        metadata = Metadata()
-        metadata.id = commit.id
-        metadata.timestamp = commit.timestamp
-        metadata.label = commit.label
-        return metadata
 
     def __next_doc_id(self):
         with self.__filelock:

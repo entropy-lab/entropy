@@ -217,11 +217,10 @@ class InProcessParamStore(ParamStore):
         self.__tags.update(commit.tags)
         self.__dirty_keys.clear()
 
-    # TODO: Remove Metadata from ParamStore API? Isn't it a TinyDB impl. detail?
     def list_commits(self, label: Optional[str] = None) -> List[Metadata]:
         with self.__lock:
             commits = self.__persistence.search_commits(label)
-            metadata = map(_commit_to_metadata, commits)
+            metadata = map(Commit.to_metadata, commits)
             return list(metadata)
 
     """ Merge """
@@ -263,9 +262,9 @@ class InProcessParamStore(ParamStore):
                         and isinstance(b, ParamStore)
                     ):
                         """if the dictionary in a has been changed, this was done
-                        in-place. We therefore need mark the Param key as dirty. We only
-                        do this at the very top of the recursion - when a and b are the
-                        ParamStores being merged"""
+                        in-place. We therefore need to mark the Param key as dirty. We
+                        only do this at the very top of the recursion - when a and b
+                        are the ParamStores being merged"""
                         self.__dirty_keys.add(key)
                 elif a[key] == b[key]:
                     pass  # same leaf values, nothing to do
@@ -409,14 +408,6 @@ class InProcessParamStore(ParamStore):
 
 
 """ Static helper methods """
-
-
-def _commit_to_metadata(commit: Commit) -> Metadata:
-    metadata = Metadata()
-    metadata.id = commit.id
-    metadata.timestamp = commit.timestamp
-    metadata.label = commit.label
-    return metadata
 
 
 def _map_dict(f, d: Dict) -> Dict:

@@ -46,7 +46,7 @@ def sqlite_jsonb(element, compiler, **kw):
 """ SqlAlchemy ORM model for ParamStore """
 
 
-class Commit(Base):
+class CommitTable(Base):
     __tablename__ = "commit"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     timestamp = Column(

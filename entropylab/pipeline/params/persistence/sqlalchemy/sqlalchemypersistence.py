@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from entropylab.pipeline.params.persistence.persistence import Persistence
-from entropylab.pipeline.params.persistence.sqlalchemy.model import Commit
+from entropylab.pipeline.params.persistence.sqlalchemy.model import CommitTable
 
 
 class SqlAlchemyPersistence(Persistence):
@@ -26,7 +26,7 @@ class SqlAlchemyPersistence(Persistence):
 
     def get_latest_commit(self):
         with self.__session_maker() as session:
-            commit = session.query(Commit).order_by(Commit.timestamp.desc()).first()
+            commit = session.query(CommitTable).order_by(CommitTable.timestamp.desc()).first()
             return commit
 
     def commit(self, commit, label, dirty_keys):

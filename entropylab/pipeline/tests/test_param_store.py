@@ -15,13 +15,13 @@ from entropylab.pipeline.api.in_process_param_store import (
     MergeStrategy,
 )
 from entropylab.pipeline.api.param_store import Param, LOCAL_TZ, _ns_to_datetime
-from entropylab.pipeline.params.migrations import fix_param_qualified_name, \
+from entropylab.pipeline.params.persistence.migrations import fix_param_qualified_name, \
     migrate_param_store_0_1_to_0_2
-from entropylab.pipeline.params.persistence.tinydb.persistence import (
-    Metadata,
+from entropylab.pipeline.params.persistence.persistence import Metadata
+from entropylab.pipeline.params.persistence.tinydb.storage import JSONPickleStorage
+from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import (
     _set_version,
 )
-from entropylab.pipeline.params.persistence.tinydb.storage import JSONPickleStorage
 
 """ ctor """
 

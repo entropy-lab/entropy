@@ -8,7 +8,7 @@ from entropylab.pipeline.params.persistence.persistence import Persistence
 from entropylab.pipeline.params.persistence.sqlalchemy.model import Commit
 
 
-class Persistence(Persistence):
+class SqlAlchemyPersistence(Persistence):
     def __init__(self, url: Optional[str] = None):
         self.__session_maker = sessionmaker(
             bind=create_engine(

@@ -6,8 +6,6 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import expression
 
-from entropylab.pipeline.params.persistence.persistence import Commit
-
 Base = declarative_base()
 
 """ Auto-generate UTC timestamp in PostgreSQL """
@@ -43,6 +41,11 @@ def sqlite_uuid(element, compiler, **kw):
 @compiles(JSONB, "sqlite")
 def sqlite_jsonb(element, compiler, **kw):
     return "JSON"
+
+
+@compiles(DateTime, "sqlite")
+def sqlite_jsonb(element, compiler, **kw):
+    return "TEXT"
 
 
 """ SqlAlchemy ORM model for ParamStore """

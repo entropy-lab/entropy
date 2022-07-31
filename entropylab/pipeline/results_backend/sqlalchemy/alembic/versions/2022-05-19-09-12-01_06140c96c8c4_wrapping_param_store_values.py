@@ -32,7 +32,7 @@ def upgrade():
     )
     try:
         migrate_param_store_0_1_to_0_2(path, revision)
-        _set_version(path, 0.2, revision)
+        _set_version(path, "0.2", revision)
     except EntropyError as ee:
         logger.warning(str(ee))
     logger.debug("Done migrating from v0.1 to v0.2")

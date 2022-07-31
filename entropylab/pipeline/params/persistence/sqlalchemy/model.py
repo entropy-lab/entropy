@@ -6,6 +6,8 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import expression
 
+from entropylab.pipeline.params.persistence.persistence import Commit
+
 Base = declarative_base()
 
 """ Auto-generate UTC timestamp in PostgreSQL """

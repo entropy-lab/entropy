@@ -26,7 +26,7 @@ def target(tmp_path) -> SqlAlchemyPersistence:
 def test_get_commit_when_commit_id_exists_then_commit_is_returned(target):
     commit_id = "f74c808e-2388-4b0a-a051-17eb9eb14339"
     with target.engine.connect() as connection:
-        result = connection.execute(
+        connection.execute(
             text(
                 "INSERT INTO 'commit' VALUES "
                 f"('{commit_id}', '{pd.Timestamp.now()}', 'bar', '0', '0');"
@@ -46,7 +46,7 @@ def test_get_commit_when_commit_num_exists_then_commit_is_returned(target):
     commit_id2 = "f74c808e-2388-4b0a-a051-17eb9eb22222"
     commit_id3 = "f74c808e-2388-4b0a-a051-17eb9eb33333"
     with target.engine.connect() as connection:
-        result = connection.execute(
+        connection.execute(
             text(
                 "INSERT INTO 'commit' VALUES "
                 f"('{commit_id1}', '{pd.Timestamp.now()}', 'bar', '0', '0'),"
@@ -61,4 +61,4 @@ def test_get_commit_when_commit_num_exists_then_commit_is_returned(target):
 def test_get_commit_when_commit_num_does_not_exist_then_error_is_raised(target):
     # engine = create_engine(url)
     with pytest.raises(EntropyError):
-        target.get_commit(commit_num=2) is None
+        target.get_commit(commit_num=2)

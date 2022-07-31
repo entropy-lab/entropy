@@ -14,6 +14,9 @@ from entropylab.pipeline.api.param_store import (
     _ns_to_datetime,
 )
 from entropylab.pipeline.params.persistence.persistence import Commit, Metadata
+from entropylab.pipeline.params.persistence.sqlalchemy.sqlalchemypersistence import (
+    SqlAlchemyPersistence,
+)
 from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import (
     TinyDbPersistence,
 )
@@ -29,6 +32,7 @@ class InProcessParamStore(ParamStore):
     def __init__(
         self,
         path: Optional[str] | Optional[Path] = None,
+        url: Optional[str] | Optional[Path] = None,
         theirs: Optional[Dict | ParamStore] = None,
         merge_strategy: Optional[MergeStrategy] = MergeStrategy.THEIRS,
     ):
@@ -37,7 +41,13 @@ class InProcessParamStore(ParamStore):
         self.__params: Dict[str, Param] = dict()  # where current params are stored
         self.__tags: Dict[str, List[str]] = dict()  # tags that are mapped to keys
         self.__dirty_keys: Set[str] = set()  # updated keys not committed yet
-        self.__persistence = TinyDbPersistence(path)
+        if path:
+            self.__persistence = TinyDbPersistence(path)
+        elif url:
+            self.__persistence = SqlAlchemyPersistence(url)
+        else:
+            self.__persistence = TinyDbPersistence()
+
         self.checkout()
         if theirs is not None:
             self.merge(theirs, merge_strategy)
@@ -198,7 +208,7 @@ class InProcessParamStore(ParamStore):
                 params=self.__params,
                 tags=self.__tags,
             )
-            commit_id = self.__persistence.commit(commit, label, self.__dirty_keys)
+            commit_id = self.__persistence.commit(commit, self.__dirty_keys)
             self.__dirty_keys.clear()
             return commit_id
 

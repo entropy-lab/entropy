@@ -124,11 +124,10 @@ class TinyDbPersistence(Persistence):
     def commit(
         self,
         commit: Commit,
-        label: Optional[str] = None,
         dirty_keys: Optional[Set[str]] = None,
     ) -> str:
         commit.id = self.__generate_commit_id()
-        commit.label = label
+        # TODO: Perhaps create the timestamp here?
         self.stamp_dirty_params_with_commit(commit, dirty_keys)
         doc = self.__build_document(commit)
         with self.__filelock:

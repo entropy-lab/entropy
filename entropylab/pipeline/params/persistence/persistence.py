@@ -29,7 +29,6 @@ class Persistence(ABC):
     def commit(
         self,
         commit: Commit,
-        label: Optional[str] = None,
         dirty_keys: Optional[Set[str]] = None,
     ) -> str:
         pass

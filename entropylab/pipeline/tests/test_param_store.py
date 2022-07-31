@@ -3,9 +3,12 @@ from datetime import datetime
 from datetime import timedelta
 from pprint import pprint
 from time import sleep
+from typing import Callable
 
 import pandas as pd
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Query
 from tinydb import TinyDB
 
 from entropylab.conftest import _copy_template, Process
@@ -20,35 +23,67 @@ from entropylab.pipeline.params.persistence.migrations import (
     migrate_param_store_0_1_to_0_2,
 )
 from entropylab.pipeline.params.persistence.persistence import Metadata
+from entropylab.pipeline.params.persistence.sqlalchemy.model import Base
 from entropylab.pipeline.params.persistence.tinydb.storage import JSONPickleStorage
-from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import (
-    _set_version,
-)
+
+""" Test fixtures """
+
+# The two test fixtures below will provide test targets (ParamStore instances) to any
+# test that requests them. By default, all 3 possible test targets are provided:
+
+DB_SQLITE = "DbParamStore with empty Sqlite DB file"
+TINY_JSON_FILE = "InProcessParamStore with empty TinyDB JSON file"
+TINY_IN_MEMORY = "InProcessParamStore in in-memory mode"
+
+# Alternatively, test authors can pick and choose specific test targets like so:
+# @pytest.mark.parametrize("create_target", [TINY_JSON_FILE, DB_SQLITE], indirect=True)
+
+
+@pytest.fixture()
+def target(create_target) -> InProcessParamStore:
+    return create_target()
+
+
+@pytest.fixture(params=[TINY_IN_MEMORY, TINY_JSON_FILE, DB_SQLITE])
+def create_target(request, tmp_path) -> Callable[[], InProcessParamStore]:
+    if request.param == TINY_IN_MEMORY:
+        yield lambda: InProcessParamStore()
+    elif request.param == TINY_JSON_FILE:
+        file_path = tmp_path / "tiny_db.json"
+        yield lambda: InProcessParamStore(file_path)
+    else:
+        file_path = tmp_path / "sqlite.db"
+        url = f"sqlite:///{file_path}"
+        engine = create_engine(url)
+        Base.metadata.create_all(engine)
+        yield lambda: InProcessParamStore(url=url)
+        # "sqlite:///:memory:"
+        # "postgresql://test_param_store:kf7yFdNYVjtQQ9H6j5QB@localhost/paramstore1"
+
 
 """ ctor """
 
 
-def test_ctor_when_store_is_empty_then_is_dirty_is_false():
-    target = InProcessParamStore()
+def test_ctor_when_store_is_empty_then_is_dirty_is_false(target):
     assert target.is_dirty is False
 
 
-def test_ctor_when_store_is_empty_then_latest_commit_is_checked_out(tinydb_file_path):
+@pytest.mark.parametrize("create_target", [TINY_JSON_FILE, DB_SQLITE], indirect=True)
+def test_ctor_checks_out_latest_commit(create_target):
     # arrange
-    with InProcessParamStore(tinydb_file_path) as param_store:
-        param_store.foo = "bar"
+    with create_target() as param_store:
+        param_store["foo"] = "bar"
         param_store.commit()
     # act
-    target = InProcessParamStore(tinydb_file_path)
+    target = create_target()
     # assert
-    assert target.foo == "bar"
+    assert target["foo"] == "bar"
 
 
 """ MutableMapping """
 
 
-def test___iter___works():
-    target = InProcessParamStore()
+def test___iter___works(target):
     target["foo"] = "bar"
     target["baz"] = "buzz"
     actual = iter(target)
@@ -56,74 +91,64 @@ def test___iter___works():
     assert next(actual) == "baz"
 
 
-def test___len___works():
-    target = InProcessParamStore()
+def test___len___works(target):
     target["foo"] = "bar"
     target["baz"] = "buzz"
     assert len(target) == 2
 
 
-def test___contains___works():
-    target = InProcessParamStore()
+def test___contains___works(target):
     target["foo"] = "bar"
     assert "foo" in target
 
 
-def test___getattr___works():
-    target = InProcessParamStore()
+def test___getattr___works(target):
     target["foo"] = "bar"
     assert target.foo == "bar"
 
 
-def test___setattr___works():
-    target = InProcessParamStore()
+def test___setattr___works(target):
     target.foo = "bar"
     assert target["foo"] == "bar"
 
 
-def test___getitem___when_key_is_present_then_value_is_returned():
-    target = InProcessParamStore()
+def test___getitem___when_key_is_present_then_value_is_returned(target):
     target["foo"] = "bar"
     assert target["foo"] == "bar"
 
 
-def test___getitem___when_key_is_missing_then_keyerror_is_raised():
-    target = InProcessParamStore()
+def test___getitem___when_key_is_missing_then_keyerror_is_raised(target):
     with pytest.raises(KeyError):
         # noinspection PyStatementEffect
         target["foo"]
 
 
-def test___getitem___when_key_is_none_then_keyerror_is_raised():
-    target = InProcessParamStore()
+def test___getitem___when_key_is_none_then_keyerror_is_raised(target):
     with pytest.raises(KeyError):
         # noinspection PyTypeChecker,PyStatementEffect
         target[None]
 
 
-def test___getitem___when_key_starts_with_underscore_then_keyerror_is_raised():
-    target = InProcessParamStore()
+def test___getitem___when_key_starts_with_underscore_then_keyerror_is_raised(target):
     with pytest.raises(KeyError):
         # noinspection PyTypeChecker,PyStatementEffect
         target["_base_doc_id"]
 
 
-def test___setitem___when_key_starts_with_underscore_then_key_can_be_retrieved():
-    target = InProcessParamStore()
+def test___setitem___when_key_starts_with_underscore_then_key_can_be_retrieved(target):
     target["_base_doc_id"] = "bar"
     bar = target["_base_doc_id"]
     assert bar == "bar"
 
 
-def test___setitem___when_key_starts_with_dunder_then_key_is_not_saved_to_db(
-    tinydb_file_path,
-):
-    with InProcessParamStore(tinydb_file_path) as target:
-        target.__foo = "bar"
-        target.foo = "baz"
-        target.commit()
-    with open(tinydb_file_path) as f:
-        assert "__foo" not in f.read()
+def test___setitem___when_key_starts_with_dunder_then_key_is_not_saved_to_db(target):
+    target.__foo = "bar"
+    target.commit()
+    del target.__foo
+    target.checkout()
+    with pytest.raises(AttributeError):
+        # noinspection PyStatementEffect
+        target.__foo
 
 
 def test___setitem___when_saving_dict_then_only_entire_dict_is_wrapped_in_param(
@@ -137,15 +162,13 @@ def test___setitem___when_saving_dict_then_only_entire_dict_is_wrapped_in_param(
     assert doc["params"]["foo"] == Param(dict(bar="baz"))
 
 
-def test___delitem__():
-    target = InProcessParamStore()
+def test___delitem__(target):
     target["foo"] = "bar"
     del target["foo"]
     assert "foo" not in target
 
 
-def test___delitem___when_key_is_deleted_then_it_is_removed_from_tags_too():
-    target = InProcessParamStore()
+def test___delitem___when_key_is_deleted_then_it_is_removed_from_tags_too(target):
     target["foo"] = "bar"
     target["goo"] = "baz"
     target.add_tag("tag", "foo")
@@ -155,11 +178,10 @@ def test___delitem___when_key_is_deleted_then_it_is_removed_from_tags_too():
     assert target.list_keys_for_tag("tag") == ["goo"]
 
 
-def test___repr__():
-    target = InProcessParamStore()
+def test___repr__(target):
     target["foo"] = "bar"
     actual = target.__repr__()
-    assert actual == "<InProcessParamStore({'foo': 'bar'})>"
+    assert "{'foo': 'bar'}" in actual
 
 
 """ get() """
@@ -450,11 +472,11 @@ def test_commit_when_body_is_empty_does_not_throw(tinydb_file_path):
     assert len(target.commit()) == 40
 
 
-def test_commit_when_committing_non_dirty_then_new_commit_id_is_creat(tinydb_file_path):
+def test_commit_when_committing_non_dirty_does_nothing(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     first = target.commit()
     second = target.commit()
-    assert first != second
+    assert first == second
 
 
 def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
@@ -476,23 +498,19 @@ def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
 
 
 def test_commit_when_label_is_not_given_then_null_label_is_saved(tinydb_file_path):
-    # arrange
     target = InProcessParamStore(tinydb_file_path)
     target.foo = "bar"
-    # act
-    target.commit()
-    # assert
-    commits = target.list_commits()
-    assert commits[0].label is None
+    commit_id = target.commit()
+    result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
+    assert result[0]["metadata"]["label"] is None
 
 
 def test_commit_when_label_is_given_then_label_is_saved(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     target.foo = "bar"
-    target.commit("baz")
-    # assert
-    commits = target.list_commits()
-    assert commits[0].label == "baz"
+    commit_id = target.commit("foo")
+    result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
+    assert result[0]["metadata"]["label"] == "foo"
 
 
 def test_commit_assert_changed_values_are_stamped_with_commit_id(tinydb_file_path):
@@ -535,6 +553,7 @@ def test_checkout_when_commit_id_exists_value_is_reverted(tinydb_file_path):
     target.checkout(commit_id)
     # assert
     assert target["foo"] == "bar"
+    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_exists_value_remains_the_same(tinydb_file_path):
@@ -546,6 +565,7 @@ def test_checkout_when_commit_id_exists_value_remains_the_same(tinydb_file_path)
     target.checkout(commit_id)
     # assert
     assert target["foo"] == "bar"
+    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
@@ -558,6 +578,7 @@ def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
     target.checkout(commit_id)
     # assert
     assert "baz" not in target
+    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_doesnt_exist_then_error_is_raised(tinydb_file_path):
@@ -576,6 +597,7 @@ def test_checkout_when_commit_num_exists_value_is_reverted(tinydb_file_path):
     target.checkout(commit_num=1)
     # assert
     assert target["foo"] == "bar"
+    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_tag_existed_in_commit_then_it_is_added_to_store(
@@ -664,7 +686,7 @@ def test_list_commits_no_args_returns_all_metadata(
     # act
     actual = target.list_commits()
     # assert
-    # assert all(type(m) == Metadata for m in actual)
+    assert all(type(m) == Metadata for m in actual)
     assert actual[0].label == "first"
     assert actual[1].label == "second"
     assert actual[2].label == "third"
@@ -692,7 +714,17 @@ def test_list_commits_when_label_exists_then_it_is_returned(
     # assert
     assert all(type(m) == Metadata for m in actual)
     assert all("label" in m.label for m in actual)
-    assert len(actual) == 1
+    assert len(actual) == 3
+
+
+""" __generate_commit_id() """
+
+
+def test__generate_commit_id():
+    target = InProcessParamStore()
+    commit_id1 = target._InProcessParamStore__generate_commit_id()
+    commit_id2 = target._InProcessParamStore__generate_commit_id()
+    assert commit_id1 != commit_id2
 
 
 """ merge() MergeStrategy.OURS """
@@ -1110,10 +1142,11 @@ def test_demo(tinydb_file_path):
 
 def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
     # arrange
-    _copy_template("migrate_param_store_0_1_to_0_2.json", tinydb_file_path, request)
+    _copy_template(
+        "../../tests/migrate_param_store_0_1_to_0_2.json", tinydb_file_path, request
+    )
     # act
     migrate_param_store_0_1_to_0_2(tinydb_file_path, "test_param_store.py")
-    _set_version(tinydb_file_path, "0.2", "test")
     # assert
     param_store = InProcessParamStore(tinydb_file_path)
     # checkout unharmed
@@ -1133,16 +1166,15 @@ def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
 
 def test_fix_param_qualified_name(tinydb_file_path, request):
     # arrange
-    _copy_template("fix_param_qualified_name.json", tinydb_file_path, request)
+    _copy_template(
+        "../../tests/fix_param_qualified_name.json", tinydb_file_path, request
+    )
     # act
     fix_param_qualified_name(tinydb_file_path, "test_param_store.py")
     # assert
-    with TinyDB(tinydb_file_path) as tinydb:
-        doc = tinydb.get(doc_id=1)
-        assert (
-            doc["params"]["q0_f_if_01"]["py/object"]
-            == "entropylab.pipeline.api.param_store.Param"
-        )
+    param_store = InProcessParamStore(tinydb_file_path)
+    actual = param_store["q0_f_if_01"]
+    assert actual == 90000000.0
 
 
 """ class Param """
@@ -1214,6 +1246,6 @@ def test_multi_processes_do_not_conflict(tinydb_file_path):
 
 
 def test__ns_to_datetime():
-    expected = pd.Timestamp(ts_input="2022-07-10 11:40:37.233137200+0300", tz=LOCAL_TZ)
+    expected = pd.Timestamp("2022-07-10 11:40:37.233137200+0300", tz=LOCAL_TZ)
     actual = _ns_to_datetime(1657442437233137200)
     assert actual == expected

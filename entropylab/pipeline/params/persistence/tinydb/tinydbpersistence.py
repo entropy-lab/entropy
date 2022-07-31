@@ -5,7 +5,6 @@ import copy
 import hashlib
 import os
 import string
-from datetime import timedelta
 from pathlib import Path
 from random import SystemRandom
 from typing import Optional, Callable, List, Set
@@ -130,7 +129,7 @@ class TinyDbPersistence(Persistence):
     ) -> str:
         commit.id = self.__generate_commit_id()
         commit.label = label
-        self.__stamp_dirty_params_with_commit(commit, dirty_keys)
+        self.stamp_dirty_params_with_commit(commit, dirty_keys)
         doc = self.__build_document(commit)
         with self.__filelock:
             doc.doc_id = self.__next_doc_id()
@@ -138,24 +137,11 @@ class TinyDbPersistence(Persistence):
         return commit.id
 
     @staticmethod
-    def __generate_commit_id():
+    def __generate_commit_id() -> str:
         random_string = "".join(
             SystemRandom().choice(string.printable) for _ in range(32)
         ).encode("utf-8")
         return hashlib.sha1(random_string).hexdigest()
-
-    @staticmethod
-    def __stamp_dirty_params_with_commit(
-        commit: Commit, dirty_keys: Optional[Set[str]] = None
-    ):
-        if dirty_keys:
-            for key in dirty_keys:
-                if key in commit.params:
-                    param = commit.params[key]
-                    param.commit_id = commit.id
-                    if isinstance(param.expiration, timedelta):
-                        expiration_in_ns = param.expiration.total_seconds() * 1e9
-                        param.expiration = commit.timestamp + expiration_in_ns
 
     def __build_document(self, commit: Commit) -> Document:
         """

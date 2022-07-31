@@ -4,8 +4,8 @@ import json
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Dict, Optional
+from datetime import datetime, timedelta
+from typing import Dict, Optional, Set
 
 from entropylab.pipeline.api.param_store import _ns_to_datetime
 
@@ -40,6 +40,19 @@ class Persistence(ABC):
     @abstractmethod
     def load_temp_commit(self):
         pass
+
+    @staticmethod
+    def stamp_dirty_params_with_commit(
+        commit: Commit, dirty_keys: Optional[Set[str]] = None
+    ):
+        if dirty_keys:
+            for key in dirty_keys:
+                if key in commit.params:
+                    param = commit.params[key]
+                    param.commit_id = commit.id
+                    if isinstance(param.expiration, timedelta):
+                        expiration_in_ns = param.expiration.total_seconds() * 1e9
+                        param.expiration = commit.timestamp + expiration_in_ns
 
 
 @dataclass

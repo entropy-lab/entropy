@@ -1,3 +1,4 @@
+import uuid
 from typing import Optional
 
 import jsonpickle
@@ -62,7 +63,17 @@ class SqlAlchemyPersistence(Persistence):
             return commit
 
     def commit(self, commit, label, dirty_keys):
-        pass
+        commit.id = self.__generate_commit_id()
+        commit.label = label
+        self.stamp_dirty_params_with_commit(commit, dirty_keys)
+        with self.__session_maker() as session:
+            session.add(commit)
+            session.commit()
+            return commit.id
+
+    @staticmethod
+    def __generate_commit_id() -> str:
+        return str(uuid.uuid4())
 
     def search_commits(self, label, key):
         pass

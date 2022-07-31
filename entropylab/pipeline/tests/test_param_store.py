@@ -68,6 +68,7 @@ def test_ctor_when_store_is_empty_then_is_dirty_is_false(target):
     assert target.is_dirty is False
 
 
+# noinspection PyCallingNonCallable
 @pytest.mark.parametrize("create_target", [TINY_JSON_FILE, DB_SQLITE], indirect=True)
 def test_ctor_checks_out_latest_commit(create_target):
     # arrange
@@ -493,14 +494,14 @@ def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
 def test_commit_when_label_is_not_given_then_null_label_is_saved(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     target.foo = "bar"
-    commit_id = target.commit()
+    target.commit()
     assert target.list_commits()[0].label is None
 
 
 def test_commit_when_label_is_given_then_label_is_saved(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     target.foo = "bar"
-    commit_id = target.commit("foo")
+    target.commit("foo")
     assert target.list_commits()[0].label == "foo"
 
 
@@ -515,20 +516,22 @@ def test_commit_assert_changed_values_are_stamped_with_commit_id(tinydb_file_pat
     # act
     commit_id2 = target.commit()
     # assert
-    target.get_param("foo").commit_id == commit_id1
-    target.get_param("bar").commit_id == commit_id2
-    target.get_param("baz").commit_id == commit_id2
+    assert target.get_param("foo").commit_id == commit_id1
+    assert target.get_param("bar").commit_id == commit_id2
+    assert target.get_param("baz").commit_id == commit_id2
 
 
-def test_commit_assert_param_expiration_is_converted_to_timestamp_int(tinydb_file_path):
+def test_commit_assert_param_expiration_is_converted_to_pd_timestamp(tinydb_file_path):
     # arrange
     target = InProcessParamStore(tinydb_file_path)
-    now = time.time_ns()
+    now = pd.Timestamp(time.time_ns())
     target.set_param("foo", 42, expiration=timedelta(hours=5))
     # act
     target.commit()
+    actual = target.get_param("foo").expiration
     # assert
-    assert target.get_param("foo").expiration >= now + (5 * 1e9)
+    assert isinstance(actual, pd.Timestamp)
+    assert actual >= now + pd.Timedelta(hours=5)
 
 
 """ checkout() """
@@ -579,7 +582,7 @@ def test_checkout_when_commit_num_exists_value_is_reverted(tinydb_file_path):
     # arrange
     target = InProcessParamStore(tinydb_file_path)
     target["foo"] = "bar"
-    commit_id = target.commit()
+    target.commit()
     target["foo"] = "baz"
     # act
     target.checkout(commit_num=1)
@@ -1050,8 +1053,7 @@ def test_list_tags_for_key_when_key_does_not_exist_then_empty_list_is_returned()
 """ temp """
 
 
-def test_save_temp_and_load_temp(tinydb_file_path):
-    target = InProcessParamStore(tinydb_file_path)
+def test_save_temp_and_load_temp(target):
     target.foo = "bar"
     target.save_temp()
     target.foo = "baz"
@@ -1060,9 +1062,8 @@ def test_save_temp_and_load_temp(tinydb_file_path):
 
 
 def test_load_temp_when_save_temp_not_called_before_then_error_is_raised(
-    tinydb_file_path,
+    target
 ):
-    target = InProcessParamStore(tinydb_file_path)
     with pytest.raises(EntropyError):
         target.load_temp()
 
@@ -1070,8 +1071,7 @@ def test_load_temp_when_save_temp_not_called_before_then_error_is_raised(
 """ demo test """
 
 
-def test_demo(tinydb_file_path):
-    target = InProcessParamStore(tinydb_file_path)
+def test_demo(target):
     target["qubit1.flux_capacitor.freq"] = 8.0
     target["qubit1.flux_capacitor.amp"] = 5.0
     target["qubit1.flux_capacitor"] = {"wave": "manifold", "warp": 1337.0}
@@ -1193,7 +1193,7 @@ def set_foo_and_commit(path, name: str, num_of_commits: int):
             target.commit(name)
 
 
-# TODO: Re-enable this test before PR
+# TODO: Re-enable this test before PR and adapt to SqlAlchemyPersistence
 @pytest.mark.skip("Temporarily disabled because it's too slow for auto-test")
 def test_multi_processes_do_not_conflict(tinydb_file_path):
     # arrange
@@ -1224,6 +1224,7 @@ def test_multi_processes_do_not_conflict(tinydb_file_path):
 
 
 def test__ns_to_datetime():
+    # noinspection PyTypeChecker
     expected = pd.Timestamp("2022-07-10 11:40:37.233137200+0300", tz=LOCAL_TZ)
     actual = _ns_to_datetime(1657442437233137200)
     assert actual == expected

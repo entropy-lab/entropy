@@ -162,12 +162,13 @@ class ParamStore(ABC, MutableMapping):
         pass
 
 
+# TODO: Convert to dataclass
 class Param(Dict):
     def __init__(self, value):
         super().__init__()
         self.value: object = value
         self.commit_id: Optional[str] = None
-        self.expiration: Optional[timedelta | int] = None
+        self.expiration: Optional[timedelta | pd.Timestamp] = None
         self.description: Optional[str] = None
         self.node_id: Optional[str] = None
 
@@ -175,15 +176,8 @@ class Param(Dict):
         return (
             f"<Param(value={self.value}, "
             f"commit_id={self.commit_id}, "
-            f"expiration={self.__expiration_repr})> "
+            f"expiration={self.expiration})> "
         )
-
-    @property
-    def __expiration_repr(self):
-        if isinstance(self.expiration, int):
-            return _ns_to_datetime(self.expiration)
-        else:
-            return False
 
     @property
     def has_expired(self):
@@ -191,8 +185,8 @@ class Param(Dict):
         Indicates whether the Param value has expired. Returns True iff the Param
         has been committed and the time elapsed since the commit operation has exceeded
         the time recorded in the `expiration` property"""
-        if isinstance(self.expiration, int):
-            return self.expiration < time.time_ns()
+        if isinstance(self.expiration, pd.Timestamp):
+            return self.expiration < pd.Timestamp(time.time_ns())
         else:
             return False
 

@@ -2,7 +2,6 @@ import uuid
 from typing import Optional, Set, List
 
 import jsonpickle
-import pandas as pd
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -73,7 +72,7 @@ class SqlAlchemyPersistence(Persistence):
         self.stamp_dirty_params_with_commit(commit, dirty_keys)
         commit_table = CommitTable(
             id=commit.id,
-            timestamp=pd.Timestamp(commit.timestamp),
+            timestamp=commit.timestamp,
             label=commit.label,
             params=commit.params,
             tags=commit.tags,

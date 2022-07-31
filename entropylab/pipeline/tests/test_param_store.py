@@ -8,7 +8,6 @@ from typing import Callable
 import pandas as pd
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Query
 from tinydb import TinyDB
 
 from entropylab.conftest import _copy_template, Process
@@ -25,6 +24,7 @@ from entropylab.pipeline.params.persistence.migrations import (
 from entropylab.pipeline.params.persistence.persistence import Metadata
 from entropylab.pipeline.params.persistence.sqlalchemy.model import Base
 from entropylab.pipeline.params.persistence.tinydb.storage import JSONPickleStorage
+from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import _set_version
 
 """ Test fixtures """
 
@@ -472,13 +472,6 @@ def test_commit_when_body_is_empty_does_not_throw(tinydb_file_path):
     assert len(target.commit()) == 40
 
 
-def test_commit_when_committing_non_dirty_does_nothing(tinydb_file_path):
-    target = InProcessParamStore(tinydb_file_path)
-    first = target.commit()
-    second = target.commit()
-    assert first == second
-
-
 def test_commit_when_committing_same_state_twice_a_different_id_is_returned(
     tinydb_file_path,
 ):
@@ -501,16 +494,14 @@ def test_commit_when_label_is_not_given_then_null_label_is_saved(tinydb_file_pat
     target = InProcessParamStore(tinydb_file_path)
     target.foo = "bar"
     commit_id = target.commit()
-    result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
-    assert result[0]["metadata"]["label"] is None
+    assert target.list_commits()[0].label is None
 
 
 def test_commit_when_label_is_given_then_label_is_saved(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     target.foo = "bar"
     commit_id = target.commit("foo")
-    result = target._InProcessParamStore__db.search(Query().metadata.id == commit_id)
-    assert result[0]["metadata"]["label"] == "foo"
+    assert target.list_commits()[0].label == "foo"
 
 
 def test_commit_assert_changed_values_are_stamped_with_commit_id(tinydb_file_path):
@@ -524,9 +515,9 @@ def test_commit_assert_changed_values_are_stamped_with_commit_id(tinydb_file_pat
     # act
     commit_id2 = target.commit()
     # assert
-    assert target._InProcessParamStore__params["foo"].commit_id == commit_id1
-    assert target._InProcessParamStore__params["bar"].commit_id == commit_id2
-    assert target._InProcessParamStore__params["baz"].commit_id == commit_id2
+    target.get_param("foo").commit_id == commit_id1
+    target.get_param("bar").commit_id == commit_id2
+    target.get_param("baz").commit_id == commit_id2
 
 
 def test_commit_assert_param_expiration_is_converted_to_timestamp_int(tinydb_file_path):
@@ -553,7 +544,6 @@ def test_checkout_when_commit_id_exists_value_is_reverted(tinydb_file_path):
     target.checkout(commit_id)
     # assert
     assert target["foo"] == "bar"
-    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_exists_value_remains_the_same(tinydb_file_path):
@@ -565,7 +555,6 @@ def test_checkout_when_commit_id_exists_value_remains_the_same(tinydb_file_path)
     target.checkout(commit_id)
     # assert
     assert target["foo"] == "bar"
-    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
@@ -578,7 +567,6 @@ def test_checkout_when_commit_id_exists_value_is_removed(tinydb_file_path):
     target.checkout(commit_id)
     # assert
     assert "baz" not in target
-    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_commit_id_doesnt_exist_then_error_is_raised(tinydb_file_path):
@@ -597,7 +585,6 @@ def test_checkout_when_commit_num_exists_value_is_reverted(tinydb_file_path):
     target.checkout(commit_num=1)
     # assert
     assert target["foo"] == "bar"
-    assert target._InProcessParamStore__base_commit_id == commit_id
 
 
 def test_checkout_when_tag_existed_in_commit_then_it_is_added_to_store(
@@ -714,17 +701,7 @@ def test_list_commits_when_label_exists_then_it_is_returned(
     # assert
     assert all(type(m) == Metadata for m in actual)
     assert all("label" in m.label for m in actual)
-    assert len(actual) == 3
-
-
-""" __generate_commit_id() """
-
-
-def test__generate_commit_id():
-    target = InProcessParamStore()
-    commit_id1 = target._InProcessParamStore__generate_commit_id()
-    commit_id2 = target._InProcessParamStore__generate_commit_id()
-    assert commit_id1 != commit_id2
+    assert len(actual) == 1
 
 
 """ merge() MergeStrategy.OURS """
@@ -1142,11 +1119,10 @@ def test_demo(tinydb_file_path):
 
 def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
     # arrange
-    _copy_template(
-        "../../tests/migrate_param_store_0_1_to_0_2.json", tinydb_file_path, request
-    )
+    _copy_template("migrate_param_store_0_1_to_0_2.json", tinydb_file_path, request)
     # act
     migrate_param_store_0_1_to_0_2(tinydb_file_path, "test_param_store.py")
+    _set_version(tinydb_file_path, "0.2")
     # assert
     param_store = InProcessParamStore(tinydb_file_path)
     # checkout unharmed
@@ -1166,15 +1142,17 @@ def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
 
 def test_fix_param_qualified_name(tinydb_file_path, request):
     # arrange
-    _copy_template(
-        "../../tests/fix_param_qualified_name.json", tinydb_file_path, request
-    )
+    _copy_template("fix_param_qualified_name.json", tinydb_file_path, request)
     # act
     fix_param_qualified_name(tinydb_file_path, "test_param_store.py")
+    # _set_version(tinydb_file_path, "0.2")
     # assert
-    param_store = InProcessParamStore(tinydb_file_path)
-    actual = param_store["q0_f_if_01"]
-    assert actual == 90000000.0
+    with TinyDB(tinydb_file_path) as tinydb:
+        doc = tinydb.get(doc_id=1)
+        assert (
+            doc["params"]["q0_f_if_01"]["py/object"]
+            == "entropylab.pipeline.api.param_store.Param"
+        )
 
 
 """ class Param """

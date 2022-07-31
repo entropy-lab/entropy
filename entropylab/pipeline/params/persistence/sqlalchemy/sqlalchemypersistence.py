@@ -1,12 +1,12 @@
 import uuid
-from typing import Optional
+from typing import Optional, Set, List
 
 import jsonpickle
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from entropylab.pipeline.api.errors import EntropyError
-from entropylab.pipeline.params.persistence.persistence import Persistence
+from entropylab.pipeline.params.persistence.persistence import Persistence, Commit
 from entropylab.pipeline.params.persistence.sqlalchemy.model import CommitTable
 
 
@@ -62,7 +62,12 @@ class SqlAlchemyPersistence(Persistence):
             )
             return commit
 
-    def commit(self, commit, label, dirty_keys):
+    def commit(
+        self,
+        commit: Commit,
+        label: Optional[str] = None,
+        dirty_keys: Optional[Set[str]] = None,
+    ) -> str:
         commit.id = self.__generate_commit_id()
         commit.label = label
         self.stamp_dirty_params_with_commit(commit, dirty_keys)
@@ -75,11 +80,19 @@ class SqlAlchemyPersistence(Persistence):
     def __generate_commit_id() -> str:
         return str(uuid.uuid4())
 
-    def search_commits(self, label, key):
+    def search_commits(
+        self, label: Optional[str] = None, key: Optional[str] = None
+    ) -> List[Commit]:
+        with self.__session_maker() as session:
+            commits = session.query(CommitTable)
+            if label:
+                commits = commits.filter(CommitTable.label == label)
+            if key:
+                commits = commits.filter(CommitTable.params.contains(key))
+            return commits.all
+
+    def save_temp_commit(self, commit: Commit) -> None:
         pass
 
-    def save_temp_commit(self, commit):
-        pass
-
-    def load_temp_commit(self):
+    def load_temp_commit(self) -> Commit:
         pass

@@ -5,7 +5,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, List
 
 from entropylab.pipeline.api.param_store import _ns_to_datetime
 
@@ -26,11 +26,18 @@ class Persistence(ABC):
         pass
 
     @abstractmethod
-    def commit(self, commit, label, dirty_keys):
+    def commit(
+        self,
+        commit: Commit,
+        label: Optional[str] = None,
+        dirty_keys: Optional[Set[str]] = None,
+    ) -> str:
         pass
 
     @abstractmethod
-    def search_commits(self, label, key):
+    def search_commits(
+        self, label: Optional[str] = None, key: Optional[str] = None
+    ) -> List[Commit]:
         pass
 
     @abstractmethod

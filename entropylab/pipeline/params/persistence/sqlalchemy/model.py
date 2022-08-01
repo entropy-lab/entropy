@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import Column, String, DateTime
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, declarative_mixin
 from sqlalchemy.sql import expression
 
 Base = declarative_base()
@@ -51,8 +51,8 @@ def sqlite_jsonb(element, compiler, **kw):
 """ SqlAlchemy ORM model for ParamStore """
 
 
-class CommitTable(Base):
-    __tablename__ = "commit"
+@declarative_mixin
+class CommitMixin:
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     timestamp = Column(
         DateTime(timezone=False), nullable=False, server_default=UtcNow()
@@ -61,5 +61,23 @@ class CommitTable(Base):
     params = Column(JSONB, nullable=False)
     tags = Column(JSONB, nullable=False)
 
+
+class CommitTable(CommitMixin, Base):
+    __tablename__ = "commit"
+    # id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # timestamp = Column(
+    #     DateTime(timezone=False), nullable=False, server_default=UtcNow()
+    # )
+    # label = Column(String(256))
+    # params = Column(JSONB, nullable=False)
+    # tags = Column(JSONB, nullable=False)
+
     def __repr__(self):
-        return f"<Commit(commit_id={self.id}, label={self.label})>"
+        return f"<CommitTable(commit_id={self.id}, label={self.label})>"
+
+
+class TempTable(CommitMixin, Base):
+    __tablename__ = "temp"
+
+    def __repr__(self):
+        return f"<TempTable(commit_id={self.id}, label={self.label})>"

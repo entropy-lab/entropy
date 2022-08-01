@@ -1061,9 +1061,7 @@ def test_save_temp_and_load_temp(target):
     assert target.foo == "bar"
 
 
-def test_load_temp_when_save_temp_not_called_before_then_error_is_raised(
-    target
-):
+def test_load_temp_when_save_temp_not_called_before_then_error_is_raised(target):
     with pytest.raises(EntropyError):
         target.load_temp()
 
@@ -1160,7 +1158,7 @@ def test_fix_param_qualified_name(tinydb_file_path, request):
 
 def test_has_expired_when_expiration_is_int_and_has_expired_then_true():
     target = Param(42)
-    target.expiration = time.time_ns() - 1
+    target.expiration = pd.Timestamp(time.time_ns()) - timedelta(seconds=1)
     assert target.has_expired
 
 

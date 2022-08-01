@@ -7,7 +7,12 @@ from sqlalchemy.orm import sessionmaker
 
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.params.persistence.persistence import Persistence, Commit
-from entropylab.pipeline.params.persistence.sqlalchemy.model import CommitTable
+from entropylab.pipeline.params.persistence.sqlalchemy.model import (
+    CommitTable,
+    TempTable,
+)
+
+TEMP_COMMIT_ID = "00000000-0000-0000-0000-000000000000"
 
 
 class SqlAlchemyPersistence(Persistence):
@@ -70,13 +75,12 @@ class SqlAlchemyPersistence(Persistence):
         commit.id = self.__generate_commit_id()
         # TODO: Perhaps create the timestamp here?
         self.stamp_dirty_params_with_commit(commit, dirty_keys)
-        commit_table = CommitTable(
-            id=commit.id,
-            timestamp=commit.timestamp,
-            label=commit.label,
-            params=commit.params,
-            tags=commit.tags,
-        )
+        commit_table = CommitTable()
+        commit_table.id = commit.id
+        commit_table.timestamp = commit.timestamp
+        commit_table.label = commit.label
+        commit_table.params = commit.params
+        commit_table.tags = commit.tags
         with self.__session_maker() as session:
             session.add(commit_table)
             session.commit()
@@ -95,10 +99,38 @@ class SqlAlchemyPersistence(Persistence):
                 commits = commits.filter(CommitTable.label == label)
             if key:
                 commits = commits.filter(CommitTable.params.contains(key))
-            return commits.all
+            return commits.all()
 
     def save_temp_commit(self, commit: Commit) -> None:
-        pass
+        temp_table = TempTable()
+        # TODO: Perhaps create the timestamp here?
+        temp_table.id = TEMP_COMMIT_ID
+        temp_table.timestamp = commit.timestamp
+        temp_table.label = commit.label
+        temp_table.params = commit.params
+        temp_table.tags = commit.tags
+        with self.__session_maker() as session:
+            session.add(temp_table)
+            session.commit()
 
     def load_temp_commit(self) -> Commit:
-        pass
+        with self.__session_maker() as session:
+            temp_table = (
+                session.query(TempTable)
+                .filter(TempTable.id == TEMP_COMMIT_ID)
+                .one_or_none()
+            )
+            if not temp_table:
+                raise EntropyError(
+                    "Temp is empty. Use save_temp_commit() before using "
+                    "load_temp_commit() "
+                )
+            else:
+                commit = Commit(
+                    id=temp_table.id,
+                    timestamp=temp_table.timestamp,
+                    label=temp_table.label,
+                    params=temp_table.params,
+                    tags=temp_table.tags,
+                )
+            return commit

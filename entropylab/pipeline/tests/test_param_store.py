@@ -12,7 +12,7 @@ from tinydb import TinyDB
 
 from entropylab.conftest import _copy_template, Process
 from entropylab.pipeline.api.errors import EntropyError
-from entropylab.pipeline.api.param_store import (
+from entropylab.pipeline.params.param_store import (
     ParamStore,
     MergeStrategy,
     Param,

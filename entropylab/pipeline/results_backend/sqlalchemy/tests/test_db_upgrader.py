@@ -9,7 +9,7 @@ from entropylab.conftest import _copy_template
 from entropylab.logger import logger
 from entropylab.pipeline.api.data_writer import Metadata
 from entropylab.pipeline.api.errors import EntropyError
-from entropylab.pipeline.api.param_store import ParamStore
+from entropylab.pipeline.params.param_store import ParamStore
 from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import (
     _ENTROPY_DIRNAME,
     _DB_FILENAME,

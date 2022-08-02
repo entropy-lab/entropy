@@ -8,7 +8,7 @@ from qualang_tools.config.parameters import ConfigVars
 from qm.QuantumMachinesManager import QuantumMachinesManager
 from qualang_tools.config import ConfigurationError
 
-from entropylab.pipeline.api.param_store import ParamStore
+from entropylab.pipeline.params.param_store import ParamStore
 
 class QuAMManager(ABC):
     def __init__(self, path: str, host=None, port=None, **kwargs):

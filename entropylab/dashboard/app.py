@@ -9,7 +9,7 @@ from entropylab.dashboard.theme import (
     theme_stylesheet,
 )
 from entropylab.logger import logger
-from entropylab.pipeline.api.param_store import ParamStore
+from entropylab.pipeline.params.param_store import ParamStore
 from entropylab.pipeline.results_backend.sqlalchemy.project import (
     project_name,
     project_path,

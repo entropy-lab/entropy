@@ -7,7 +7,7 @@ from pathlib import Path
 
 from tinydb import TinyDB
 
-from entropylab.pipeline.api.in_process_param_store import Param
+from entropylab.pipeline.api.param_store import Param
 from entropylab.pipeline.params.persistence.tinydb.storage import JSONPickleStorage
 from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import (
     _check_version,
@@ -20,7 +20,7 @@ from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import (
 
 def fix_param_qualified_name(path: str | Path, revision: str):
     """
-    Backup and fix the fully qualified names of Param in an InProcessParamStore JSON
+    Backup and fix the fully qualified names of Param in an ParamStore JSON
     file.
 
     :param path: path to an existing JSON TinyDB file containing params.
@@ -54,7 +54,7 @@ def fix_param_qualified_name(path: str | Path, revision: str):
 
 def migrate_param_store_0_1_to_0_2(path: str | Path, revision: str) -> None:
     """
-    Backup and migrate an InProcessParamStore JSON file from storing values to storing
+    Backup and migrate an ParamStore JSON file from storing values to storing
     Params containing the values. Preserves commits, timestamps and ids.
 
     :param path: path to an existing JSON TinyDB file containing params.

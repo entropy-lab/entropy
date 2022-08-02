@@ -14,12 +14,12 @@ from entropylab.dashboard.theme import (
     table_style_cell,
     table_active_cell_conditional,
 )
-from entropylab.pipeline.api.in_process_param_store import InProcessParamStore
+from entropylab.pipeline.api.param_store import ParamStore
 
 REFRESH_INTERVAL_IN_MILLIS = 3000
 
 
-def build_layout(path: str, param_store: InProcessParamStore):
+def build_layout(path: str, param_store: ParamStore):
 
     return dbc.Container(
         fluid=True,

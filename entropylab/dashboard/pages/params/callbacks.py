@@ -1,7 +1,7 @@
 from dash import callback_context
 from dash.dependencies import Input, Output, State
 
-from entropylab import InProcessParamStore
+from entropylab import ParamStore
 from entropylab.dashboard.pages.params.utils import (
     param_store_to_df,
     param_store_to_commits_df,
@@ -9,7 +9,7 @@ from entropylab.dashboard.pages.params.utils import (
 )
 
 
-def register_callbacks(app, param_store: InProcessParamStore):
+def register_callbacks(app, param_store: ParamStore):
     @app.callback(
         [
             Output("data-table", "data"),

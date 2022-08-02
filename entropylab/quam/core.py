@@ -1,13 +1,14 @@
 from abc import abstractmethod, ABC
 from typing import Callable, Dict
-from munch import Munch
 
-from entropylab.pipeline.api.in_process_param_store import InProcessParamStore
+from munch import Munch
+from qm.QuantumMachinesManager import QuantumMachinesManager
 from qualang_tools.config import ConfigBuilder
 from qualang_tools.config.parameters import ConfigVars
 from qm.QuantumMachinesManager import QuantumMachinesManager
 from qualang_tools.config import ConfigurationError
 
+from entropylab.pipeline.api.param_store import ParamStore
 
 class QuAMManager(ABC):
     def __init__(self, path: str, host=None, port=None, **kwargs):

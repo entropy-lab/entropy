@@ -1,9 +1,9 @@
 import pandas as pd
 
-from entropylab.pipeline.api.in_process_param_store import InProcessParamStore
+from entropylab.pipeline.api.param_store import ParamStore
 
 
-def param_store_to_df(ps: InProcessParamStore):
+def param_store_to_df(ps: ParamStore):
     ps_dict = ps.to_dict()
     tag_list = []
     for key in ps.keys():
@@ -15,7 +15,7 @@ def param_store_to_df(ps: InProcessParamStore):
     return params_df
 
 
-def param_store_to_commits_df(ps: InProcessParamStore):
+def param_store_to_commits_df(ps: ParamStore):
     commit_list = ps.list_commits()
     ids = []
     labels = []
@@ -29,7 +29,7 @@ def param_store_to_commits_df(ps: InProcessParamStore):
     )
 
 
-def data_diff(params: InProcessParamStore, data, data_prev):
+def data_diff(params: ParamStore, data, data_prev):
     if len(data) > len(data_prev):
         return data_prev[-1]
     if len(data) < len(data_prev):

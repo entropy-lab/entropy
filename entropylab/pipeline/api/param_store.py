@@ -56,7 +56,7 @@ class Param(Dict):
             return False
 
 
-class InProcessParamStore(MutableMapping):
+class ParamStore(MutableMapping):
     """
     A class that provides versioned storage for experiment parameters (params).
     """
@@ -169,7 +169,7 @@ class InProcessParamStore(MutableMapping):
 
     def __repr__(self):
         with self.__lock:
-            return f"<InProcessParamStore({self.to_dict().__repr__()})>"
+            return f"<ParamStore({self.to_dict().__repr__()})>"
 
     """ Params """
 
@@ -334,8 +334,8 @@ class InProcessParamStore(MutableMapping):
                     )
                     if (
                         a_has_changed
-                        and isinstance(a, InProcessParamStore)
-                        and isinstance(b, InProcessParamStore)
+                        and isinstance(a, ParamStore)
+                        and isinstance(b, ParamStore)
                     ):
                         """if the dictionary in a has been changed, this was done
                         in-place. We therefore need to mark the Param key as dirty. We

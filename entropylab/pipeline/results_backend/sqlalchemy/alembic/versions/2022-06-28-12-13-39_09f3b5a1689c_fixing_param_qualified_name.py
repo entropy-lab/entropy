@@ -26,7 +26,7 @@ depends_on = None
 def upgrade():
     path = str(AlembicUtil.get_param_store_file_path())
     logger.debug(
-        f"Starting to fix Param qualified name in InProcessParamStore file [{path}]"
+        f"Starting to fix Param qualified name in ParamStore file [{path}]"
     )
     try:
         fix_param_qualified_name(path, revision)
@@ -41,7 +41,7 @@ def downgrade():
     backup_json_file_path = path.replace(".json", ".json.{revision}.bak")
     downgraded_json_file_path = path.replace(".json", ".json.{revision}.downgraded")
     logger.debug(
-        f"Attempting to downgrade InProcessParamStore file {path} from revision "
+        f"Attempting to downgrade ParamStore file {path} from revision "
         f"{revision} to {down_revision} using backup file {backup_json_file_path}"
     )
     shutil.move(path, downgraded_json_file_path)

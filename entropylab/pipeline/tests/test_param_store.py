@@ -15,8 +15,8 @@ from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.api.in_process_param_store import (
     InProcessParamStore,
     MergeStrategy,
+    Param,
 )
-from entropylab.pipeline.api.param_store import Param
 from entropylab.pipeline.params.persistence.migrations import (
     fix_param_qualified_name,
     migrate_param_store_0_1_to_0_2,

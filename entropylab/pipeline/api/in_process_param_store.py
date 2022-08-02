@@ -2,16 +2,14 @@ from __future__ import annotations
 
 import copy
 import threading
+import time
+from datetime import timedelta
+from enum import unique, Enum
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Set, MutableMapping
 
 import pandas as pd
 
-from entropylab.pipeline.api.param_store import (
-    ParamStore,
-    MergeStrategy,
-    Param,
-)
 from entropylab.pipeline.params.persistence.persistence import Commit, Metadata
 from entropylab.pipeline.params.persistence.sqlalchemy.sqlalchemypersistence import (
     SqlAlchemyPersistence,
@@ -23,11 +21,44 @@ from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import (
 UTC_TZ = "UTC"
 
 
-class InProcessParamStore(ParamStore):
-    """Naive implementation of ParamStore based on tinydb
+@unique
+class MergeStrategy(Enum):
+    OURS = 1
+    THEIRS = 2
 
-    Important:
-    Using this implementation in multiple concurrent processes is not supported.
+
+# TODO: Convert to dataclass
+class Param(Dict):
+    def __init__(self, value):
+        super().__init__()
+        self.value: object = value
+        self.commit_id: Optional[str] = None
+        self.expiration: Optional[timedelta | pd.Timestamp] = None
+        self.description: Optional[str] = None
+        self.node_id: Optional[str] = None
+
+    def __repr__(self):
+        return (
+            f"<Param(value={self.value}, "
+            f"commit_id={self.commit_id}, "
+            f"expiration={self.expiration})> "
+        )
+
+    @property
+    def has_expired(self):
+        """
+        Indicates whether the Param value has expired. Returns True iff the Param
+        has been committed and the time elapsed since the commit operation has exceeded
+        the time recorded in the `expiration` property"""
+        if isinstance(self.expiration, pd.Timestamp):
+            return self.expiration < pd.Timestamp(time.time_ns())
+        else:
+            return False
+
+
+class InProcessParamStore(MutableMapping):
+    """
+    A class that provides versioned storage for experiment parameters (params).
     """
 
     def __init__(
@@ -63,6 +94,11 @@ class InProcessParamStore(ParamStore):
 
     @property
     def is_dirty(self):
+        """
+        True iff params have been changed since the store has last been
+        initialized or checked out.
+        """
+        pass
         with self.__lock:
             return len(self.__dirty_keys) > 0
 
@@ -146,6 +182,13 @@ class InProcessParamStore(ParamStore):
             return _extract_param_values(self.__params)
 
     def get_value(self, key: str, commit_id: Optional[str] = None) -> object:
+        """
+        Returns the value of a param by its key
+
+        :param key: the key identifying the param
+        :param commit_id: an optional commit_id. If provided, the value will be
+        returned from the specified commit
+        """
         with self.__lock:
             if commit_id is None:
                 return self[key]
@@ -154,6 +197,13 @@ class InProcessParamStore(ParamStore):
                 return commit.params[key].value
 
     def get_param(self, key: str, commit_id: Optional[str] = None) -> Param:
+        """
+        Returns a copy of the Param instance of a value stored in ParamStore
+
+        :param key: the key identifying the param
+        :param commit_id: an optional commit_id. If provided, the Param will be
+        returned from the specified commit
+        """
         with self.__lock:
             if commit_id is None:
                 return copy.deepcopy(self.__params[key])
@@ -162,6 +212,15 @@ class InProcessParamStore(ParamStore):
                 return copy.deepcopy(commit.params[key])
 
     def set_param(self, key: str, value: object, **kwargs):
+        """
+        Sets a Param in the ParamStore
+
+        :param key: the key identifying the param
+        :param value: the value of the param
+        :param key: an optional period of time (measured from the time the param
+        is committed) after which the prime expires (i.e. param.has_expired
+        returns True)
+        """
         if "commit_id" in kwargs:
             raise ValueError("Setting commit_id in set_param() is not allowed")
         if "value" in kwargs:
@@ -229,6 +288,12 @@ class InProcessParamStore(ParamStore):
         self.__dirty_keys.clear()
 
     def list_commits(self, label: Optional[str] = None) -> List[Metadata]:
+        """
+        Returns a list of commits
+
+        :param label: an optional label, if given then only commits that match
+        it will be returned
+        """
         with self.__lock:
             commits = self.__persistence.search_commits(label)
             metadata = map(Commit.to_metadata, commits)
@@ -269,8 +334,8 @@ class InProcessParamStore(ParamStore):
                     )
                     if (
                         a_has_changed
-                        and isinstance(a, ParamStore)
-                        and isinstance(b, ParamStore)
+                        and isinstance(a, InProcessParamStore)
+                        and isinstance(b, InProcessParamStore)
                     ):
                         """if the dictionary in a has been changed, this was done
                         in-place. We therefore need to mark the Param key as dirty. We
@@ -299,6 +364,19 @@ class InProcessParamStore(ParamStore):
     def diff(
         self, old_commit_id: Optional[str] = None, new_commit_id: Optional[str] = None
     ) -> Dict[str, Dict]:
+        """Shows the difference in Param values between two commits.
+
+        :param old_commit_id: The id of the first ("older") commit to compare. If
+            None, or not specified, defaults to the latest commit id.
+        :param new_commit_id: The id of the second  ("newer") commit to compare. If
+            None, or not specified, defaults to the current state of the store (incl.
+             "dirty" values)
+        :return: A dictionary where keys are the keys of params whose values have
+            changed. Dictionary values indicate the `old_value` of the param and the
+            `new_value` of the param. A new param will only show the `new_value`. A
+            deleted param will only show the `old_value`.
+            Example: {"foo": {"old_value": "bar", "new_value": "baz"}}
+        """
         with self.__lock:
 
             # get OLD params to diff:
@@ -341,6 +419,17 @@ class InProcessParamStore(ParamStore):
             return None
 
     def list_values(self, key: str) -> pd.DataFrame:
+        """
+        Lists all the values of a given key taken from commit history,
+        sorted by date ascending
+
+        :param key: the key for which to list values
+        :returns: a list of tuples where the values are, in order:
+            - the value of the key
+            - time of commit
+            - commit_id
+            - label assigned to commit
+        """
         with self.__lock:
             values = []
             commits = self.__persistence.search_commits(key=key)

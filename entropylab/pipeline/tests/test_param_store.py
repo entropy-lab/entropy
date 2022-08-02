@@ -16,7 +16,7 @@ from entropylab.pipeline.api.in_process_param_store import (
     InProcessParamStore,
     MergeStrategy,
 )
-from entropylab.pipeline.api.param_store import Param, LOCAL_TZ, _ns_to_datetime
+from entropylab.pipeline.api.param_store import Param
 from entropylab.pipeline.params.persistence.migrations import (
     fix_param_qualified_name,
     migrate_param_store_0_1_to_0_2,
@@ -926,7 +926,7 @@ def test_list_values_when_store_is_not_dirty_then_last_value_is_full():
     actual = target.list_values("foo")
     last_value = actual.iloc[-1]
     assert last_value["value"] == "bar"
-    assert last_value["time"] is not None
+    assert isinstance(last_value["time"], pd.Timestamp)
     assert last_value["commit_id"] is not None
     assert last_value["label"] == "label"
 
@@ -1219,10 +1219,3 @@ def test_multi_processes_do_not_conflict(tinydb_file_path):
     ps = InProcessParamStore(tinydb_file_path)
     names = ps.list_values("name")["value"]
     assert all(names.value_counts() == num_of_commits)
-
-
-def test__ns_to_datetime():
-    # noinspection PyTypeChecker
-    expected = pd.Timestamp("2022-07-10 11:40:37.233137200+0300", tz=LOCAL_TZ)
-    actual = _ns_to_datetime(1657442437233137200)
-    assert actual == expected

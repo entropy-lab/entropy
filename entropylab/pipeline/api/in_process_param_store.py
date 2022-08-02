@@ -11,7 +11,6 @@ from entropylab.pipeline.api.param_store import (
     ParamStore,
     MergeStrategy,
     Param,
-    _ns_to_datetime,
 )
 from entropylab.pipeline.params.persistence.persistence import Commit, Metadata
 from entropylab.pipeline.params.persistence.sqlalchemy.sqlalchemypersistence import (
@@ -20,6 +19,8 @@ from entropylab.pipeline.params.persistence.sqlalchemy.sqlalchemypersistence imp
 from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import (
     TinyDbPersistence,
 )
+
+UTC_TZ = "UTC"
 
 
 class InProcessParamStore(ParamStore):
@@ -347,7 +348,7 @@ class InProcessParamStore(ParamStore):
             for commit in commits:
                 value = (
                     commit.params[key].value,
-                    _ns_to_datetime(commit.timestamp),
+                    commit.local_timestamp,
                     commit.id,
                     commit.label,
                 )

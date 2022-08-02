@@ -189,8 +189,3 @@ class Param(Dict):
             return self.expiration < pd.Timestamp(time.time_ns())
         else:
             return False
-
-
-def _ns_to_datetime(ns: int) -> pd.datetime:
-    """Convert a UNIX epoch timestamp in nano-seconds to pandas Timestamp in local TZ"""
-    return pd.to_datetime(ns, utc=True).tz_convert(LOCAL_TZ)

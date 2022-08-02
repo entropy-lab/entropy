@@ -3,10 +3,13 @@ from __future__ import annotations
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Dict, Optional, Set, List
 
 import pandas as pd
+
+LOCAL_TZ = datetime.now().astimezone().tzinfo
+UTC_TZ = "UTC"
 
 
 class Persistence(ABC):
@@ -76,6 +79,10 @@ class Commit:
 
     def to_metadata(self) -> Metadata:
         return Metadata(self.id, self.timestamp, self.label)
+
+    @property
+    def local_timestamp(self):
+        return self.timestamp.tz_localize(UTC_TZ).tz_convert(LOCAL_TZ)
 
 
 @dataclass

@@ -20,11 +20,12 @@ from entropylab.pipeline.params.param_store import (
 from entropylab.pipeline.params.persistence.migrations import (
     fix_param_qualified_name,
     migrate_param_store_0_1_to_0_2,
+    migrate_param_store_0_2_to_0_3,
 )
 from entropylab.pipeline.params.persistence.persistence import Metadata
 from entropylab.pipeline.params.persistence.sqlalchemy.model import Base
 from entropylab.pipeline.params.persistence.tinydb.storage import JSONPickleStorage
-from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import _set_version
+from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import set_version
 
 """ Test fixtures """
 
@@ -1120,7 +1121,7 @@ def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
     _copy_template("migrate_param_store_0_1_to_0_2.json", tinydb_file_path, request)
     # act
     migrate_param_store_0_1_to_0_2(tinydb_file_path, "test_param_store.py")
-    _set_version(tinydb_file_path, "0.2")
+    set_version(tinydb_file_path, "0.2")
     # assert
     param_store = ParamStore(tinydb_file_path)
     # checkout unharmed
@@ -1133,6 +1134,33 @@ def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
     assert "qubit1.flux_capacitor.amp" in param_store.list_keys_for_tag("tag1")
     commit = param_store.list_commits("warm-up")[0]
     assert commit.timestamp == 1652959865653245900
+    # temp is unharmed
+    param_store.load_temp()
+    assert param_store["qubit1.flux_capacitor.freq"] == -8.0
+
+
+def test_migrate_param_store_0_2_to_0_3(tinydb_file_path, request):
+    # arrange
+    _copy_template("migrate_param_store_0_2_to_0_3.json", tinydb_file_path, request)
+    # act
+    migrate_param_store_0_2_to_0_3(tinydb_file_path, request.node.name)
+    set_version(tinydb_file_path, "0.3")
+    # assert
+    param_store = ParamStore(tinydb_file_path)
+    # checkout unharmed
+    param_store.checkout("57ea4b9fb96bdc7a13fe8ec616a3c6da21f41ca0")
+    # primitive value
+    assert param_store.get_param(
+        "qubit1.flux_capacitor.freq"
+    ).expiration == pd.Timestamp("2022-05-19 11:32:05.653245900")
+    # assert param_store["qubit1.flux_capacitor.freq"].expiration == 8.0
+    # dict value
+    assert param_store["qubit1.flux_capacitor"]["wave"] == "manifold"
+    # tags are unharmed
+    assert "qubit1.flux_capacitor.amp" in param_store.list_keys_for_tag("tag1")
+    commit = param_store.list_commits("warm-up")[0]
+    assert commit.timestamp == pd.Timestamp("2022-05-19 11:31:05.653245900")
+    # assert commit.timestamp == 1652959865653245900
     # temp is unharmed
     param_store.load_temp()
     assert param_store["qubit1.flux_capacitor.freq"] == -8.0

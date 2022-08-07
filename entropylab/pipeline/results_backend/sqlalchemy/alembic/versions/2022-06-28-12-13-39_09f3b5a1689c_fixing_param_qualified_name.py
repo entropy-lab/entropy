@@ -10,7 +10,7 @@ import shutil
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.params.persistence.migrations import fix_param_qualified_name
-from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import _set_version
+from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import set_version
 from entropylab.pipeline.results_backend.sqlalchemy.alembic.alembic_util import (
     AlembicUtil,
 )
@@ -30,7 +30,7 @@ def upgrade():
     )
     try:
         fix_param_qualified_name(path, revision)
-        _set_version(path, "0.2", revision)
+        set_version(path, "0.2", revision)
     except EntropyError as ee:
         logger.warning(str(ee))
     logger.debug("Done fixing Param qualified name.")

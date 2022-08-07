@@ -39,7 +39,7 @@ class TinyDbPersistence(Persistence):
             self.__db = TinyDB(storage=MemoryStorage)
             self.__filelock = contextlib.nullcontext()
             with self.__filelock:
-                _set_version(self.__db, CURRENT_VERSION)
+                set_version(self.__db, CURRENT_VERSION)
         else:
             self.__is_in_memory_mode = False
             path = str(path)
@@ -50,9 +50,9 @@ class TinyDbPersistence(Persistence):
             with self.__filelock:
                 if is_new:
                     logger.debug(f"Creating new ParamStore JSON file at '{path}'")
-                    _set_version(self.__db, CURRENT_VERSION)
+                    set_version(self.__db, CURRENT_VERSION)
                 else:
-                    version = _get_version(self.__db)
+                    version = get_version(self.__db)
                     if version != CURRENT_VERSION:
                         raise EntropyError(
                             f"ParamStore JSON file at '{path}' is version {version}. "
@@ -204,7 +204,7 @@ class TinyDbPersistence(Persistence):
             return self.__doc_to_commit(doc)
 
 
-def _set_version(db: TinyDB | str, version: str, revision: Optional[str] = ""):
+def set_version(db: TinyDB | str, version: str, revision: Optional[str] = ""):
     if isinstance(db, str):
         # TODO: Support locking
         db = TinyDB(db, storage=JSONPickleStorage)
@@ -217,7 +217,7 @@ def _set_version(db: TinyDB | str, version: str, revision: Optional[str] = ""):
         info_table.insert({VERSION_KEY: version, REVISION_KEY: revision})
 
 
-def _get_version(db: TinyDB):
+def get_version(db: TinyDB):
     if INFO_TABLE in db.tables():
         info_table = db.table(INFO_TABLE)
         info_doc = info_table.get(doc_id=INFO_DOC_ID)
@@ -225,10 +225,10 @@ def _get_version(db: TinyDB):
     return "0.1"
 
 
-def _check_version(path: str, old_version: str, new_version: str):
+def check_version(path: str, old_version: str, new_version: str):
     if os.path.isfile(path):
         with TinyDB(path) as old_db:
-            actual_version = _get_version(old_db)
+            actual_version = get_version(old_db)
             if actual_version != old_version:
                 raise EntropyError(
                     f"Cannot migrate file '{path}' from version {actual_version} to "

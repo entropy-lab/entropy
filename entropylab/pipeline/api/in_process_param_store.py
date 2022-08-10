@@ -31,7 +31,7 @@ from entropylab.pipeline.api.param_store import (
     _ns_to_datetime,
 )
 
-CURRENT_VERSION = 0.2
+CURRENT_VERSION = "0.2"
 
 INFO_DOC_ID = 1
 INFO_TABLE = "info"
@@ -291,8 +291,6 @@ class InProcessParamStore(ParamStore):
 
     def commit(self, label: Optional[str] = None) -> str:
         with self.__lock:
-            if not self.__is_dirty:
-                return self.__base_commit_id
             commit_id = self.__generate_commit_id()
             commit_timestamp = time.time_ns()  # nanoseconds since epoch
             self.__stamp_dirty_params_with_commit(commit_id, commit_timestamp)
@@ -518,7 +516,8 @@ class InProcessParamStore(ParamStore):
 
             return self.__diff(old_params, new_params)
 
-    def __diff(self, old: MutableMapping, new: MutableMapping) -> Dict[str, Dict]:
+    @staticmethod
+    def __diff(old: MutableMapping, new: MutableMapping) -> Dict[str, Dict]:
         diff = dict()
         for key in new.keys():
             if key in old.keys():

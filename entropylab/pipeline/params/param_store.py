@@ -10,6 +10,7 @@ from typing import Optional, Dict, Any, List, Set, MutableMapping
 
 import pandas as pd
 
+from entropylab.config import settings
 from entropylab.pipeline.params.persistence.persistence import Commit, Metadata
 from entropylab.pipeline.params.persistence.sqlalchemy.sqlalchemypersistence import (
     SqlAlchemyPersistence,
@@ -73,12 +74,20 @@ class ParamStore(MutableMapping):
         self.__params: Dict[str, Param] = dict()  # where current params are stored
         self.__tags: Dict[str, List[str]] = dict()  # tags that are mapped to keys
         self.__dirty_keys: Set[str] = set()  # updated keys not committed yet
+        # constructor arguments take precedence:
         if path:
             self.__persistence = TinyDbPersistence(path)
         elif url:
             self.__persistence = SqlAlchemyPersistence(url)
         else:
-            self.__persistence = TinyDbPersistence()
+            # ...over configuration settings
+            if "param_store_path" in settings:
+                self.__persistence = TinyDbPersistence(settings.param_store_path)
+            elif "param_store_url" in settings:
+                self.__persistence = SqlAlchemyPersistence(settings.param_store_url)
+            else:
+                # default
+                self.__persistence = TinyDbPersistence()
 
         self.checkout()
         if theirs is not None:

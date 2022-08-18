@@ -2,7 +2,7 @@ from dynaconf import Dynaconf
 
 settings = Dynaconf(
     envvar_prefix="ENTROPY",
-    settings_files=["settings.toml", ".secrets.toml"],
+    settings_files=[".entropy/settings.toml", "settings.toml", ".secrets.toml"],
 )
 
 # `envvar_prefix` = export envvars with `export DYNACONF_FOO=bar`.

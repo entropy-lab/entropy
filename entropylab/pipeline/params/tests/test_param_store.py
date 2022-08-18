@@ -1118,7 +1118,9 @@ def test_demo(target):
 
 def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
     # arrange
-    _copy_template("migrate_param_store_0_1_to_0_2.json", tinydb_file_path, request)
+    _copy_template(
+        "../../tests/migrate_param_store_0_1_to_0_2.json", tinydb_file_path, request
+    )
     # act
     migrate_param_store_0_1_to_0_2(tinydb_file_path, "test_param_store.py")
     set_version(tinydb_file_path, "0.2")
@@ -1141,7 +1143,9 @@ def test_migrate_param_store_0_1_to_0_2(tinydb_file_path, request):
 
 def test_migrate_param_store_0_2_to_0_3(tinydb_file_path, request):
     # arrange
-    _copy_template("migrate_param_store_0_2_to_0_3.json", tinydb_file_path, request)
+    _copy_template(
+        "../../tests/migrate_param_store_0_2_to_0_3.json", tinydb_file_path, request
+    )
     # act
     migrate_param_store_0_2_to_0_3(tinydb_file_path, request.node.name)
     set_version(tinydb_file_path, "0.3")
@@ -1168,7 +1172,9 @@ def test_migrate_param_store_0_2_to_0_3(tinydb_file_path, request):
 
 def test_fix_param_qualified_name(tinydb_file_path, request):
     # arrange
-    _copy_template("fix_param_qualified_name.json", tinydb_file_path, request)
+    _copy_template(
+        "../../tests/fix_param_qualified_name.json", tinydb_file_path, request
+    )
     # act
     fix_param_qualified_name(tinydb_file_path, "test_param_store.py")
     # _set_version(tinydb_file_path, "0.2")
@@ -1219,8 +1225,6 @@ def set_foo_and_commit(path, name: str, num_of_commits: int):
             target.commit(name)
 
 
-# TODO: Re-enable this test before PR and adapt to SqlAlchemyPersistence
-@pytest.mark.skip("Temporarily disabled because it's too slow for auto-test")
 def test_multi_processes_do_not_conflict(tinydb_file_path):
     # arrange
     num_of_processes = 3

@@ -159,6 +159,6 @@ def _convert_timestamp_to_pd_timestamp(new_commit, old_commit):
 def _convert_expiration_to_pd_timestamp(new_commit):
     commit_timestamp = new_commit["metadata"]["timestamp"]
     params = new_commit["params"]
-    for key, param in params.items():
+    for _, param in params.items():
         if isinstance(param.expiration, int):
             param.expiration = commit_timestamp + pd.Timedelta(seconds=param.expiration)

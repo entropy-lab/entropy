@@ -10,8 +10,9 @@ import shutil
 
 from entropylab.logger import logger
 from entropylab.pipeline.api.errors import EntropyError
-from entropylab.pipeline.params.persistence.migrations import \
-    migrate_param_store_0_2_to_0_3
+from entropylab.pipeline.params.persistence.migrations import (
+    migrate_param_store_0_2_to_0_3,
+)
 from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import set_version
 from entropylab.pipeline.results_backend.sqlalchemy.alembic.alembic_util import (
     AlembicUtil,

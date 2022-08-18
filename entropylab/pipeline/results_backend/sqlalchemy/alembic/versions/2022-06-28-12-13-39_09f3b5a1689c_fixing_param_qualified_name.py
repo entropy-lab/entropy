@@ -25,9 +25,7 @@ depends_on = None
 
 def upgrade():
     path = str(AlembicUtil.get_param_store_file_path())
-    logger.debug(
-        f"Starting to fix Param qualified name in ParamStore file [{path}]"
-    )
+    logger.debug(f"Starting to fix Param qualified name in ParamStore file [{path}]")
     try:
         fix_param_qualified_name(path, revision)
         set_version(path, "0.2", revision)

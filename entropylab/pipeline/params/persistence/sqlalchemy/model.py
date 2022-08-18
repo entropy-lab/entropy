@@ -44,7 +44,7 @@ def sqlite_jsonb(element, compiler, **kw):
 
 
 @compiles(DateTime, "sqlite")
-def sqlite_jsonb(element, compiler, **kw):
+def sqlite_datetime(element, compiler, **kw):
     return "TEXT"
 
 

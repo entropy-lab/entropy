@@ -2,7 +2,7 @@ import uuid
 from typing import Optional, Set, List
 
 import jsonpickle
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from entropylab.pipeline.api.errors import EntropyError
@@ -10,6 +10,7 @@ from entropylab.pipeline.params.persistence.persistence import Persistence, Comm
 from entropylab.pipeline.params.persistence.sqlalchemy.model import (
     CommitTable,
     TempTable,
+    Base,
 )
 
 TEMP_COMMIT_ID = "00000000-0000-0000-0000-000000000000"
@@ -23,6 +24,10 @@ class SqlAlchemyPersistence(Persistence):
             json_deserializer=jsonpickle.decode,
         )
         self.__session_maker = sessionmaker(bind=self.engine)
+        if self._db_is_empty():
+            Base.metadata.create_all(self.engine)
+            # TODO: Stamp head using local Alembic instance
+            # self._alembic_util.stamp_head()
 
     def close(self):
         self.__session_maker.close_all()
@@ -134,3 +139,10 @@ class SqlAlchemyPersistence(Persistence):
                     tags=temp_table.tags,
                 )
             return commit
+
+    def _db_is_empty(self) -> bool:
+        with self.__session_maker() as session:
+            result = session.execute(
+                text("SELECT sql FROM sqlite_master WHERE type = 'table'")
+            )
+            return len(result.fetchall()) == 0

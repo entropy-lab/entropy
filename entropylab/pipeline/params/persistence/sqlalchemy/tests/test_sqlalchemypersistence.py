@@ -5,7 +5,6 @@ import pytest
 from sqlalchemy import create_engine, text
 
 from entropylab.pipeline.api.errors import EntropyError
-from entropylab.pipeline.params.persistence.sqlalchemy.model import Base
 from entropylab.pipeline.params.persistence.sqlalchemy.sqlalchemypersistence import (
     SqlAlchemyPersistence,
 )
@@ -16,8 +15,16 @@ def target(tmp_path) -> SqlAlchemyPersistence:
     file_path = tmp_path / "sqlite.db"
     url = f"sqlite:///{file_path}"
     engine = create_engine(url)
-    Base.metadata.create_all(engine)
+    # Base.metadata.create_all(engine)
     return SqlAlchemyPersistence(url)
+
+
+""" constructor """
+
+
+def test_ctor_creates_schema(target):
+    cursor = target.engine.execute("SELECT sql FROM sqlite_master WHERE type = 'table'")
+    assert len(cursor.fetchall()) == 2
 
 
 """ get_commit """

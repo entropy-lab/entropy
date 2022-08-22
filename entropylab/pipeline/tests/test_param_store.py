@@ -445,11 +445,11 @@ def test_commit_when_body_is_empty_does_not_throw(tinydb_file_path):
     assert len(target.commit()) == 40
 
 
-def test_commit_when_committing_non_dirty_does_nothing(tinydb_file_path):
+def test_commit_when_committing_non_dirty_commits(tinydb_file_path):
     target = InProcessParamStore(tinydb_file_path)
     first = target.commit()
     second = target.commit()
-    assert first == second
+    assert first != second
 
 
 def test_commit_when_committing_same_state_twice_a_different_id_is_returned(

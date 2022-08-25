@@ -4,11 +4,11 @@ from typing import Callable, Dict
 from munch import Munch
 from qm.QuantumMachinesManager import QuantumMachinesManager
 from qualang_tools.config import ConfigBuilder
-from qualang_tools.config.parameters import ConfigVars
-from qm.QuantumMachinesManager import QuantumMachinesManager
 from qualang_tools.config import ConfigurationError
+from qualang_tools.config.parameters import ConfigVars
 
-from entropylab.pipeline.params.param_store import ParamStore
+from entropylab import ParamStore
+
 
 class QuAMManager(ABC):
     def __init__(self, path: str, host=None, port=None, **kwargs):
@@ -17,13 +17,14 @@ class QuAMManager(ABC):
         :param host: Host where to find the QM orchestrator. If ``None``,
             local settings are used.
         :type host: str
-        :param port: Port where to find the QM orchestrator. If None, local settings are used):
+        :param port: Port where to find the QM orchestrator. If None, local settings
+         are used):
         :type port: int
         :param path: Path of the entropy DB
         :type path: str
         """
         self.path = path
-        self.param_store = InProcessParamStore(path)
+        self.param_store = ParamStore(path)
         self._config_builder = ConfigBuilder()
         self._config_vars = ConfigVars()
         self.config = {}

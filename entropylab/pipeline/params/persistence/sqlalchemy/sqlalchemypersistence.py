@@ -5,10 +5,9 @@ from typing import Optional, Set, List
 
 import jsonpickle
 from alembic import command
+from alembic.config import Config
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Connection
-from alembic.config import Config
-
 from sqlalchemy.orm import sessionmaker
 
 from entropylab.pipeline.api.errors import EntropyError
@@ -16,7 +15,6 @@ from entropylab.pipeline.params.persistence.persistence import Persistence, Comm
 from entropylab.pipeline.params.persistence.sqlalchemy.model import (
     CommitTable,
     TempTable,
-    Base,
 )
 
 TEMP_COMMIT_ID = "00000000-0000-0000-0000-000000000000"

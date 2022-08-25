@@ -9,7 +9,7 @@ from entropylab.dashboard.theme import (
     theme_stylesheet,
 )
 from entropylab.logger import logger
-from entropylab.pipeline.api.in_process_param_store import InProcessParamStore
+from entropylab.pipeline.params.param_store import ParamStore
 from entropylab.pipeline.results_backend.sqlalchemy.project import (
     project_name,
     project_path,
@@ -42,7 +42,7 @@ def build_dashboard_app(proj_path):
     # noinspection PyBroadException
     try:
         param_store_file = param_store_file_path(proj_path)
-        param_store = InProcessParamStore(param_store_file)
+        param_store = ParamStore(param_store_file)
     except BaseException as e:
         logger.exception(
             f"Exception when loading ParamStore file at '{param_store_file}'"

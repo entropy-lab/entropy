@@ -1,0 +1,146 @@
+{
+  "_default": {
+    "1": {
+      "metadata": {
+        "id": "57ea4b9fb96bdc7a13fe8ec616a3c6da21f41ca0",
+        "label": "warm-up",
+        "timestamp": 1652959865653245900
+      },
+      "params": {
+        "qubit1.flux_capacitor.freq": {
+          "py/object": "entropylab.pipeline.params.param_store.Param",
+          "__dict__": {
+            "value": 8.0,
+            "commit_id": null,
+            "expiration": 60,
+            "description": null,
+            "node_id": null
+          }
+        },
+        "qubit1.flux_capacitor.amp": {
+          "py/object": "entropylab.pipeline.params.param_store.Param",
+          "__dict__": {
+            "value": 5.0,
+            "commit_id": null,
+            "expiration": null,
+            "description": null,
+            "node_id": null
+          }
+        },
+        "qubit1.flux_capacitor": {
+          "py/object": "entropylab.pipeline.params.param_store.Param",
+          "__dict__": {
+            "value": {
+              "wave": "manifold",
+              "warp": 1337.0
+            },
+            "commit_id": null,
+            "expiration": null,
+            "description": null,
+            "node_id": null
+          }
+        }
+      },
+      "tags": {
+        "tag1": [
+          "qubit1.flux_capacitor.freq",
+          "qubit1.flux_capacitor.amp"
+        ]
+      }
+    },
+    "2": {
+      "metadata": {
+        "id": "bb31da94fe70b0c70c89aa12d7eb5a08de8df4a7",
+        "label": "warm-up",
+        "timestamp": 1652959865656245600
+      },
+      "params": {
+        "qubit1.flux_capacitor.freq": {
+          "py/object": "entropylab.pipeline.params.param_store.Param",
+          "__dict__": {
+            "value": 11.0,
+            "commit_id": null,
+            "expiration": 35,
+            "description": null,
+            "node_id": null
+          }
+        },
+        "qubit1.flux_capacitor.amp": {
+          "py/object": "entropylab.pipeline.params.param_store.Param",
+          "__dict__": {
+            "value": 5.0,
+            "commit_id": null,
+            "expiration": null,
+            "description": null,
+            "node_id": null
+          }
+        },
+        "qubit1.flux_capacitor": {
+          "py/object": "entropylab.pipeline.params.param_store.Param",
+          "__dict__": {
+            "value": {
+              "wave": "manifold",
+              "warp": 1337.0
+            },
+            "commit_id": null,
+            "expiration": null,
+            "description": null,
+            "node_id": null
+          }
+        }
+      },
+      "tags": {}
+    }
+  },
+  "temp": {
+    "1": {
+      "metadata": {
+        "id": "3c5efb96e95b82d93333aa852e16d0ecdebff009",
+        "label": null,
+        "timestamp": 1652959865650267800
+      },
+      "params": {
+        "qubit1.flux_capacitor.freq": {
+          "py/object": "entropylab.pipeline.params.param_store.Param",
+          "__dict__": {
+            "value": -8.0,
+            "commit_id": null,
+            "expiration": 12,
+            "description": null,
+            "node_id": null
+          }
+        },
+        "qubit1.flux_capacitor.amp": {
+          "py/object": "entropylab.pipeline.params.param_store.Param",
+          "__dict__": {
+            "value": -5.0,
+            "commit_id": null,
+            "expiration": null,
+            "description": null,
+            "node_id": null
+          }
+        },
+        "qubit1.flux_capacitor": {
+          "py/object": "entropylab.pipeline.params.param_store.Param",
+          "__dict__": {
+            "value": {
+              "wave": "chassis",
+              "warp": -1337.0
+            },
+            "commit_id": null,
+            "expiration": null,
+            "description": null,
+            "node_id": null
+          }
+        }
+      },
+      "tags": {}
+    }
+  },
+  "info": {
+    "1": {
+      "version": "0.2",
+      "revision": ""
+    }
+  }
+}

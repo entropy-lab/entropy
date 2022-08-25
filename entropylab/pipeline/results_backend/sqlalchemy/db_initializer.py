@@ -68,8 +68,8 @@ class _DbInitializer:
                 self._print_project_created(path)
 
     def init_db(self) -> Tuple[sqlalchemy.engine.Engine, HDF5Storage]:
-        """If the database is empty, initializes it with the most up to date schema.
-        If the database is not empty, ensures that is up to date."""
+        """If the database is empty, initializes it with the most up-to-date schema.
+        If the database is not empty, ensures that is up-to-date."""
         if self._db_is_empty():
             Base.metadata.create_all(self._engine)
             self._alembic_util.stamp_head()

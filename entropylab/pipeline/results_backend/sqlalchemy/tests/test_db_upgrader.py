@@ -9,7 +9,7 @@ from entropylab.conftest import _copy_template
 from entropylab.logger import logger
 from entropylab.pipeline.api.data_writer import Metadata
 from entropylab.pipeline.api.errors import EntropyError
-from entropylab.pipeline.api.in_process_param_store import InProcessParamStore
+from entropylab.pipeline.params.param_store import ParamStore
 from entropylab.pipeline.results_backend.sqlalchemy.db_initializer import (
     _ENTROPY_DIRNAME,
     _DB_FILENAME,
@@ -185,7 +185,7 @@ def test_upgrade_db_upgrades_params_json_from_0_1_to_0_2(
     # act
     target.upgrade_db()
     # assert - read a checked out value from param store as sanity:
-    param_store = InProcessParamStore(tinydb_file_path)
+    param_store = ParamStore(tinydb_file_path)
     param_store.checkout("57ea4b9fb96bdc7a13fe8ec616a3c6da21f41ca0")
     assert param_store["qubit1.flux_capacitor"]["wave"] == "manifold"
 

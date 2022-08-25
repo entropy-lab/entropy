@@ -14,7 +14,7 @@ from entropylab.dashboard.theme import (
     table_style_cell,
     table_active_cell_conditional,
 )
-from entropylab.pipeline.api.param_store import ParamStore
+from entropylab.pipeline.params.param_store import ParamStore
 
 REFRESH_INTERVAL_IN_MILLIS = 3000
 

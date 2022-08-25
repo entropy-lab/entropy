@@ -1,8 +1,14 @@
+import os
 import uuid
+from pathlib import Path
 from typing import Optional, Set, List
 
 import jsonpickle
+from alembic import command
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import Connection
+from alembic.config import Config
+
 from sqlalchemy.orm import sessionmaker
 
 from entropylab.pipeline.api.errors import EntropyError
@@ -25,9 +31,32 @@ class SqlAlchemyPersistence(Persistence):
         )
         self.__session_maker = sessionmaker(bind=self.engine)
         if self._db_is_empty():
-            Base.metadata.create_all(self.engine)
-            # TODO: Stamp head using local Alembic instance
-            # self._alembic_util.stamp_head()
+            self.__init()
+
+    def __init(self):
+        with self.engine.connect() as connection:
+            alembic_cfg = self.__alembic_build_config(connection)
+            command.upgrade(alembic_cfg, "head")
+
+    def __alembic_build_config(self, connection: Connection) -> Config:
+        config_location = self._abs_path_to("alembic.ini")
+        script_location = self._abs_path_to("alembic")
+        alembic_cfg = Config(config_location)
+        alembic_cfg.set_main_option("script_location", script_location)
+        """
+        Modified by @urig to share a single engine across multiple (typically in-memory)
+        connections, based on this cookbook recipe:
+        https://alembic.sqlalchemy.org/en/latest/cookbook.html#connection-sharing
+        """
+        alembic_cfg.set_main_option("sqlalchemy.url", "sqlite:///:memory:")
+        alembic_cfg.attributes["connection"] = connection  # overrides dummy url above
+        return alembic_cfg
+
+    @staticmethod
+    def _abs_path_to(rel_path: str) -> str:
+        source_path = Path(__file__).resolve()
+        source_dir = source_path.parent
+        return os.path.join(source_dir, rel_path)
 
     def close(self):
         self.__session_maker.close_all()

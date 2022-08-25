@@ -58,8 +58,6 @@ def create_target(request, tmp_path) -> Callable[[], ParamStore]:
         engine = create_engine(url)
         Base.metadata.create_all(engine)
         yield lambda: ParamStore(url=url)
-        # "sqlite:///:memory:"
-        # "postgresql://test_param_store:kf7yFdNYVjtQQ9H6j5QB@localhost/paramstore1"
 
 
 """ ctor """

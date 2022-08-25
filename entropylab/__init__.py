@@ -12,7 +12,7 @@ from entropylab.pipeline.graph_experiment import (
 from entropylab.pipeline.params.param_store import ParamStore
 from entropylab.pipeline.results_backend.sqlalchemy.db import SqlAlchemyDB
 from entropylab.pipeline.script_experiment import Script, script_experiment
-from entropylab.quam.core import QuAMManager, QuAM
+from entropylab.quam.core import QuAMManager
 
 __all__ = [
     "ExperimentReader",
@@ -29,6 +29,5 @@ __all__ = [
     "Script",
     "script_experiment",
     "ParamStore",
-    "QuAM",
     "QuAMManager",
 ]

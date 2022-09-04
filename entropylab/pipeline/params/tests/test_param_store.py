@@ -7,7 +7,6 @@ from typing import Callable
 
 import pandas as pd
 import pytest
-from sqlalchemy import create_engine
 from tinydb import TinyDB
 
 from entropylab.conftest import _copy_template, Process
@@ -23,7 +22,6 @@ from entropylab.pipeline.params.persistence.migrations import (
     migrate_param_store_0_2_to_0_3,
 )
 from entropylab.pipeline.params.persistence.persistence import Metadata
-from entropylab.pipeline.params.persistence.sqlalchemy.model import Base
 from entropylab.pipeline.params.persistence.tinydb.storage import JSONPickleStorage
 from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import set_version
 
@@ -32,9 +30,9 @@ from entropylab.pipeline.params.persistence.tinydb.tinydbpersistence import set_
 # The two test fixtures below will provide test targets (ParamStore instances) to any
 # test that requests them. By default, all 3 possible test targets are provided:
 
-DB_SQLITE = "DbParamStore with empty Sqlite DB file"
-TINY_JSON_FILE = "ParamStore with empty TinyDB JSON file"
-TINY_IN_MEMORY = "ParamStore in in-memory mode"
+DB_SQLITE = "ParamStore;SqlAlchemyPersistence;SQLite"
+TINY_JSON_FILE = "ParamStore;TinyDbPersistence;JSON file"
+TINY_IN_MEMORY = "ParamStore;TinyDbPersistence;In-memory"
 
 # Alternatively, test authors can pick and choose specific test targets like so:
 # @pytest.mark.parametrize("create_target", [TINY_JSON_FILE, DB_SQLITE], indirect=True)
@@ -55,8 +53,6 @@ def create_target(request, tmp_path) -> Callable[[], ParamStore]:
     else:
         file_path = tmp_path / "sqlite.db"
         url = f"sqlite:///{file_path}"
-        engine = create_engine(url)
-        Base.metadata.create_all(engine)
         yield lambda: ParamStore(url=url)
 
 
@@ -1058,6 +1054,16 @@ def test_save_temp_and_load_temp(target):
     target.foo = "baz"
     target.load_temp()
     assert target.foo == "bar"
+
+
+def test_save_temp_can_be_called_more_than_once(target):
+
+    target.foo = "bar"
+    target.save_temp()
+    target.foo = "baz"
+    target.save_temp()
+    target.load_temp()
+    assert target.foo == "baz"
 
 
 def test_load_temp_when_save_temp_not_called_before_then_error_is_raised(target):

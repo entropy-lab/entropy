@@ -5,6 +5,8 @@ import pytest
 from sqlalchemy import text
 
 from entropylab.pipeline.api.errors import EntropyError
+from entropylab.pipeline.params.param_store import Param
+from entropylab.pipeline.params.persistence.persistence import Commit
 from entropylab.pipeline.params.persistence.sqlalchemy.sqlalchemypersistence import (
     SqlAlchemyPersistence,
 )
@@ -25,7 +27,7 @@ def test_ctor_creates_schema(target):
     assert len(cursor.fetchall()) == 3
 
 
-def test_ctor_stamps_had(target):
+def test_ctor_stamps_head(target):
     cursor = target.engine.execute("SELECT version_num FROM alembic_version")
     assert cursor.first() == ("000c6a88457f",)
 
@@ -69,6 +71,14 @@ def test_get_commit_when_commit_num_exists_then_commit_is_returned(target):
 
 
 def test_get_commit_when_commit_num_does_not_exist_then_error_is_raised(target):
-    # engine = create_engine(url)
     with pytest.raises(EntropyError):
         target.get_commit(commit_num=2)
+
+
+def test_save_temp_commit_can_be_called_more_than_once_with_params(target):
+    commit1 = Commit(params={"foo": Param("bar")}, tags={})
+    target.save_temp_commit(commit1)
+    commit2 = Commit(params={"foo": Param("baz")}, tags={})
+    target.save_temp_commit(commit2)
+    actual = target.load_temp_commit()
+    assert actual.params["foo"].value == "baz"

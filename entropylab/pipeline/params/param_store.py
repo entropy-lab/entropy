@@ -38,6 +38,12 @@ class Param(Dict):
         self.description: Optional[str] = None
         self.node_id: Optional[str] = None
 
+    def __eq__(self, other):
+        return self.value == other.value
+
+    def __hash__(self):
+        return hash(self.value)
+
     def __repr__(self):
         return (
             f"<Param(value={self.value}, "

@@ -134,36 +134,39 @@ class SqlAlchemyPersistence(Persistence):
             return commits.all()
 
     def save_temp_commit(self, commit: Commit) -> None:
-        temp_table = TempTable()
-        # TODO: Perhaps create the timestamp here?
-        temp_table.id = TEMP_COMMIT_ID
-        temp_table.timestamp = commit.timestamp
-        temp_table.label = commit.label
-        temp_table.params = commit.params
-        temp_table.tags = commit.tags
         with self.__session_maker() as session:
-            session.add(temp_table)
-            session.commit()
+            temp = session.get(TempTable, TEMP_COMMIT_ID)
+            if temp:
+                temp.timestamp = commit.timestamp
+                temp.label = commit.label
+                temp.params = commit.params
+                temp.tags = commit.tags
+                session.commit()
+            else:
+                temp = TempTable()
+                temp.id = TEMP_COMMIT_ID
+                temp.timestamp = commit.timestamp
+                temp.label = commit.label
+                temp.params = commit.params
+                temp.tags = commit.tags
+                session.add(temp)
+                session.commit()
 
     def load_temp_commit(self) -> Commit:
         with self.__session_maker() as session:
-            temp_table = (
-                session.query(TempTable)
-                .filter(TempTable.id == TEMP_COMMIT_ID)
-                .one_or_none()
-            )
-            if not temp_table:
+            temp = session.get(TempTable, TEMP_COMMIT_ID)
+            if not temp:
                 raise EntropyError(
                     "Temp is empty. Use save_temp_commit() before using "
                     "load_temp_commit() "
                 )
             else:
                 commit = Commit(
-                    id=temp_table.id,
-                    timestamp=temp_table.timestamp,
-                    label=temp_table.label,
-                    params=temp_table.params,
-                    tags=temp_table.tags,
+                    id=temp.id,
+                    timestamp=temp.timestamp,
+                    label=temp.label,
+                    params=temp.params,
+                    tags=temp.tags,
                 )
             return commit
 

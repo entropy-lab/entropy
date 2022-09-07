@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.6]
+
+## Changed
+* Updated qualangtools version
+
 ## [0.15.5]
 
 ### Fixed
@@ -195,7 +200,8 @@ Entropy persistence backend.
 * QPU-DB - This is an extension to entropy which is built to save and manage the pieced of information describing 
 a Quantum Processing Unit. If multiple nodes are set up to calibrate the QPU, measuring decoherence times and resonant frequencies for example, then that data can be saved to a centralized store and subsequently used in the target application. Warning: this module will be replaced in future releases but a migration path will be provided. 
 
-[Unreleased]: https://github.com/entropy-lab/entropy/compare/v0.15.5...HEAD
+[Unreleased]: https://github.com/entropy-lab/entropy/compare/v0.15.6...HEAD
+[0.15.5]: https://github.com/entropy-lab/entropy/compare/v0.15.5...v0.15.6
 [0.15.5]: https://github.com/entropy-lab/entropy/compare/v0.15.4...v0.15.5
 [0.15.4]: https://github.com/entropy-lab/entropy/compare/v0.15.3...v0.15.4
 [0.15.3]: https://github.com/entropy-lab/entropy/compare/v0.15.2...v0.15.3

@@ -182,6 +182,10 @@ class ParamStore(MutableMapping):
         with self.__lock:
             return self.__params.__contains__(key)
 
+    def __dir__(self):
+        with self.__lock:
+            return super().__dir__() + list(self.__params.keys())
+
     def __repr__(self):
         with self.__lock:
             return f"<ParamStore({self.to_dict().__repr__()})>"

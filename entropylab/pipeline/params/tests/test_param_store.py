@@ -174,6 +174,22 @@ def test___delitem___when_key_is_deleted_then_it_is_removed_from_tags_too(target
     assert target.list_keys_for_tag("tag") == ["goo"]
 
 
+def test___dir___when_key_is_in_param_store_then_it_is_in_result(target):
+    target.foo = "bar"
+    target["baz"] = "42"
+    actual = dir(target)
+    assert "foo" in actual
+    assert "baz" in actual
+    assert "commit" in actual
+
+
+def test___dir___when_key_is_removed_then_its_not_in_result(target):
+    target["foo"] = "bar"
+    assert "foo" in dir(target)
+    del target["foo"]
+    assert "foo" not in dir(target)
+
+
 def test___repr__(target):
     target["foo"] = "bar"
     actual = target.__repr__()

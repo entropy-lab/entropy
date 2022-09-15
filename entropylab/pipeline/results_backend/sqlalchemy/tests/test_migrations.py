@@ -19,7 +19,7 @@ def test_ctor_creates_up_to_date_schema_when_in_memory(path: str):
     [
         None,  # new db
         "empty.db",  # existing but empty
-        "empty_after_2022-07-03-08-56-23_da8d38e19ff8_matplotlib_figures.db",
+        "empty_after_2022-08-07-11-53-59_997e336572b8_paramstore_json_v0_3.db",
         # ⬆ latest version in pipeline/results_backend/sqlalchemy/alembic/versions
     ],
     indirect=True,

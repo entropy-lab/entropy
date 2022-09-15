@@ -1,0 +1,1 @@
+Flame now lives in separate repository (https://github.com/entropy-lab/flame)[https://github.com/entropy-lab/flame]

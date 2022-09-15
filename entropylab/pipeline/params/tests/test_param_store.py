@@ -5,6 +5,7 @@ from pprint import pprint
 from time import sleep
 from typing import Callable
 
+import numpy as np
 import pandas as pd
 import pytest
 from tinydb import TinyDB
@@ -1066,6 +1067,13 @@ def test_save_temp_can_be_called_more_than_once(target):
     assert target.foo == "baz"
 
 
+def test_save_temp_when_ndarray_is_saved_twice_then_no_error_occurs(target):
+    target.foo = np.random.randn(2)
+    target.save_temp()
+    target.foo = np.random.randn(2)
+    target.save_temp()
+
+
 def test_load_temp_when_save_temp_not_called_before_then_error_is_raised(target):
     with pytest.raises(EntropyError):
         target.load_temp()
@@ -1192,6 +1200,35 @@ def test_fix_param_qualified_name(tinydb_file_path, request):
 
 
 """ class Param """
+
+
+@pytest.mark.parametrize(
+    "value,other",
+    [
+        (42, 42),
+        ("foo", "foo"),
+        (1.9999999999, 1.9999999999),
+        (np.array([1]), np.array([1])),
+        (np.array([1, 1.999999999]), np.array([1, 1.999999999])),
+        (np.array([1, 1.9999999999]), np.array([1, 1.9999999998])),
+    ],
+)
+def test___eq___expecting_true(value, other):
+    assert Param(value) == Param(other)
+
+
+@pytest.mark.parametrize(
+    "value,other",
+    [
+        (42, 41),
+        ("foo", "bar"),
+        (1.9999999999, 1.9999999998),
+        (np.array([1, 1]), np.array([1, 2])),
+        (np.array([1, 1.99999999]), np.array([1, 1.99999998])),
+    ],
+)
+def test___eq___expecting_false(value, other):
+    assert not (Param(value) == Param(other))
 
 
 def test_has_expired_when_expiration_is_int_and_has_expired_then_true():

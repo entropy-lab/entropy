@@ -8,6 +8,7 @@ from enum import unique, Enum
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Set, MutableMapping
 
+import numpy as np
 import pandas as pd
 
 from entropylab.config import settings
@@ -39,7 +40,13 @@ class Param(Dict):
         self.node_id: Optional[str] = None
 
     def __eq__(self, other):
-        return self.value == other.value
+        if isinstance(self.value, np.ndarray):  # numpy arrays
+            if np.issubdtype(self.value.dtype, np.float):  # dtype float
+                return np.allclose(self.value, other.value, atol=1e-09, rtol=0.0)
+            else:  # non-float dtype
+                return (self.value == other.value).all()
+        else:  # everything else
+            return self.value == other.value
 
     def __hash__(self):
         return hash(self.value)

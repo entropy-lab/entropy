@@ -33,9 +33,7 @@ The Entropy system is built with concrete implementations of the various parts (
 
 ## Modules 
 
-- ***Pipeline*** : A simple execution engine for a collection of nodes. Allows passing data between nodes and saving results to a database. Also includes a dashboard for viewing results. 
-- ***Flame*** : An actor model execution engine 
-- ***QuAM*** : The Quantum Abstract Machine. An abstraction layer above QPU to simplify experiment authoring and parameter management.
+- ***Pipeline*** : A simple execution engine for a collection of nodes. Allows passing data between nodes and saving results to a database. Also includes a dashboard for viewing results.
  
 
 ## Installation

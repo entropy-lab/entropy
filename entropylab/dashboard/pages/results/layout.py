@@ -23,7 +23,7 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
             className="main",
             children=[
                 dcc.Store(id="figures-by-key", storage_type="session"),
-                dcc.Store(id="plot-keys-to-combine", storage_type="session"),
+                dcc.Store(id="figure-keys-to-combine", storage_type="session"),
                 dcc.Store(id="prev-selected-rows", storage_type="session"),
                 dcc.Store(id="favorites", storage_type="session"),
                 dcc.Interval(
@@ -71,17 +71,19 @@ def build_layout(path: str, dashboard_data_reader: DashboardDataReader):
                             [
                                 dbc.Row(
                                     [
-                                        html.H5("Plots and Figures", id="plots-title"),
+                                        html.H5(
+                                            "Figures and Images", id="figures-title"
+                                        ),
                                         dcc.Loading(
-                                            id="plot-tabs-loading",
-                                            children=[dbc.Tabs(id="plot-tabs")],
+                                            id="figure-tabs-loading",
+                                            children=[dbc.Tabs(id="figure-tabs")],
                                             type="default",
                                         ),
                                     ]
                                 ),
                                 dbc.Row(
                                     dbc.Button(
-                                        "➕ Add Plot to Aggregate View",
+                                        "➕ Add Figure to Aggregate View",
                                         id="add-button",
                                     ),
                                     className="add-button-container",

@@ -1,12 +1,9 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Optional, Type
-from warnings import warn
+from typing import Any
 
-from bokeh.models import Renderer
-from bokeh.plotting import Figure
-from matplotlib.figure import Figure as matplotlibFigure
+from matplotlib.figure import Figure
 from plotly import graph_objects as go
 
 
@@ -75,59 +72,6 @@ class Debug:
     extra: str
 
 
-class PlotGenerator(ABC):
-    """
-    An abstract class for plots.
-    Implementations of this class will let Entropy to save and view plots.
-    Every implementation can either implement all plotting functions
-    (within the different environments), or just part of it.
-    """
-
-    def __init__(self) -> None:
-        super().__init__()
-
-    @abstractmethod
-    def plot_bokeh(self, figure: Figure, data, **kwargs) -> Renderer:
-        """
-            plot the given data within the Bokeh Figure
-        :param figure: Bokeh figure to plot in
-        :param data: plot data
-        :param kwargs: extra parameters for plotting
-        """
-        pass
-
-    @abstractmethod
-    def plot_matplotlib(self, figure: matplotlibFigure, data, **kwargs):
-        """
-            plot the given data within the matplotlib Figure
-        :param figure: matplotlib figure
-        :param data: plot data
-        :param kwargs: extra parameters for plotting
-        """
-        pass
-
-    @abstractmethod
-    def plot_plotly(self, figure: go.Figure, data, **kwargs) -> None:
-        """
-            plot the given data within the plot.ly Figure
-        :param figure: plot.ly figure
-        :param data: plot data
-        :param kwargs: extra parameters for plotting
-        """
-        pass
-
-
-@dataclass(frozen=True, eq=True)
-class PlotSpec:
-    """
-    Description and plotting instructions for a plot that will be saved
-    """
-
-    generator: Optional[Type[PlotGenerator]] = None
-    label: Optional[str] = None
-    story: Optional[str] = ""
-
-
 @dataclass
 class NodeData:
     """
@@ -184,24 +128,19 @@ class DataWriter(ABC):
         """
         pass
 
-    @abstractmethod
-    def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
-        """
-            save a new plot to the db according to the PlotSpec class
-        :param experiment_id: the experiment id
-        :param plot: plotting instructions
-        :param data: the data of the plot
-        """
-        warn(
-            "This method will soon be deprecated. Please use save_figure() instead",
-            PendingDeprecationWarning,
-            stacklevel=2,
-        )
-        pass
-
     def save_figure(self, experiment_id: int, figure: go.Figure) -> None:
         """
-            save a new plotly figure to the db and associates it with an experiment
+            saves a new plotly figure to the db and associates it with an experiment
+
+        :param experiment_id: the id of the experiment to associate the figure to
+        :param figure: the figure to save to the database
+        """
+        pass
+
+    def save_matplotlib_figure(self, experiment_id: int, figure: Figure) -> None:
+        """
+            saves a new matplotlib figure to the db (as a base64-encoded string
+            representation of a PNG image) and associates it with an experiment
 
         :param experiment_id: the id of the experiment to associate the figure to
         :param figure: the figure to save to the database

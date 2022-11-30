@@ -13,6 +13,8 @@ def test_init_with_no_args():
     args.directory = ""
     # act
     init(args)
+    # clean up
+    shutil.rmtree(".entropy")
 
 
 def test_init_with_current_dir():

@@ -2,6 +2,7 @@ import os.path
 from datetime import datetime
 
 import pytest
+from matplotlib import pyplot as plt
 from plotly import express as px
 
 from entropylab import SqlAlchemyDB, RawResultData
@@ -73,6 +74,24 @@ def test_save_figure_(initialized_project_dir_path):
     # assert
     actual = db.get_figures(0)[0]
     assert actual.figure == figure
+
+
+def test_save_matplotlib_figure_(initialized_project_dir_path):
+    # arrange
+    db = SqlAlchemyDB(initialized_project_dir_path)
+    x = [1, 2, 3, 4]
+    y = [10, 40, 20, 30]
+    plt.scatter(x, y)
+    figure = plt.gcf()
+    # act
+    db.save_matplotlib_figure(0, figure)
+    # assert
+    actual = db.get_matplotlib_figures(0)[0]
+    assert actual.img_src.startswith(
+        "data:image/png;base64,"
+        "iVBORw0KGgoAAAANSUhEUgAAAoAAAAHgCAYAAAA10dzkAAAAOXRFWHRTb2Z0d2FyZQBN"
+        "YXRwbG90bGliIHZlcnNpb24zLjUuMiwgaHR0cHM6Ly9tYXRwbG90bGliLm9yZy8qNh9F"
+    )
 
 
 def test_get_experiments_range_reads_all_columns():

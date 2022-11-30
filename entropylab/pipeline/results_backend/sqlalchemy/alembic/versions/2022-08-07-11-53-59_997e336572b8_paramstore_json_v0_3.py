@@ -20,7 +20,7 @@ from entropylab.pipeline.results_backend.sqlalchemy.alembic.alembic_util import 
 
 # revision identifiers, used by Alembic.
 revision = "997e336572b8"
-down_revision = "09f3b5a1689c"
+down_revision = "da8d38e19ff8"
 branch_labels = None
 depends_on = None
 

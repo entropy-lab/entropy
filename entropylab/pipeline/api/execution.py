@@ -4,13 +4,12 @@ from typing import Any
 
 from plotly import graph_objects as go
 
+from entropylab.components.lab_topology import ExperimentResources
 from entropylab.pipeline.api.data_writer import (
     DataWriter,
     RawResultData,
     Metadata,
-    PlotSpec,
 )
-from entropylab.components.lab_topology import ExperimentResources
 
 
 class EntropyContext:
@@ -59,15 +58,6 @@ class EntropyContext:
         self._data_writer.save_metadata(
             self._exp_id, Metadata(label, self._stage_id, metadata)
         )
-
-    def add_plot(self, plot: PlotSpec, data: Any):
-        """
-            saves a new plot from this experiment in the database
-
-        :param plot: description and plotting instructions
-        :param data: the data for plotting
-        """
-        self._data_writer.save_plot(self._exp_id, plot, data)
 
     def add_figure(self, figure: go.Figure) -> None:
         """

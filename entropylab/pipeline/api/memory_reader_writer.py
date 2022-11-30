@@ -1,8 +1,9 @@
 import random
 from datetime import datetime
 from time import time_ns
-from typing import List, Optional, Iterable, Any, Dict, Tuple
+from typing import List, Optional, Iterable, Dict, Tuple
 
+import matplotlib.figure
 from pandas import DataFrame
 from plotly import graph_objects as go
 
@@ -13,16 +14,19 @@ from entropylab.pipeline.api.data_reader import (
     MetadataRecord,
     ExperimentRecord,
     ScriptViewer,
-    PlotRecord,
     FigureRecord,
+    MatplotlibFigureRecord,
 )
-from entropylab.pipeline.api.data_writer import DataWriter, PlotSpec, NodeData
+from entropylab.pipeline.api.data_writer import DataWriter, NodeData
 from entropylab.pipeline.api.data_writer import (
     ExperimentInitialData,
     ExperimentEndData,
     RawResultData,
     Metadata,
     Debug,
+)
+from entropylab.pipeline.results_backend.sqlalchemy.db import (
+    matplotlib_figure_to_img_src,
 )
 
 
@@ -41,8 +45,8 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         self._results: List[Tuple[RawResultData, datetime]] = []
         self._metadata: List[Tuple[Metadata, datetime]] = []
         self._debug: Optional[Debug] = None
-        self._plot: Dict[PlotSpec, Any] = {}
         self._figure: Dict[int, List[FigureRecord]] = {}
+        self._matplotlib_figure: Dict[int, List[MatplotlibFigureRecord]] = {}
         self._nodes: List[NodeData] = []
 
     def save_experiment_initial_data(self, initial_data: ExperimentInitialData) -> int:
@@ -61,9 +65,6 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
     def save_debug(self, experiment_id: int, debug: Debug):
         self._debug = debug
 
-    def save_plot(self, experiment_id: int, plot: PlotSpec, data: Any):
-        self._plot[plot] = data
-
     def save_figure(self, experiment_id: int, figure: go.Figure) -> None:
         figure_record = FigureRecord(
             experiment_id=experiment_id,
@@ -76,10 +77,26 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         else:
             self._figure[experiment_id] = [figure_record]
 
+    def save_matplotlib_figure(
+        self, experiment_id: int, figure: matplotlib.figure.Figure
+    ) -> None:
+        record = MatplotlibFigureRecord(
+            experiment_id=experiment_id,
+            id=random.randint(0, 2**31 - 1),
+            img_src=matplotlib_figure_to_img_src(figure),
+            time=datetime.now(),
+        )
+        if experiment_id in self._matplotlib_figure:
+            self._matplotlib_figure[experiment_id].append(record)
+        else:
+            self._matplotlib_figure[experiment_id] = [record]
+
     def save_node(self, experiment_id: int, node_data: NodeData):
         self._nodes.append(node_data)
 
-    def get_experiments_range(self, starting_from_index: int, count: int) -> DataFrame:
+    def get_experiments_range(
+        self, starting_from_index: int, count: int, success: bool = None
+    ) -> DataFrame:
         raise NotImplementedError()
 
     def get_experiments(
@@ -163,21 +180,13 @@ class MemoryOnlyDataReaderWriter(DataWriter, DataReader):
         else:
             return None
 
-    def get_plots(self, experiment_id: int) -> List[PlotRecord]:
-        return [
-            PlotRecord(
-                experiment_id,
-                id(plot),
-                self._plot[plot],
-                plot.generator(),
-                plot.label,
-                plot.story,
-            )
-            for plot in self._plot
-        ]
-
     def get_figures(self, experiment_id: int) -> List[FigureRecord]:
         return self._figure[experiment_id]
+
+    def get_matplotlib_figures(
+        self, experiment_id: int
+    ) -> List[MatplotlibFigureRecord]:
+        return self._matplotlib_figure[experiment_id]
 
     def get_node_stage_ids_by_label(
         self, label: str, experiment_id: Optional[int] = None

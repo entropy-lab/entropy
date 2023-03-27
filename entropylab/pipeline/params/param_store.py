@@ -41,7 +41,7 @@ class Param(Dict):
 
     def __eq__(self, other):
         if isinstance(self.value, np.ndarray):  # numpy arrays
-            if np.issubdtype(self.value.dtype, np.float):  # dtype float
+            if np.issubdtype(self.value.dtype, float):  # dtype float
                 return np.allclose(self.value, other.value, atol=1e-09, rtol=0.0)
             else:  # non-float dtype
                 return (self.value == other.value).all()

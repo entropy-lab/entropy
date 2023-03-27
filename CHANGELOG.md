@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.8]
+### Changed
+* supporting python versions 3.8, 3.9, 3.10, 3.11
+* removed unused python packages
+
 ## [0.15.7]
 ### Added
 * _dir__() method for ParamStore, adds Param keys to auto-complete

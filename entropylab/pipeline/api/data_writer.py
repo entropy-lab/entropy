@@ -199,6 +199,7 @@ class DataWriter(ABC):
         )
         pass
 
+    @abstractmethod
     def save_figure(self, experiment_id: int, figure: go.Figure) -> None:
         """
             save a new plotly figure to the db and associates it with an experiment

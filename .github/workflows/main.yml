@@ -22,11 +22,14 @@ jobs:
       version: ${{ steps.project-version.outputs.version }}
     env:
       JUNIT_REPORT_PATH: pytest-junit-report
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
         with:
-          python-version: 3.7
+          python-version: ${{ matrix.python-version }}
 
       - name: Setup pip Cache
         id: cache-pip

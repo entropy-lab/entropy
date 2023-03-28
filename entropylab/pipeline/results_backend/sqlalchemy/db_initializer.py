@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import TypeVar, Type, Tuple
 
 import sqlalchemy.engine
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from entropylab.logger import logger
@@ -117,10 +117,11 @@ class _DbInitializer:
             )
 
     def _db_is_empty(self) -> bool:
-        cursor = self._engine.execute(
-            "SELECT sql FROM sqlite_master WHERE type = 'table'"
-        )
-        return len(cursor.fetchall()) == 0
+        with self._engine.connect() as connection:
+            cursor = connection.execute(
+                text("SELECT sql FROM sqlite_master WHERE type = 'table'")
+            )
+            return len(cursor.fetchall()) == 0
 
 
 class _DbUpgrader:

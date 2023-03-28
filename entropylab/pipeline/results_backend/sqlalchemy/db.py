@@ -1,4 +1,5 @@
 from datetime import datetime
+from contextlib import contextmanager
 from typing import List, TypeVar, Optional, ContextManager, Iterable, Union, Any
 from typing import Set
 from warnings import warn
@@ -11,7 +12,6 @@ from sqlalchemy import desc
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.sql import Selectable
-from sqlalchemy.util.compat import contextmanager
 
 from entropylab.components.instrument_driver import Function, Parameter
 from entropylab.components.lab_model import (

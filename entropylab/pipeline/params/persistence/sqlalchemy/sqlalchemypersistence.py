@@ -8,7 +8,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Connection
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, close_all_sessions
 
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.params.persistence.persistence import Persistence, Commit
@@ -57,7 +57,7 @@ class SqlAlchemyPersistence(Persistence):
         return os.path.join(source_dir, rel_path)
 
     def close(self):
-        self.__session_maker.close_all()
+        close_all_sessions()
 
     def get_commit(
         self, commit_id: Optional[str] = None, commit_num: Optional[int] = None

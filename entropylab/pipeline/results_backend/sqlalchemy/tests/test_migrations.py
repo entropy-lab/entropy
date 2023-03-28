@@ -1,4 +1,5 @@
 import pytest
+from sqlalchemy import text
 
 from entropylab import SqlAlchemyDB
 
@@ -8,9 +9,12 @@ def test_ctor_creates_up_to_date_schema_when_in_memory(path: str):
     # act
     target = SqlAlchemyDB(path=path, echo=True)
     # assert
-    cur = target._engine.execute("SELECT sql FROM sqlite_master WHERE name = 'Results'")
-    res = cur.fetchone()
-    cur.close()
+    with target._engine.connect() as connection:
+        cur = connection.execute(
+            text("SELECT sql FROM sqlite_master WHERE name = 'Results'")
+        )
+        res = cur.fetchone()
+        cur.close()
     assert "saved_in_hdf5" in res[0]
 
 

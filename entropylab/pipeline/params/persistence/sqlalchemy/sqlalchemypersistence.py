@@ -62,7 +62,7 @@ class SqlAlchemyPersistence(Persistence):
 
     def get_commit(
         self, commit_id: Optional[str] = None, commit_num: Optional[int] = None
-    ):  
+    ):
         if commit_id:
             with self.__session_maker() as session:
                 commit = (

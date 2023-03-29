@@ -45,7 +45,7 @@ def test_get_commit_when_commit_id_exists_then_commit_is_returned(target):
         connection.execute(
             text(
                 "INSERT INTO 'commit' VALUES "
-                f"('{commit_id}', '{pd.Timestamp.now()}', 'bar', '0', '0');"
+                f"('{UUID(commit_id).hex}', '{pd.Timestamp.now()}', 'bar', '0', '0');"
             )
         )
     actual = target.get_commit(commit_id)
@@ -54,7 +54,7 @@ def test_get_commit_when_commit_id_exists_then_commit_is_returned(target):
 
 def test_get_commit_when_commit_id_does_not_exist_then_error_is_raised(target):
     with pytest.raises(EntropyError):
-        target.get_commit("foo")
+        target.get_commit("f74c808e-2388-4b0a-a051-17eb9eb14339")
 
 
 def test_get_commit_when_commit_num_exists_then_commit_is_returned(target):
@@ -65,9 +65,9 @@ def test_get_commit_when_commit_num_exists_then_commit_is_returned(target):
         connection.execute(
             text(
                 "INSERT INTO 'commit' VALUES "
-                f"('{commit_id1}', '{pd.Timestamp.now()}', 'bar', '0', '0'),"
-                f"('{commit_id2}', '{pd.Timestamp.now()}', 'bar', '0', '0'),"
-                f"('{commit_id3}', '{pd.Timestamp.now()}', 'bar', '0', '0');"
+                f"('{UUID(commit_id1).hex}', '{pd.Timestamp.now()}', 'bar', '0', '0'),"
+                f"('{UUID(commit_id2).hex}', '{pd.Timestamp.now()}', 'bar', '0', '0'),"
+                f"('{UUID(commit_id3).hex}', '{pd.Timestamp.now()}', 'bar', '0', '0');"
             )
         )
     actual = target.get_commit(commit_num=2)

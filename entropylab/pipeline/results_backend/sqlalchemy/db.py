@@ -5,10 +5,9 @@ from typing import Set
 from warnings import warn
 
 import jsonpickle
-import pandas as pd
 from pandas import DataFrame
 from plotly import graph_objects as go
-from sqlalchemy import desc
+from sqlalchemy import text, desc
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.sql import Selectable
@@ -336,11 +335,12 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
     def custom_query(self, query: Union[str, Selectable]) -> DataFrame:
         with self._session_maker() as sess:
             if isinstance(query, str):
-                selectable = query
+                selectable = text(query)
             else:
                 selectable = query.statement
 
-            return pd.read_sql(selectable, sess.bind)
+            result = sess.execute(selectable)
+            return DataFrame(result.all(), columns=result.keys())
 
     def _execute_transaction(self, transaction):
         with self._session_maker() as sess:
@@ -350,7 +350,8 @@ class SqlAlchemyDB(DataWriter, DataReader, PersistentLabDB):
 
     @staticmethod
     def _query_pandas(query):
-        return pd.read_sql(query.statement, query.session.bind)
+        result = query.session.execute(query.statement)
+        return DataFrame(result.all(), columns=result.keys())
 
     @contextmanager
     def _session_maker(self) -> ContextManager[Session]:

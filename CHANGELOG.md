@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [0.15.9]
 ### Changed
 * Updated SQLAlchemy from version 1.4 to 2.0
 

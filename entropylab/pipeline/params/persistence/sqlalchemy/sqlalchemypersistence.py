@@ -1,5 +1,6 @@
 import os
 import uuid
+from uuid import UUID
 from pathlib import Path
 from typing import Optional, Set, List
 
@@ -8,7 +9,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Connection
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, close_all_sessions
 
 from entropylab.pipeline.api.errors import EntropyError
 from entropylab.pipeline.params.persistence.persistence import Persistence, Commit
@@ -17,7 +18,7 @@ from entropylab.pipeline.params.persistence.sqlalchemy.model import (
     TempTable,
 )
 
-TEMP_COMMIT_ID = "00000000-0000-0000-0000-000000000000"
+TEMP_COMMIT_ID = UUID("00000000-0000-0000-0000-000000000000")
 
 
 class SqlAlchemyPersistence(Persistence):
@@ -57,7 +58,7 @@ class SqlAlchemyPersistence(Persistence):
         return os.path.join(source_dir, rel_path)
 
     def close(self):
-        self.__session_maker.close_all()
+        close_all_sessions()
 
     def get_commit(
         self, commit_id: Optional[str] = None, commit_num: Optional[int] = None
@@ -66,7 +67,7 @@ class SqlAlchemyPersistence(Persistence):
             with self.__session_maker() as session:
                 commit = (
                     session.query(CommitTable)
-                    .filter(CommitTable.id == commit_id)
+                    .filter(CommitTable.id == UUID(commit_id))
                     .one_or_none()
                 )
                 if commit:
@@ -108,7 +109,7 @@ class SqlAlchemyPersistence(Persistence):
         # TODO: Perhaps create the timestamp here?
         self.stamp_dirty_params_with_commit(commit, dirty_keys)
         commit_table = CommitTable()
-        commit_table.id = commit.id
+        commit_table.id = UUID(commit.id)
         commit_table.timestamp = commit.timestamp
         commit_table.label = commit.label
         commit_table.params = commit.params
@@ -116,7 +117,7 @@ class SqlAlchemyPersistence(Persistence):
         with self.__session_maker() as session:
             session.add(commit_table)
             session.commit()
-            return commit_table.id
+            return commit.id
 
     @staticmethod
     def __generate_commit_id() -> str:

@@ -18,8 +18,7 @@ from sqlalchemy import (
     Enum,
     Boolean,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import declarative_base, relationship
 
 from entropylab.logger import logger
 from entropylab.pipeline.api.data_reader import (

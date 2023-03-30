@@ -2,7 +2,7 @@ import os
 import shutil
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 from entropylab import SqlAlchemyDB, RawResultData
 from entropylab.conftest import _copy_template
@@ -76,9 +76,12 @@ def test_upgrade_db_when_initial_db_is_empty(initialized_project_dir_path):
     engine = create_engine(
         f"sqlite:///{initialized_project_dir_path}/{_ENTROPY_DIRNAME}/{_DB_FILENAME}"
     )
-    cur = engine.execute("SELECT sql FROM sqlite_master WHERE name = 'Results'")
-    res = cur.fetchone()
-    cur.close()
+    with engine.connect() as connection:
+        cur = connection.execute(
+            text("SELECT sql FROM sqlite_master WHERE name = 'Results'")
+        )
+        res = cur.fetchone()
+        cur.close()
     assert "saved_in_hdf5" in res[0]
 
 
@@ -88,9 +91,12 @@ def test_upgrade_db_when_db_is_in_memory():
     # act
     target.upgrade_db()
     # assert
-    cur = target._engine.execute("SELECT sql FROM sqlite_master WHERE name = 'Results'")
-    res = cur.fetchone()
-    cur.close()
+    with target._engine.connect() as connection:
+        cur = connection.execute(
+            text("SELECT sql FROM sqlite_master WHERE name = 'Results'")
+        )
+        res = cur.fetchone()
+        cur.close()
     assert "saved_in_hdf5" in res[0]
 
 
@@ -112,8 +118,9 @@ def test__migrate_results_to_hdf5(initialized_project_dir_path):
     )
     hdf5_results = storage.get_result_records()
     assert len(list(hdf5_results)) == 5
-    cur = target._engine.execute("SELECT * FROM Results WHERE saved_in_hdf5 = 1")
-    res = cur.all()
+    with target._engine.connect() as connection:
+        cur = connection.execute(text("SELECT * FROM Results WHERE saved_in_hdf5 = 1"))
+        res = cur.all()
     assert len(res) == 5
 
 
@@ -135,10 +142,11 @@ def test__migrate_metadata_to_hdf5(initialized_project_dir_path):
     )
     hdf5_metadata = storage.get_metadata_records()
     assert len(list(hdf5_metadata)) == 5
-    cur = target._engine.execute(
-        "SELECT * FROM ExperimentMetadata WHERE saved_in_hdf5 = 1"
-    )
-    res = cur.all()
+    with target._engine.connect() as connection:
+        cur = connection.execute(
+            text("SELECT * FROM ExperimentMetadata WHERE saved_in_hdf5 = 1")
+        )
+        res = cur.all()
     assert len(res) == 5
 
 
@@ -205,14 +213,16 @@ def test_upgrade_db_deletes_results_and_metadata_from_sqlite(
     # act
     target.upgrade_db()
     # assert for results
-    cur = target._engine.execute("SELECT * FROM Results WHERE saved_in_hdf5 = 1")
-    res = cur.all()
+    with target._engine.connect() as connection:
+        cur = connection.execute(text("SELECT * FROM Results WHERE saved_in_hdf5 = 1"))
+        res = cur.all()
     assert len(res) == 0
     # assert for metadata
-    cur = target._engine.execute(
-        "SELECT * FROM ExperimentMetadata WHERE saved_in_hdf5 = 1"
-    )
-    res = cur.all()
+    with target._engine.connect() as connection:
+        cur = connection.execute(
+            text("SELECT * FROM ExperimentMetadata WHERE saved_in_hdf5 = 1")
+        )
+        res = cur.all()
     assert len(res) == 0
 
 
@@ -230,8 +240,11 @@ def test_upgrade_db_adds_favorite_column_to_experiments_table(
     target = _DbUpgrader(initialized_project_dir_path)
     # act
     target.upgrade_db()
-    cur = target._engine.execute(
-        "SELECT COUNT(*) FROM pragma_table_info('Experiments') WHERE name='favorite'; "
-    )
-    res = cur.all()
+    with target._engine.connect() as connection:
+        cur = connection.execute(
+            text(
+                "SELECT COUNT(*) FROM pragma_table_info('Experiments') WHERE name='favorite'; "
+            )
+        )
+        res = cur.all()
     assert res[0][0] == 1

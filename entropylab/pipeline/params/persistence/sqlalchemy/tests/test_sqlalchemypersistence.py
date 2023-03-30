@@ -23,13 +23,17 @@ def target(tmp_path) -> SqlAlchemyPersistence:
 
 
 def test_ctor_creates_schema(target):
-    cursor = target.engine.execute("SELECT sql FROM sqlite_master WHERE type = 'table'")
-    assert len(cursor.fetchall()) == 3
+    with target.engine.connect() as connection:
+        cursor = connection.execute(
+            text("SELECT sql FROM sqlite_master WHERE type = 'table'")
+        )
+        assert len(cursor.fetchall()) == 3
 
 
 def test_ctor_stamps_head(target):
-    cursor = target.engine.execute("SELECT version_num FROM alembic_version")
-    assert cursor.first() == ("000c6a88457f",)
+    with target.engine.connect() as connection:
+        cursor = connection.execute(text("SELECT version_num FROM alembic_version"))
+        assert cursor.first() == ("000c6a88457f",)
 
 
 """ get_commit """
@@ -37,11 +41,11 @@ def test_ctor_stamps_head(target):
 
 def test_get_commit_when_commit_id_exists_then_commit_is_returned(target):
     commit_id = "f74c808e-2388-4b0a-a051-17eb9eb14339"
-    with target.engine.connect() as connection:
+    with target.engine.begin() as connection:
         connection.execute(
             text(
                 "INSERT INTO 'commit' VALUES "
-                f"('{commit_id}', '{pd.Timestamp.now()}', 'bar', '0', '0');"
+                f"('{UUID(commit_id).hex}', '{pd.Timestamp.now()}', 'bar', '0', '0');"
             )
         )
     actual = target.get_commit(commit_id)
@@ -50,20 +54,20 @@ def test_get_commit_when_commit_id_exists_then_commit_is_returned(target):
 
 def test_get_commit_when_commit_id_does_not_exist_then_error_is_raised(target):
     with pytest.raises(EntropyError):
-        target.get_commit("foo")
+        target.get_commit("f74c808e-2388-4b0a-a051-17eb9eb14339")
 
 
 def test_get_commit_when_commit_num_exists_then_commit_is_returned(target):
     commit_id1 = "f74c808e-2388-4b0a-a051-17eb9eb11111"
     commit_id2 = "f74c808e-2388-4b0a-a051-17eb9eb22222"
     commit_id3 = "f74c808e-2388-4b0a-a051-17eb9eb33333"
-    with target.engine.connect() as connection:
+    with target.engine.begin() as connection:
         connection.execute(
             text(
                 "INSERT INTO 'commit' VALUES "
-                f"('{commit_id1}', '{pd.Timestamp.now()}', 'bar', '0', '0'),"
-                f"('{commit_id2}', '{pd.Timestamp.now()}', 'bar', '0', '0'),"
-                f"('{commit_id3}', '{pd.Timestamp.now()}', 'bar', '0', '0');"
+                f"('{UUID(commit_id1).hex}', '{pd.Timestamp.now()}', 'bar', '0', '0'),"
+                f"('{UUID(commit_id2).hex}', '{pd.Timestamp.now()}', 'bar', '0', '0'),"
+                f"('{UUID(commit_id3).hex}', '{pd.Timestamp.now()}', 'bar', '0', '0');"
             )
         )
     actual = target.get_commit(commit_num=2)
